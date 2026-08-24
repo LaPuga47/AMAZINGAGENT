@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Determines whether a Budget Line was found whose unique key matches the Allocation Match Key.</description>
+        <name>Was_Matching_Budget_Line_Found</name>
+        <label>Was Matching Budget Line Found?</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No Match Found</defaultConnectorLabel>
+        <rules>
+            <name>Match_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Budget_Line_Items.Id</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Link_Allocation_to_Budget_Line</targetReference>
+            </connector>
+            <label>Match Found</label>
+        </rules>
+    </decisions>
+    <description>Automatically matches an Allocation to the appropriate Budget Line using the Allocation Match Key and Budget Line Unique Key. When a match is found, the Budget Line lookup is populated automatically. If no match is found, the Allocation is flagged for manual review.</description>
+    <environments>Default</environments>
+    <formulas>
+        <name>frmToday</name>
+        <dataType>Date</dataType>
+        <expression>TODAY()</expression>
+    </formulas>
+    <interviewLabel>Allocation {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Allocation - Budget Line Linking</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Budget_Line_Items</name>
+        <label>Get Budget Line Items</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Was_Matching_Budget_Line_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Budget_Line_Unique_Key__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Allocation_Match_Key__c</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>Budget_Line__c</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Populates the Allocation Budget Line lookup with the Budget Line identified by the matching key.</description>
+        <name>Link_Allocation_to_Budget_Line</name>
+        <label>Link Allocation to Budget Line</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_Budget_Line_To_Matched</targetReference>
+        </connector>
+        <inputAssignments>
+            <field>Allocation_Date__c</field>
+            <value>
+                <elementReference>frmToday</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Budget_Line__c</field>
+            <value>
+                <elementReference>Get_Budget_Line_Items.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Budget_Line_To_Matched</name>
+        <label>Update Budget Line To Matched</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Budget_Line_Items.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Matched__c</field>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </inputAssignments>
+        <object>Budget_Line__c</object>
+    </recordUpdates>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Budget_Line_Items</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Allocation_Match_Key__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Allocation__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

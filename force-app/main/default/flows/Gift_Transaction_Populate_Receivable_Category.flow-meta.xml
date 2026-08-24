@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>[Arkus/BL 4-21-25] Runs on Create or Update of a Gift Transaction when one of the following is changed: Original Amount, Transaction Due Date, Transaction Conditional?, and Condition Met?. The flow updates the Receivable Cateogry picklist field on Gift Transaction based on the &quot;Receivable Cateogry (Formula)&quot; logic on Gift Transaction.
+v2 - [Arkus/BL 6-17-25] added entry criteria to the  flow so it runs if status on Gift Transaction is changed.</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Holds the same formula logic as the &quot;Receivable Category (Formula)&quot; field on Gift Transaction.</description>
+        <name>f_ReceivableCategoryPicklist</name>
+        <dataType>String</dataType>
+        <expression>IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c} = false,
+{!$Record.TransactionDueDate} &lt; TODAY() + 365
+),
+&quot;Conditional ST&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c}  = false,
+TODAY() + 365 &lt; {!$Record.TransactionDueDate},
+{!$Record.TransactionDueDate} &lt; TODAY() + 730
+),
+&quot;Conditional LT1&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c}  = false,
+TODAY() + 730 &lt; {!$Record.TransactionDueDate},
+{!$Record.TransactionDueDate} &lt; TODAY() + 1095
+),
+&quot;Conditional LT2&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c}  = false,
+{!$Record.TransactionDueDate} &gt; TODAY() + 1095
+),
+&quot;Conditional LT3&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = true,
+{!$Record.TransactionDueDate} &lt; TODAY() + 365
+),
+&quot;Unconditional ST&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = true,
+TODAY() + 365 &lt; {!$Record.TransactionDueDate},
+{!$Record.TransactionDueDate} &lt; TODAY() + 730
+),
+&quot;Unconditional LT1&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = true,
+TODAY() + 730 &lt; {!$Record.TransactionDueDate},
+{!$Record.TransactionDueDate} &lt; TODAY() + 1095
+),
+&quot;Unconditional LT2&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = true,
+{!$Record.TransactionDueDate} &gt; TODAY() + 1095
+),
+&quot;Unconditional LT3&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c}  = true,
+{!$Record.TransactionDueDate} &lt; TODAY() + 365
+),
+&quot;Unconditional ST&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c}  = true,
+{!$Record.TransactionDueDate} &lt; TODAY() + 730
+),
+&quot;Unconditional LT1&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c}  = true,
+{!$Record.TransactionDueDate} &lt; TODAY() + 1095
+),
+&quot;Unconditional LT2&quot;,
+
+IF(
+AND(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;Yes&quot;),
+{!$Record.Condition_Met__c} = true,
+{!$Record.TransactionDueDate} &gt; TODAY() + 1095
+),
+&quot;Unconditional LT3&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = false,
+{!$Record.TransactionDueDate} &lt; TODAY() + 365
+),
+&quot;Unconditional ST&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = false,
+{!$Record.TransactionDueDate} &lt; TODAY() + 730
+),
+&quot;Unconditional LT1&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = false,
+{!$Record.TransactionDueDate} &lt; TODAY() + 1095
+),
+&quot;Unconditional LT2&quot;,
+
+IF(
+AND(
+OR(
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;No&quot;),
+ISPICKVAL({!$Record.Transaction_Conditional__c}, &quot;&quot;)
+),
+{!$Record.Condition_Met__c}  = false,
+{!$Record.TransactionDueDate}&gt; TODAY() + 1095
+),
+&quot;Unconditional LT3&quot;,
+
+&quot;&quot;
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)</expression>
+    </formulas>
+    <interviewLabel>Gift Transaction: Populate Receivable Category {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Gift Transaction: Populate Receivable Category</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <description>Update Receivable Category picklist using the same logic from the &quot;Receivable Cateogry (formula)&quot; field on Gift Transaction. Formula is housed in a resource in this flow.</description>
+        <name>Update_Receivable_Category_picklist</name>
+        <label>Update Receivable Category picklist</label>
+        <locationX>176</locationX>
+        <locationY>287</locationY>
+        <inputAssignments>
+            <field>Receivable_Category__c</field>
+            <value>
+                <elementReference>f_ReceivableCategoryPicklist</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_Receivable_Category_picklist</targetReference>
+        </connector>
+        <filterFormula>(
+ISCHANGED({!$Record.OriginalAmount})
+||
+ISCHANGED({!$Record.TransactionDueDate})
+||
+ISCHANGED({!$Record.Transaction_Conditional__c})
+||
+ISCHANGED({!$Record.Condition_Met__c})
+||
+ISCHANGED({!$Record.Status})
+)</filterFormula>
+        <object>GiftTransaction</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

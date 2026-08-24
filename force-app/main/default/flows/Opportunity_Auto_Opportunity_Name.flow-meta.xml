@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Formula determines the Grant Opportunity Name based on various values from the Anonymous, Audacious? and Grant Focus fields. If the Account on the Opportunity is NOT a Person Account, then use Account.Name in the naming convention.</description>
+        <name>Auto_Name_Grants</name>
+        <label>Auto Name Grants</label>
+        <locationX>50</locationX>
+        <locationY>395</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Name</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>f_grantOpportunityName</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <decisions>
+        <description>Look at the Opportunity Record Type Name and choose a path based on the triggering Opportunity&apos;s record type.</description>
+        <name>Opportunity_Record_Type</name>
+        <label>Opportunity Record Type</label>
+        <locationX>446</locationX>
+        <locationY>287</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Grant</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Grant</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Auto_Name_Grants</targetReference>
+            </connector>
+            <label>Grant</label>
+        </rules>
+        <rules>
+            <name>Debt_Prospecting</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Debt</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Debt Prospecting</label>
+        </rules>
+        <rules>
+            <name>Individual_Recurring_Donation</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Individual Recurring Donation</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Individual Recurring Donation</label>
+        </rules>
+    </decisions>
+    <description>This version includes a path in the automation to re-name Grant Opportunities only AND has been adjusted to correctly name Annonymous Opportunities where the Donor is a person account. [Arkus/BL 4-15-25]</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Arkus(BL) 2-24-2025 formula to get account name (whether PA or regular Account)</description>
+        <name>f_AccountName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+{!$Record.Account.IsPersonAccount}=TRUE, 
+{!$Record.Account.FirstName}&amp;&quot; &quot;&amp;{!$Record.Account.LastName},
+{!$Record.Account.Name}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Formula determines the Grant Opportunity Name based on various values from the Anonymous, Audacious? and Grant Focus fields. If the Account on the Opportunity is NOT a Person Account, then use Account.Name in the naming convention.</description>
+        <name>f_grantOpportunityName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+AND(
+{!$Record.Anonymous__c} = true , {!$Record.Audacious__c} = true , NOT(ISBLANK({!$Record.Grant_Focus__c}))),
+{!f_AccountName} &amp; &quot;-&quot; &amp; &quot;Anonymous&quot; &amp; &quot;-&quot; &amp; TEXT(YEAR({!$Record.CloseDate})) &amp; &quot;-&quot; &amp; TEXT(YEAR({!$Record.End_Date__c}))&amp; &quot;-&quot; &amp; &quot;Audacious&quot; &amp; &quot;-&quot; &amp; {!$Record.Grant_Focus__c},
+
+
+IF(
+AND(
+{!$Record.Anonymous__c} = true , {!$Record.Audacious__c} = true , ISBLANK({!$Record.Grant_Focus__c})),
+{!f_AccountName} &amp; &quot;-&quot; &amp; &quot;Anonymous&quot; &amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp; TEXT(YEAR(
+{!$Record.End_Date__c} ))&amp; &quot;-&quot; &amp; &quot;Audacious&quot;,
+
+
+IF(
+AND(
+{!$Record.Anonymous__c} = true , {!$Record.Audacious__c} = false , NOT(ISBLANK({!$Record.Grant_Focus__c}))),
+{!f_AccountName} &amp; &quot;-&quot; &amp; &quot;Anonymous&quot; &amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp; TEXT(YEAR(
+{!$Record.End_Date__c} ))&amp; &quot;-&quot; &amp; {!$Record.Grant_Focus__c},
+
+IF(
+AND(
+{!$Record.Anonymous__c} = false , {!$Record.Audacious__c} = true , NOT(ISBLANK({!$Record.Grant_Focus__c}))),
+{!f_AccountName} &amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp;
+TEXT(YEAR( {!$Record.End_Date__c} ))&amp; &quot;-&quot; &amp; &quot;Audacious&quot; &amp; &quot;-&quot; &amp; {!$Record.Grant_Focus__c},
+
+IF(
+AND(
+{!$Record.Anonymous__c} = false , {!$Record.Audacious__c} = false , ISBLANK({!$Record.Grant_Focus__c})),
+{!f_AccountName} &amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp;
+TEXT(YEAR( {!$Record.End_Date__c} )),
+
+IF(
+AND(
+{!$Record.Anonymous__c} = false , {!$Record.Audacious__c} = false , NOT(ISBLANK({!$Record.Grant_Focus__c}))),
+{!f_AccountName} &amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp;
+TEXT(YEAR( {!$Record.End_Date__c} ))&amp; &quot;-&quot; &amp; {!$Record.Grant_Focus__c},
+
+IF(
+AND(
+{!$Record.Anonymous__c} = false , {!$Record.Audacious__c} = true , ISBLANK({!$Record.Grant_Focus__c})),
+{!f_AccountName} &amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp;
+TEXT(YEAR( {!$Record.End_Date__c} ))&amp; &quot;-&quot; &amp; &quot;Audacious&quot; ,
+
+
+{!f_AccountName} &amp; &quot;-&quot; &amp; &quot;Anonymous&quot;&amp; &quot;-&quot; &amp; TEXT(YEAR( {!$Record.CloseDate} )) &amp; &quot;-&quot; &amp;
+TEXT(YEAR( {!$Record.End_Date__c} ))
+)
+)
+)
+)
+)
+)
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Arkus (BL) 03/20/2025 conditional if it&apos;s a person account (since it uses contact first and last name) vs account name for non-person accounts</description>
+        <name>fxT_AccountName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  $Record.Account.IsPersonAccount, 
+  $Record.Account.FirstName &amp; &quot; &quot; &amp; $Record.Account.LastName, 
+  $Record.Account.Name
+)</expression>
+    </formulas>
+    <formulas>
+        <name>fxT_InvestorName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  {!$Record.Investor__r.IsPersonAccount} = TRUE, 
+  {!$Record.Investor__r.FirstName} &amp; &quot; &quot; &amp; {!$Record.Investor__r.LastName}, 
+  {!$Record.Investor__r.Name}
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Note from Caroline Shenoy (1AF) on 3-20-2025:
+
+For opportunities in pipeline (all Stages except Closed/Won), I use the following naming convention:
+[Investor/Intermediary name] - Type (new relationship) - NOTES 
+ 
+For opportunities that are meant to represent open notes or renewals (Stage=Closed/Won), I use the following naming convention:
+Note ## - Intermediary (if any) - Investor - Year - &quot;NOTES&quot;</description>
+        <name>fxT_OpportunityNameDebt</name>
+        <dataType>String</dataType>
+        <expression>IF(
+    ISPICKVAL({!$Record.StageName}, &quot;Closed Won&quot;), 
+    {!fxT_AccountName} &amp; &quot; - &quot; &amp; TEXT({!$Record.Type}) &amp; &quot; - NOTES&quot;,
+    {!$Record.Note_Number__c} &amp;&quot; - &quot; &amp; {!fxT_AccountName} &amp; &quot; - &quot;&amp; {!fxT_InvestorName} &amp;&quot; - &quot;&amp; TEXT(YEAR({!$Record.CloseDate})) &amp; &quot; - NOTES&quot;
+)</expression>
+    </formulas>
+    <interviewLabel>Opportunity: {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity: Auto Opportunity Name</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>320</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Opportunity_Record_Type</targetReference>
+        </connector>
+        <object>Opportunity</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

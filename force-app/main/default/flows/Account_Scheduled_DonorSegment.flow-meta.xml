@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Runs daily on Accounts where Donor Segment is blank to populate Donor Segment based on the information from the Donor Gift Summary. (Arkus/BL 7-30-25)</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Arkus Inc. - DK 03/03/2025: maps the Donor Segment to it&apos;s criteria</description>
+        <name>fml_txt_DonorSegment</name>
+        <dataType>String</dataType>
+        <expression>IF( 
+ISPICKVAL({!$Record.Type}, &quot;Family Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual or Family&quot;) || ISPICKVAL({!$Record.Type}, &quot;Household&quot;) &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &gt;= 1000000, &quot;Global HNWI ($1M+)&quot;, 
+
+IF( 
+ISPICKVAL({!$Record.Type}, &quot;Family Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual or Family&quot;) || ISPICKVAL({!$Record.Type}, &quot;Household&quot;) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;CA&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;MX&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;US&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;&quot;)) &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &lt; 1000000, &quot;Rest of World Individual&quot;,
+
+IF(
+(ISPICKVAL({!$Record.Type}, &quot;Corporate Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Private Foundation&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Corporation&quot;)  ||
+ISPICKVAL({!$Record.Type}, &quot;Corporate&quot;) || ISPICKVAL({!$Record.Type}, &quot;Public Foundation&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Non-Government&quot;) || ISPICKVAL({!$Record.Type}, &quot;Nonprofit/other exempt&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Impact Investor&quot;) || ISPICKVAL({!$Record.Type}, &quot;Commercial Bank&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Contractor&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;CA&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;MX&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;US&quot;)) &amp;&amp;
+NOT(ISPICKVAL({!$Record.BillingCountryCode}, &quot;&quot;)), &quot;Rest of World Institutional&quot;,
+
+IF( 
+ISPICKVAL({!$Record.Type}, &quot;Family Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual or Family&quot;) || ISPICKVAL({!$Record.Type}, &quot;Household&quot; ) &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &lt;= 5000, &quot;Individual Retail ($0-$5K)&quot;,
+
+IF( 
+ISPICKVAL({!$Record.Type}, &quot;Family Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual or Family&quot;) || ISPICKVAL({!$Record.Type}, &quot;Household&quot;) &amp;&amp;
+(ISPICKVAL({!$Record.BillingCountryCode}, &quot;CA&quot;) || ISPICKVAL({!$Record.BillingCountryCode}, &quot;MX&quot;) || ISPICKVAL({!$Record.BillingCountryCode}, &quot;US&quot;)) &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &gt;= 100000 &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &lt; 999999, &quot;North America Individual ($100K-$1M)&quot;,
+
+IF( 
+ISPICKVAL({!$Record.Type}, &quot;Family Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Individual&quot;)|| ISPICKVAL({!$Record.Type}, &quot;Individual or Family&quot;) || ISPICKVAL({!$Record.Type}, &quot;Household&quot;) &amp;&amp;
+(ISPICKVAL({!$Record.BillingCountryCode}, &quot;CA&quot;) || ISPICKVAL({!$Record.BillingCountryCode}, &quot;MX&quot;) || ISPICKVAL({!$Record.BillingCountryCode}, &quot;US&quot;)) &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &gt;= 5000 &amp;&amp;
+{!GET_DonorGiftSummary.HighestGiftAmount} &lt; 99999, &quot;North America Individual ($5K-$100K)&quot;,
+
+IF(
+(ISPICKVAL({!$Record.Type}, &quot;Corporate Foundation&quot;) || ISPICKVAL({!$Record.Type}, &quot;Private Foundation&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Corporation&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Corporate&quot;) || ISPICKVAL({!$Record.Type}, &quot;Public Foundation&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Non-Government&quot;) || ISPICKVAL({!$Record.Type}, &quot;Nonprofit/Other Exempt&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Impact Investor&quot;) || ISPICKVAL({!$Record.Type}, &quot;Commercial Bank&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Contractor&quot;)) &amp;&amp;
+(ISPICKVAL({!$Record.BillingCountryCode}, &quot;CA&quot;) || ISPICKVAL({!$Record.BillingCountryCode}, &quot;MX&quot;) || ISPICKVAL({!$Record.BillingCountryCode}, &quot;US&quot;)), &quot;North America Institutional&quot;,
+
+IF(
+(ISPICKVAL({!$Record.Type}, &quot;Bilateral&quot;) || 
+ISPICKVAL({!$Record.Type}, &quot;National Government&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Local Government&quot;) || 
+ISPICKVAL({!$Record.Type}, &quot;Government&quot;) || 
+ISPICKVAL({!$Record.Type}, &quot;Other&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Multilateral&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;NGO (Non-Government Org)&quot;) ||
+ISPICKVAL({!$Record.Type}, &quot;Government Agency&quot;)) , &quot;Public&quot;,
+&quot;&quot;))))))))</expression>
+    </formulas>
+    <interviewLabel>Account_Scheduled_DonorSegment {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Account_Scheduled_DonorSegment</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Get the most recent Donor Gift Summary by Last Modified Date</description>
+        <name>GET_DonorGiftSummary</name>
+        <label>GET_DonorGiftSummary</label>
+        <locationX>176</locationX>
+        <locationY>252</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Update_Donor_Segment</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DonorId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>DonorGiftSummary</object>
+        <sortField>LastModifiedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Update_Donor_Segment</name>
+        <label>Update Donor Segment</label>
+        <locationX>176</locationX>
+        <locationY>360</locationY>
+        <inputAssignments>
+            <field>Donor_Segment__c</field>
+            <value>
+                <elementReference>fml_txt_DonorSegment</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>GET_DonorGiftSummary</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Donor_Segment__c</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <object>Account</object>
+        <schedule>
+            <dayOfMonthToRun>0</dayOfMonthToRun>
+            <frequency>Daily</frequency>
+            <frequencyNumber>0</frequencyNumber>
+            <startDate>2025-07-29</startDate>
+            <startTime>16:00:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>67.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Generates and stores a composite unique key for the Budget Line by combining the Fiscal Year, Country, Business Unit, Sub Unit, and Cost Category. This key is used to enforce Budget Line uniqueness and prevent duplicate records.
+
+Assign the generated composite key (Fiscal Year | Country | Business Unit | Sub Unit | Cost Category) to Budget_Line_Unique_Key__c before the Budget Line record is saved. This supports duplicate prevention through the field&apos;s Unique constraint.</description>
+        <name>Configure_the_Assignment</name>
+        <label>Configure the Assignment</label>
+        <locationX>572</locationX>
+        <locationY>335</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Budget_Line_Unique_Key__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>frmBudgetLineUniqueKey</elementReference>
+            </value>
+        </assignmentItems>
+    </assignments>
+    <environments>Default</environments>
+    <formulas>
+        <description>UPPER(TRIM({!$Record.Fiscal_Year__c})) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Country__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.BusinessUnit__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Sub__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Cost_Category__c})))
+One important warning: because Fiscal_Year__c is itself a formula field, a before-save Flow may not always have the refreshed formula result available when the parent Budget Scenario changes. For strongest reliability, populate the key from a stored Fiscal Year value or rebuild the key in an after-save path when the parent scenario changes. For initial creation of a Budget Line, the formula above should compile correctly.</description>
+        <name>frmBudgetLineUniqueKey</name>
+        <dataType>String</dataType>
+        <expression>UPPER(TRIM(TEXT({!$Record.Fiscal_Year__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Country__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.BusinessUnit__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Sub__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Cost_Type__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Department__c}))) &amp;
+&quot;|&quot; &amp;
+UPPER(TRIM(TEXT({!$Record.Cost_Category__c})))</expression>
+    </formulas>
+    <interviewLabel>Budget Line Unique Composite Key {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Budget Line Unique Composite Key</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>FREE_FORM_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>446</locationX>
+        <locationY>48</locationY>
+        <connector>
+            <targetReference>Configure_the_Assignment</targetReference>
+        </connector>
+        <object>Budget_Line__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordBeforeSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

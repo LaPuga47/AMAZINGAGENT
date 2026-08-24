@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Did the Get Records Element find any Gift Transactions related to the Triggering Account?</description>
+        <name>Gift_Transactions_Found</name>
+        <label>Gift Transactions Found?</label>
+        <locationX>182</locationX>
+        <locationY>360</locationY>
+        <defaultConnectorLabel>No - No GTs</defaultConnectorLabel>
+        <rules>
+            <name>YES_GT_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Gift_Transaction_Due_Date</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_NextGiftDate_with_TransactionDueDate</targetReference>
+            </connector>
+            <label>YES - GT Found</label>
+        </rules>
+    </decisions>
+    <description>Daily, run the flow for all Accounts. Look for Unpaid Gift Transactions with a due date (choose the first one by TransactionDueDate ASC). If found, update the Next_Gift_Date__c on Account with the Transaction Due Date from Gift Transaction. Created by Arkus (BL) 2-20-2025</description>
+    <environments>Default</environments>
+    <interviewLabel>Account: Update Next Gift Date {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Account: Update Next Gift Date</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Get Unpaid Gift Transactions related to the triggering Account where the Transaction Due Date is not blank.</description>
+        <name>Get_Gift_Transaction_Due_Date</name>
+        <label>Get Gift Transaction Due Date</label>
+        <locationX>182</locationX>
+        <locationY>252</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Gift_Transactions_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DonorId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>TransactionDueDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Unpaid</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>GiftTransaction</object>
+        <sortField>TransactionDueDate</sortField>
+        <sortOrder>Asc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Update the Next_Gift_Date__c on Account with the TransactionDueDate from the Gift Transaction.</description>
+        <name>Update_NextGiftDate_with_TransactionDueDate</name>
+        <label>Update NextGiftDate with TransactionDueDate</label>
+        <locationX>50</locationX>
+        <locationY>468</locationY>
+        <inputAssignments>
+            <field>Next_Gift_Date__c</field>
+            <value>
+                <elementReference>Get_Gift_Transaction_Due_Date.TransactionDueDate</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>56</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Gift_Transaction_Due_Date</targetReference>
+        </connector>
+        <object>Account</object>
+        <schedule>
+            <frequency>Daily</frequency>
+            <startDate>2025-02-20</startDate>
+            <startTime>22:30:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>[Arkus/BL 3-20-25] As of now, the purpose of this flow is only to update the Note Number and Investor fields on a Debt Opportunity. The decision element exists so additional functionality can be added later.</description>
+        <name>Gift_Commitment_Record_Type</name>
+        <label>Gift Commitment Record Type</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Grant</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Grant</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Grant</label>
+        </rules>
+        <rules>
+            <name>Debt_Prospecting</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Debt</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Opportunity_based_on_GC</targetReference>
+            </connector>
+            <label>Debt Prospecting</label>
+        </rules>
+    </decisions>
+    <description>Runs on create or update of a Gift Commitment when the Note # of Investor are changed. This can be expanded later to consider additional criteria. Arkus(BL) 3-20-2025</description>
+    <environments>Default</environments>
+    <interviewLabel>Gift Commitment: Keep Opportunity in Sync {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Gift Commitment: Keep Opportunity in Sync</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <description>[Arkus/BL 3-20-25] As of now, this only updates the Note Number and Investor fields on opportunity</description>
+        <name>Update_Opportunity_based_on_GC</name>
+        <label>Update Opportunity based on GC</label>
+        <locationX>176</locationX>
+        <locationY>431</locationY>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Id</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Opportunity.Id</elementReference>
+            </value>
+        </filters>
+        <inputAssignments>
+            <field>Investor__c</field>
+            <value>
+                <elementReference>$Record.Investor__c</elementReference>
+            </value>
+        </inputAssignments>
+        <inputAssignments>
+            <field>Note_Number__c</field>
+            <value>
+                <elementReference>$Record.Note_Number__c</elementReference>
+            </value>
+        </inputAssignments>
+        <object>Opportunity</object>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Gift_Commitment_Record_Type</targetReference>
+        </connector>
+        <filterFormula>CONTAINS({!$Record.RecordType.Name}, &quot;Debt&quot;)
+&amp;&amp;
+ISCHANGED({!$Record.Note_Number__c}) ||
+ISCHANGED({!$Record.Investor__c})</filterFormula>
+        <object>GiftCommitment</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

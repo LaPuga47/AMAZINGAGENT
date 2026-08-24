@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Sends a reminder to the assigned Grant Reporter 30 day and 3 Days from Due Date.</description>
+        <name>Send_Grant_Report_Reminder</name>
+        <label>Send Grant Report Reminder</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>emailAddresses</name>
+        </inputParameters>
+        <inputParameters>
+            <name>ccRecipientAddressList</name>
+            <value>
+                <stringValue>dominic.schmitt@oneacrefund.org</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderType</name>
+            <value>
+                <stringValue>OrgWideEmailAddress</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderAddress</name>
+            <value>
+                <stringValue>admin@oneacrefund.org</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>useEmailTemplate</name>
+            <value>
+                <stringValue>True</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailTemplateId</name>
+            <value>
+                <stringValue>00Xcv000001dqnlEAA</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>recipientId</name>
+            <value>
+                <elementReference>$Record.Gift_Commitment__r.Opportunity.Opportunity_Grant_Reporter__r.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>relatedRecordId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>emailSimple</nameSegment>
+        <offset>0</offset>
+        <versionString>1.0.1</versionString>
+    </actionCalls>
+    <apiVersion>64.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <description>Grant Report reminder excludes Debt Prospecting Opportunity Record Types (DJS / 9/16/2025)</description>
+        <name>Grant_Opportunity_Stage</name>
+        <label>Grant Opportunity Stage</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>Is_Today_30_Days_or_3_Days_before_Due</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>All Other Stages</defaultConnectorLabel>
+        <rules>
+            <name>Denied_or_Did_Not_Pursue</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Gift_Commitment__r.Opportunity.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Denied</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Gift_Commitment__r.Opportunity.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Did not Pursue</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Gift_Commitment__r.Opportunity.RecordType.Id</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>012cv000000EkJCAA0</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Denied or Did Not Pursue</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Today is 30 Days OUT or 3 Days Out</description>
+        <name>Is_Today_30_Days_or_3_Days_before_Due</name>
+        <label>Is Today 30 Days or 3 Days before Due</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>YES</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Due_Date__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>TodayPlus30</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Due_Date__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>TodayPlus3</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Grant_Report_Reminder</targetReference>
+            </connector>
+            <label>YES</label>
+        </rules>
+    </decisions>
+    <description>DJS: Grant Report is due 30 days or 3 days from today and is not submitted or canceled (by donor). This flow sends an email alert to the Grant Reporter. Version 2 - scheduled to run at 11AM ET and cc: Dominic on reminders.
+v3 - changed the recipient ID in the email action -- to grab the grant reporter from the Opportunity instead of the GC. (BL 7-30-25)</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>3 Days from Today</description>
+        <name>TodayPlus3</name>
+        <dataType>Date</dataType>
+        <expression>TODAY()+3</expression>
+    </formulas>
+    <formulas>
+        <description>30 Days from Today</description>
+        <name>TodayPlus30</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() +30</expression>
+    </formulas>
+    <interviewLabel>Grant Report Reminder 30 Days 3 Days {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Grant Report Reminder 30 Days 3 Days</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Grant_Opportunity_Stage</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Submitted</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Status__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Canceled (Donor)</stringValue>
+            </value>
+        </filters>
+        <object>Grant_Report__c</object>
+        <schedule>
+            <frequency>Daily</frequency>
+            <startDate>2025-06-19</startDate>
+            <startTime>11:30:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

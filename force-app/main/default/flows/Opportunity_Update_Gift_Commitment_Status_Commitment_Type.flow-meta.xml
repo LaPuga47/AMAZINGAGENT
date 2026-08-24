@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Add_Single_GT_to_Collection</name>
+        <label>Add Single GT to Collection</label>
+        <locationX>1018</locationX>
+        <locationY>1187</locationY>
+        <assignmentItems>
+            <assignToReference>col_GiftTransactions</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>singleGiftTransaction</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_Through_Unpaid_GTs</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Active_CommitmentType_Written</name>
+        <label>Assign GC Status=Active, CommitmentType=Written</label>
+        <locationX>314</locationX>
+        <locationY>755</locationY>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Active</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Written</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Grant_Gift_Commitment</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Closed</name>
+        <label>Assign GC Status=Closed</label>
+        <locationX>930</locationX>
+        <locationY>755</locationY>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Closed</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_Unpaid_Gift_Transactions</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Closed_CommitmentType_Written</name>
+        <label>Assign GC Status=Closed, CommitmentType=Written</label>
+        <locationX>578</locationX>
+        <locationY>755</locationY>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Closed</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Written</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Grant_Gift_Commitment</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Draft_CommitmentType_Verbal</name>
+        <label>Assign GC Status=Draft, CommitmentType=Verbal</label>
+        <locationX>50</locationX>
+        <locationY>755</locationY>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Draft</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>Get_Grant_Gift_Commitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Verbal</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Grant_Gift_Commitment</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Update GT Status (on the current item in the loop) to Written Off</description>
+        <name>Update_GT_Status_to_Written_Off</name>
+        <label>Update GT Status to Written Off</label>
+        <locationX>1018</locationX>
+        <locationY>1079</locationY>
+        <assignmentItems>
+            <assignToReference>singleGiftTransaction.Id</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_Through_Unpaid_GTs.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>singleGiftTransaction.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Written-Off</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Single_GT_to_Collection</targetReference>
+        </connector>
+    </assignments>
+    <customErrors>
+        <name>Cannot_Close_GC_with_Unpaid_Transactions</name>
+        <label>Cannot Close GC with Unpaid Transactions</label>
+        <locationX>1458</locationX>
+        <locationY>1679</locationY>
+        <customErrorMessages>
+            <errorMessage>You can update the status to Draft only for a gift commitment that’s open and has no associated gift transactions.</errorMessage>
+            <isFieldError>false</isFieldError>
+        </customErrorMessages>
+    </customErrors>
+    <decisions>
+        <description>Was a Grant Gift Commitment Found?</description>
+        <name>Grant_GC_Found</name>
+        <label>Grant GC Found?</label>
+        <locationX>1172</locationX>
+        <locationY>539</locationY>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Grant_GC_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Grant_Gift_Commitment</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Opportunity_Stage</targetReference>
+            </connector>
+            <label>YES</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Opportunity_Record_Type</name>
+        <label>Opportunity Record Type</label>
+        <locationX>1711</locationX>
+        <locationY>323</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Grant_Opp_record_type</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Grant</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_Grant_Gift_Commitment</targetReference>
+            </connector>
+            <label>Grant</label>
+        </rules>
+        <rules>
+            <name>Debt_Prospecting_Opp_record_type</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Debt</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Debt Prospecting</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Check the Opportunity Stage of the Triggering Opportunity. Only check for stages listed in the Grant Opportunity Sales Process.</description>
+        <name>Opportunity_Stage</name>
+        <label>Opportunity Stage?</label>
+        <locationX>622</locationX>
+        <locationY>647</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Prospect_New_Grant_thru_Contract_Neg_GrantOpp</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Prospect - New Grant</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Prospect - Renewal</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Proposal invited</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Proposal submitted</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Contract negotiation</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Draft_CommitmentType_Verbal</targetReference>
+            </connector>
+            <label>Prospect - New Grant thru Contract Neg.</label>
+        </rules>
+        <rules>
+            <name>Grant_Awarded_GrantOpp</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Grant Awarded</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Active_CommitmentType_Written</targetReference>
+            </connector>
+            <label>Grant Awarded</label>
+        </rules>
+        <rules>
+            <name>Grant_Closed_GrantOpp</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Grant Closed</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Closed_CommitmentType_Written</targetReference>
+            </connector>
+            <label>Grant Closed</label>
+        </rules>
+        <rules>
+            <name>Denied_or_Did_Not_Pursue_GrantOpp</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Denied</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Did not Pursue</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Closed</targetReference>
+            </connector>
+            <label>Denied or Did Not Pursue</label>
+        </rules>
+    </decisions>
+    <description>[Arkus/BL 3-6-25] Runs on create or update of an Opportunity when Stage is changed. Checks the record type, based on record type and opportunity stage, the Status and Formal Commitment Type on child Gift Commitments are updated accordingly. 
+[Arkus/BL 4-18-25] This version includes steps to write off Unpaid Transactions when an Opportunity is marked as Denied or Did Not Pursue. Added fault path with better-looking custom error.</description>
+    <environments>Default</environments>
+    <interviewLabel>Opportunity: Update Gift Commitment Status &amp; Commitment Type {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity: Update Gift Commitment Status &amp; Commitment Type</label>
+    <loops>
+        <description>Loop through the Unpaid GTs related to the Gift Commitment.</description>
+        <name>Loop_Through_Unpaid_GTs</name>
+        <label>Loop Through Unpaid GTs</label>
+        <locationX>930</locationX>
+        <locationY>971</locationY>
+        <collectionReference>Get_Unpaid_Gift_Transactions</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Update_GT_Status_to_Written_Off</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_Gift_Transactions</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Grant_Gift_Commitment</name>
+        <label>Get Grant Gift Commitment</label>
+        <locationX>1172</locationX>
+        <locationY>431</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Grant_GC_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>OpportunityId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>GiftCommitment</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Get all Unpaid Gift Transactions where the Gift Commitment ID is the same as the Gift Commitment ID found earlier in the flow.</description>
+        <name>Get_Unpaid_Gift_Transactions</name>
+        <label>Get Unpaid Gift Transactions</label>
+        <locationX>930</locationX>
+        <locationY>863</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Loop_Through_Unpaid_GTs</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>GiftCommitmentId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>Get_Grant_Gift_Commitment.Id</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>Status</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Paid</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>GiftTransaction</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Update the Status of the Gift Transactions to Written Off based on the assignment inside the loop above.</description>
+        <name>Update_Gift_Transactions</name>
+        <label>Update Gift Transactions</label>
+        <locationX>930</locationX>
+        <locationY>1379</locationY>
+        <connector>
+            <targetReference>Update_Grant_Gift_Commitment</targetReference>
+        </connector>
+        <inputReference>col_GiftTransactions</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update fields on the Gift Commitment related to the Grant Opportunity that triggered the flow.</description>
+        <name>Update_Grant_Gift_Commitment</name>
+        <label>Update Grant Gift Commitment</label>
+        <locationX>622</locationX>
+        <locationY>1571</locationY>
+        <faultConnector>
+            <targetReference>Cannot_Close_GC_with_Unpaid_Transactions</targetReference>
+        </faultConnector>
+        <inputReference>Get_Grant_Gift_Commitment</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>1585</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Opportunity_Record_Type</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>StageName</field>
+            <operator>IsChanged</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <triggerOrder>400</triggerOrder>
+    <variables>
+        <name>col_GiftTransactions</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>GiftTransaction</objectType>
+    </variables>
+    <variables>
+        <name>singleGiftTransaction</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>GiftTransaction</objectType>
+    </variables>
+</Flow>

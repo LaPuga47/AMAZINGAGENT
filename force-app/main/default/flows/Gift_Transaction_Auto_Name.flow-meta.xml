@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Shortned the naming convetion in the f_giftTransactionName formula. Arkus (BL) 3-21-25</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>[Arkus/BL 3-20-25]Formula creates the Gift Transaction Name based on (GT)(FIRSTTHREEDONORNAME)(TRANSACTION CREATION DATE in YYYYMMDD)(INCREMENTAL NUMBER). Since the Donor is NOT a Person Account, use Account.Name for the naming convention. If Donor IS a Person Account, then use First Name. 
+
+[Arkus/BL 3-21-25] Updated to remove first three letters of Donor Name, use short date, and removed the dash.</description>
+        <name>f_giftTransactionName</name>
+        <dataType>String</dataType>
+        <expression>&quot;GT&quot; &amp;  RIGHT(TEXT(YEAR(DATEVALUE({!$Record.CreatedDate}))),2) &amp; TEXT(MONTH(DATEVALUE({!$Record.CreatedDate}))) &amp; TEXT(DAY(DATEVALUE({!$Record.CreatedDate}))) &amp;  {!$Record.Auto_Number__c}</expression>
+    </formulas>
+    <interviewLabel>Gift Transaction: Auto Name {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Gift Transaction: Auto Name</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordUpdates>
+        <description>This flow must run after save because the naming convention takes the created date into account. A created date will not exist until after the record has been saved.</description>
+        <name>Update_Gift_Transaction_Name</name>
+        <label>Update Gift Transaction Name</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <inputAssignments>
+            <field>Name</field>
+            <value>
+                <elementReference>f_giftTransactionName</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Update_Gift_Transaction_Name</targetReference>
+        </connector>
+        <object>GiftTransaction</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Runs the record rollup definition called &quot;Individual Org/Household Donations&quot; (Arkus BL 12-11-25)</description>
+        <name>Run_Rollup_Individual_Donations_to_Account</name>
+        <label>Run Rollup - Individual Donations to Account</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>runRecordAggrBatchProcDef</actionName>
+        <actionType>runRecordAggrBatchProcDef</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>executionReferenceId</name>
+            <value>
+                <elementReference>txtT_recordRollupDefinitionID</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>runRecordAggrBatchProcDef</nameSegment>
+        <offset>0</offset>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </actionCalls>
+    <apiVersion>65.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>Daily, this flow runs the &quot;Individual Org/Household Donations to Account&quot; record rollup definition. This runs around 7pm ET, approximately one hour after the Donor Gift Summary automation runs. (Arkus/BL 12-11-25)</description>
+    <environments>Default</environments>
+    <interviewLabel>Scheduled Record Rollup - Individual Donations to Account (Daily, 7PM ET) {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Scheduled Record Rollup - Individual Donations to Account (Daily, 7PM ET)</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Run_Rollup_Individual_Donations_to_Account</targetReference>
+        </connector>
+        <schedule>
+            <frequency>Daily</frequency>
+            <startDate>2025-12-09</startDate>
+            <startTime>19:00:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+    <textTemplates>
+        <description>Holds the ID of the &quot;Rollup Person Account Gift Transactions to Account&quot; record rollup definition. Arkus/BL 12-9-25</description>
+        <name>txtT_recordRollupDefinitionID</name>
+        <isViewedAsPlainText>true</isViewedAsPlainText>
+        <text>16ycv00000001VZAAY</text>
+    </textTemplates>
+</Flow>

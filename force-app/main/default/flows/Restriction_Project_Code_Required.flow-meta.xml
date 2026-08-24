@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Sends the email template via related alert: Project Code Required.</description>
+        <name>Send_Email_Project_Code_Required</name>
+        <label>Send Email: Project Code Required</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <actionName>Restriction__c.Project_Code_Required</actionName>
+        <actionType>emailAlert</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>SObjectRowId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>Restriction__c.Project_Code_Required</nameSegment>
+        <offset>0</offset>
+    </actionCalls>
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <description>On create/update of a Restriction when the Project Code field equals &quot;I need a new code!&quot; then send the Project Code Required email alert. Created by Arkus (BL) 2-17-2025</description>
+    <environments>Default</environments>
+    <interviewLabel>Restriction: Project Code Required {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Restriction: Project Code Required</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Send_Email_Project_Code_Required</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Project_Name__c</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>I need a new Project Code!</stringValue>
+            </value>
+        </filters>
+        <object>Restriction__c</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <name>Determine_Donor_Status</name>
+        <label>Determine Donor Status</label>
+        <locationX>1106</locationX>
+        <locationY>468</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>New</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.FirstGiftDate</leftValueReference>
+                <operator>GreaterThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>f_Last335Days</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Acct_New</targetReference>
+            </connector>
+            <label>New</label>
+        </rules>
+        <rules>
+            <name>Ongoing</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <elementReference>f_Last365Days</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.FirstGiftDate</leftValueReference>
+                <operator>LessThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>$Flow.CurrentDate</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Acct_Ongoing</targetReference>
+            </connector>
+            <label>Ongoing</label>
+        </rules>
+        <rules>
+            <name>Soon_to_be_Lapsed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <elementReference>f_Last365Days</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>LessThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>f_Last335Days</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Acct_Soon_Lapsed</targetReference>
+            </connector>
+            <label>Soon to be Lapsed</label>
+        </rules>
+        <rules>
+            <name>Recent_Lapsed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <elementReference>f_Last730Days</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>LessThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>f_Last335Days</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Acct_Recent_Lapsed</targetReference>
+            </connector>
+            <label>Recent Lapsed</label>
+        </rules>
+        <rules>
+            <name>Lapsed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>GreaterThan</operator>
+                <rightValue>
+                    <elementReference>f_Last1095Days</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>LessThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>f_Last730Days</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Acct_Lapsed</targetReference>
+            </connector>
+            <label>Lapsed</label>
+        </rules>
+        <rules>
+            <name>Lapsed_3</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.LastGiftDate</leftValueReference>
+                <operator>LessThanOrEqualTo</operator>
+                <rightValue>
+                    <elementReference>f_Last1095Days</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Acct_Lapsed_3</targetReference>
+            </connector>
+            <label>Lapsed 3+</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Donor_Gift_Summary_Found</name>
+        <label>Donor Gift Summary Found?</label>
+        <locationX>1106</locationX>
+        <locationY>360</locationY>
+        <defaultConnector>
+            <targetReference>Update_Acct_Not_Yet_a_Donor</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>Yes_Dates_Blank</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary.FirstGiftDate</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>No_First_Gift_Update_Status_to_Not_Yet_a_Donor</targetReference>
+            </connector>
+            <label>Yes, Dates Blank</label>
+        </rules>
+        <rules>
+            <name>YES_DGS_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_Donor_Gift_Summary</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Determine_Donor_Status</targetReference>
+            </connector>
+            <label>YES</label>
+        </rules>
+    </decisions>
+    <description>This version includes an updated decision to correct the logic for greater than/less than. Arkus(BL) 4-10-25
+
+V3 (Arkus/BL 9-12-25): Added an outcome to the &quot;Donor Gift Summary Found?&quot; decision to account for Donor Gift Summaries where First Gift Date is blank.
+V4 (Arkus/BL 9-16-25): Updated decision logic for the decision that checks Donor Gift Summary&apos;s first gift date.</description>
+    <environments>Default</environments>
+    <formulas>
+        <name>f_Last1095Days</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() - 1095</expression>
+    </formulas>
+    <formulas>
+        <name>f_Last335Days</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() - 335</expression>
+    </formulas>
+    <formulas>
+        <name>f_Last365Days</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() -365</expression>
+    </formulas>
+    <formulas>
+        <name>f_Last584Days</name>
+        <dataType>Date</dataType>
+        <expression>TODAY()-584</expression>
+    </formulas>
+    <formulas>
+        <name>f_Last730Days</name>
+        <dataType>Date</dataType>
+        <expression>TODAY()-730</expression>
+    </formulas>
+    <interviewLabel>Account: Weekly Donor Status Update {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Account: Weekly Donor Status Update (Sun. 7pm ET)</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <name>Get_Donor_Gift_Summary</name>
+        <label>Get Donor Gift Summary</label>
+        <locationX>1106</locationX>
+        <locationY>252</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Donor_Gift_Summary_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>DonorId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>DonorGiftSummary</object>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>FirstGiftDate</queriedFields>
+        <queriedFields>LastGiftDate</queriedFields>
+        <sortField>LastModifiedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>If the Account has a Donor Gift Summary, but the First Gift Date is blank because there have not yet been any successful (Paid) transactions, then mark the Account as &quot;Not Yet a Donor&quot;</description>
+        <name>No_First_Gift_Update_Status_to_Not_Yet_a_Donor</name>
+        <label>No First Gift? Update Status to Not Yet a Donor</label>
+        <locationX>50</locationX>
+        <locationY>468</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Not Yet a Donor</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to Lapsed</description>
+        <name>Update_Acct_Lapsed</name>
+        <label>Update Acct: Lapsed</label>
+        <locationX>1370</locationX>
+        <locationY>576</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Lapsed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to Lapsed 3+</description>
+        <name>Update_Acct_Lapsed_3</name>
+        <label>Update Acct: Lapsed 3+</label>
+        <locationX>1634</locationX>
+        <locationY>576</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Lapsed 3+</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to New</description>
+        <name>Update_Acct_New</name>
+        <label>Update Acct: New</label>
+        <locationX>314</locationX>
+        <locationY>576</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>New</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to Not Yet a Donor</description>
+        <name>Update_Acct_Not_Yet_a_Donor</name>
+        <label>Update Acct: Not Yet a Donor</label>
+        <locationX>2162</locationX>
+        <locationY>468</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Not Yet a Donor</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to Ongoing</description>
+        <name>Update_Acct_Ongoing</name>
+        <label>Update Acct: Ongoing</label>
+        <locationX>578</locationX>
+        <locationY>576</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to Recent Lapsed</description>
+        <name>Update_Acct_Recent_Lapsed</name>
+        <label>Update Acct: Recent Lapsed</label>
+        <locationX>1106</locationX>
+        <locationY>576</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Recent Lapsed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <description>Update Donor Status to Soon to be Lapsed</description>
+        <name>Update_Acct_Soon_Lapsed</name>
+        <label>Update Acct: Soon Lapsed</label>
+        <locationX>842</locationX>
+        <locationY>576</locationY>
+        <inputAssignments>
+            <field>Donor_Status__c</field>
+            <value>
+                <stringValue>Soon to be Lapsed</stringValue>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>980</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Get_Donor_Gift_Summary</targetReference>
+        </connector>
+        <object>Account</object>
+        <schedule>
+            <frequency>Weekly</frequency>
+            <startDate>2025-03-09</startDate>
+            <startTime>19:00:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Obsolete</status>
+</Flow>

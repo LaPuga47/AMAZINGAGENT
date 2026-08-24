@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <constants>
+        <description>Constant that hold&apos;s Dominic Schmitt&apos;s user ID</description>
+        <name>con_DominicSchmittUserId</name>
+        <dataType>String</dataType>
+        <value>
+            <stringValue>005Kj00000B8Gtn</stringValue>
+        </value>
+    </constants>
+    <decisions>
+        <description>Checks to see if the Guardian&apos;s First Name, Last Name and Email match the First Name, Last Name, and Email of the triggering record&apos;s owner.</description>
+        <name>Does_Guardian_match_Record_Owner</name>
+        <label>Does Guardian match Record Owner?</label>
+        <locationX>176</locationX>
+        <locationY>323</locationY>
+        <defaultConnector>
+            <targetReference>Get_User_that_matches_Guardian</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>YES_Guardian_Owner</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Opportunity_Guardian__r.FirstName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Owner.FirstName</elementReference>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Opportunity_Guardian__r.LastName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>$Record.Owner.LastName</elementReference>
+                </rightValue>
+            </conditions>
+            <label>YES, Guardian = Owner</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Was_a_User_Found</name>
+        <label>Was a User Found?</label>
+        <locationX>374</locationX>
+        <locationY>539</locationY>
+        <defaultConnectorLabel>NO</defaultConnectorLabel>
+        <rules>
+            <name>Yes_User_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_User_that_matches_Guardian</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Update_Opportunity_Owner_to_Guardians_User</targetReference>
+            </connector>
+            <label>Yes, User Found</label>
+        </rules>
+    </decisions>
+    <description>On create or update of Opportunity, when the Guardian field is changed and Guardian is not empty, update the triggering Opportunity&apos;s owner to be a User where the First Name and Last Name matches that of the Guardian contact. Created by Arkus (BL) 2-24-2025</description>
+    <environments>Default</environments>
+    <interviewLabel>Opportunity: Update Owner to Match Guardian {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity: Update Owner to Match Guardian</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Get a User where the First Name, Last Name, and Email match that of the Triggering record&apos;s Guardian.</description>
+        <name>Get_User_that_matches_Guardian</name>
+        <label>Get User that matches Guardian</label>
+        <locationX>374</locationX>
+        <locationY>431</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Was_a_User_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>FirstName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Opportunity_Guardian__r.FirstName</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>LastName</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Opportunity_Guardian__r.LastName</elementReference>
+            </value>
+        </filters>
+        <filters>
+            <field>IsActive</field>
+            <operator>EqualTo</operator>
+            <value>
+                <booleanValue>true</booleanValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>User</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <name>Update_Opportunity_Owner_to_Guardians_User</name>
+        <label>Update Opportunity Owner to Guardian&apos;s User</label>
+        <locationX>242</locationX>
+        <locationY>647</locationY>
+        <inputAssignments>
+            <field>OwnerId</field>
+            <value>
+                <elementReference>Get_User_that_matches_Guardian.Id</elementReference>
+            </value>
+        </inputAssignments>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>50</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Does_Guardian_match_Record_Owner</targetReference>
+        </connector>
+        <filterFormula>NOT(ISBLANK({!$Record.Opportunity_Guardian__c})) || ISCHANGED({!$Record.Opportunity_Guardian__c})</filterFormula>
+        <object>Opportunity</object>
+        <recordTriggerType>CreateAndUpdate</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <triggerOrder>600</triggerOrder>
+</Flow>

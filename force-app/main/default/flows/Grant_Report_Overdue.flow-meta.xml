@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>Sends a reminder to the assigned Grant Reporter one day past due date if not sent.</description>
+        <name>Send_Overdue_Grant_Report_Reminder</name>
+        <label>Send Overdue Grant Report Reminder</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>emailAddresses</name>
+        </inputParameters>
+        <inputParameters>
+            <name>ccRecipientAddressList</name>
+            <value>
+                <stringValue>dominic.schmitt@oneacrefund.org</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderType</name>
+            <value>
+                <stringValue>OrgWideEmailAddress</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderAddress</name>
+            <value>
+                <stringValue>admin@oneacrefund.org</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>useEmailTemplate</name>
+            <value>
+                <stringValue>True</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailTemplateId</name>
+            <value>
+                <stringValue>00Xcv000001drK1EAI</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>recipientId</name>
+            <value>
+                <elementReference>$Record.Gift_Commitment__r.Opportunity_Grant_Reporter__r.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>relatedRecordId</name>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>emailSimple</nameSegment>
+        <offset>0</offset>
+        <versionString>1.0.1</versionString>
+    </actionCalls>
+    <apiVersion>64.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <decisions>
+        <name>Grant_Opportunity_Stage</name>
+        <label>Grant Opportunity Stage</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnector>
+            <targetReference>is_Today_one_day_after_due_date</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>All Other Stages</defaultConnectorLabel>
+        <rules>
+            <name>Denied_or_Did_Not_Pursue</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Gift_Commitment__r.Opportunity.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Denied</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Gift_Commitment__r.Opportunity.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Did not Pursue</stringValue>
+                </rightValue>
+            </conditions>
+            <label>Denied or Did Not Pursue</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Today is 1 Day after Due Date of Grant Report (ignores Jasmine reports)</description>
+        <name>is_Today_one_day_after_due_date</name>
+        <label>is Today one day after due date</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>YES</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Due_Date__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <elementReference>DateofYesterday</elementReference>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Send_Overdue_Grant_Report_Reminder</targetReference>
+            </connector>
+            <label>YES</label>
+        </rules>
+    </decisions>
+    <description>DJS - 10/07/2025 - Added Report Status does NOT equal Interest Payment. 
+
+This triggers an email reminder to Grant Reporter that a Grant Report is overdue.</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Date is Today - 1.</description>
+        <name>DateofYesterday</name>
+        <dataType>Date</dataType>
+        <expression>TODAY () - 1</expression>
+    </formulas>
+    <formulas>
+        <description>3 Days from Today</description>
+        <name>TodayPlus3</name>
+        <dataType>Date</dataType>
+        <expression>TODAY()+3</expression>
+    </formulas>
+    <formulas>
+        <description>30 Days from Today</description>
+        <name>TodayPlus30</name>
+        <dataType>Date</dataType>
+        <expression>TODAY() +30</expression>
+    </formulas>
+    <interviewLabel>Grant Report Overdue {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Grant Report Overdue</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <start>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Grant_Opportunity_Stage</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>Status__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Submitted</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Status__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Canceled (Donor)</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Report_Type__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Jasmine Quarterly Report</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Report_Type__c</field>
+            <operator>NotEqualTo</operator>
+            <value>
+                <stringValue>Interest Payment</stringValue>
+            </value>
+        </filters>
+        <object>Grant_Report__c</object>
+        <schedule>
+            <frequency>Daily</frequency>
+            <startDate>2025-06-24</startDate>
+            <startTime>11:45:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+</Flow>

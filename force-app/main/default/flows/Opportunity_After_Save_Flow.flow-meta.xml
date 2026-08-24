@@ -1,0 +1,791 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <actionCalls>
+        <description>send an email to RM on Transactions / restrictions</description>
+        <name>Send_Reminder_to_Create_Transactions_Restrictions</name>
+        <label>Send Reminder to Create Transactions / Restrictions</label>
+        <locationX>578</locationX>
+        <locationY>1163</locationY>
+        <actionName>emailSimple</actionName>
+        <actionType>emailSimple</actionType>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
+        <inputParameters>
+            <name>emailAddresses</name>
+        </inputParameters>
+        <inputParameters>
+            <name>senderType</name>
+            <value>
+                <stringValue>OrgWideEmailAddress</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>senderAddress</name>
+            <value>
+                <stringValue>admin@oneacrefund.org</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>useEmailTemplate</name>
+            <value>
+                <stringValue>True</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>emailTemplateId</name>
+            <value>
+                <stringValue>00Xcv0000031UYbEAM</stringValue>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>recipientId</name>
+            <value>
+                <elementReference>Get_New_Gift_Commitment.Opportunity.Opportunity_Guardian__r.Id</elementReference>
+            </value>
+        </inputParameters>
+        <inputParameters>
+            <name>relatedRecordId</name>
+            <value>
+                <elementReference>Get_New_Gift_Commitment.Id</elementReference>
+            </value>
+        </inputParameters>
+        <nameSegment>emailSimple</nameSegment>
+        <offset>0</offset>
+        <versionString>1.0.1</versionString>
+    </actionCalls>
+    <apiVersion>62.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <name>Assign_GC_Status_Commit_Awarded</name>
+        <label>Assign GC Status/Commit - Awarded</label>
+        <locationX>314</locationX>
+        <locationY>647</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Active</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Written</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Set_Gift_Commitment_Values_Grant</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Commit_Closed</name>
+        <label>Assign GC Status/Commit - Closed</label>
+        <locationX>578</locationX>
+        <locationY>647</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Closed</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Written</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Set_Gift_Commitment_Values_Grant</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Commit_Pipeline</name>
+        <label>Assign GC Status/Commit - Pipeline</label>
+        <locationX>50</locationX>
+        <locationY>647</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Draft</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.FormalCommitmentType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Verbal</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Set_Gift_Commitment_Values_Grant</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_GC_Status_Denied</name>
+        <label>Assign GC Status - Denied</label>
+        <locationX>842</locationX>
+        <locationY>647</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Status</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Closed</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Set_Gift_Commitment_Values_Grant</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>assign Debt gift commitment values from the running opp</description>
+        <name>Set_Debt_Gift_Commitment_Values</name>
+        <label>Set Debt Gift Commitment Values</label>
+        <locationX>1282</locationX>
+        <locationY>539</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Name</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Name</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.DonorId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.AccountId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.OpportunityId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ScheduleType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Custom</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ExpectedTotalCmtAmount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Amount</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.EffectiveStartDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.CloseDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.RecordTypeId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_RecordTypeID_for_Debt_Gift_Commitment.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ExpectedEndDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.End_Date__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Debt_Gift_Commitment</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Arkus (OT) 10/08/2024 assign gift commitment values from the running opp -- when opp is grant</description>
+        <name>Set_Gift_Commitment_Values_Grant</name>
+        <label>Set Gift Commitment Values - Grant</label>
+        <locationX>578</locationX>
+        <locationY>839</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Name</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Name</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.DonorId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.AccountId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.OpportunityId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ScheduleType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Custom</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ExpectedTotalCmtAmount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Amount</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.EffectiveStartDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.CloseDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.RecordTypeId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_RecordTypeID_for_Grant_Gift_Commitment.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ExpectedEndDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.End_Date__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Gift_Commitment</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>assign Investment Note gift commitment values from the running opp</description>
+        <name>Set_Investment_Note_Gift_Commitment_Values</name>
+        <label>Set Investment Note Gift Commitment Values</label>
+        <locationX>1546</locationX>
+        <locationY>539</locationY>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.Name</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Name</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.DonorId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.AccountId</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.OpportunityId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ScheduleType</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Custom</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ExpectedTotalCmtAmount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Amount</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.EffectiveStartDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.CloseDate</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.RecordTypeId</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Get_RecordTypeID_for_Investment_Note_Gift_Commitment.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_GiftCommitment.ExpectedEndDate</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.End_Date__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Create_Investment_Note_Gift_Commitment</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <description>Arkus (OT) 10/08/2024 if it&apos;s a grant opp - record should be treated differently</description>
+        <name>Record_Type_Routing</name>
+        <label>Record Type Routing</label>
+        <locationX>1194</locationX>
+        <locationY>323</locationY>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Opportunity_RT_Grant</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Grant</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_RecordTypeID_for_Grant_Gift_Commitment</targetReference>
+            </connector>
+            <label>Opportunity RT = Grant</label>
+        </rules>
+        <rules>
+            <name>Opportunity_RT_Debt_Prospecting</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Debt</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_RecordTypeID_for_Debt_Gift_Commitment</targetReference>
+            </connector>
+            <label>Opportunity RT = Debt Prospecting</label>
+        </rules>
+        <rules>
+            <name>Opportunity_RT_Investment_Note</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.RecordType.Name</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Note</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Get_RecordTypeID_for_Investment_Note_Gift_Commitment</targetReference>
+            </connector>
+            <label>Opportunity RT = Investment Note</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>What_s_the_Opp_Stage</name>
+        <label>What&apos;s the Opp Stage?</label>
+        <locationX>578</locationX>
+        <locationY>539</locationY>
+        <defaultConnector>
+            <targetReference>Set_Gift_Commitment_Values_Grant</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>Pipeline</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Prospect - New Grant</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Prospect - Renewal</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Proposal invited</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Proposal submitted</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Contract negotiation</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Commit_Pipeline</targetReference>
+            </connector>
+            <label>Pipeline</label>
+        </rules>
+        <rules>
+            <name>Awarded</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Grant Awarded</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Commit_Awarded</targetReference>
+            </connector>
+            <label>Awarded</label>
+        </rules>
+        <rules>
+            <name>Closed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Grant Closed</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Commit_Closed</targetReference>
+            </connector>
+            <label>Closed</label>
+        </rules>
+        <rules>
+            <name>Denied_Did_not_Pursue</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Denied</stringValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.StageName</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Did not Pursue</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Assign_GC_Status_Denied</targetReference>
+            </connector>
+            <label>Denied/Did not Pursue</label>
+        </rules>
+    </decisions>
+    <description>V4 - Adding ON email alert. 
+
+[DJS/2025-09-30] removed auto-creation of Gift Transactions when a Grant Opportunity is created. 
+
+[DJS/2025-09-25] made gift transaction dependent on the values from the Opportunity &quot;Includes Conditional Transaction&quot; Yes / No
+
+Added decision outcome for Debt Prospecting opportunites, and Gift Transactions are not created for Debt Opportunities. Arkus(BL) 3-20-25
+
+V7 (12/15/2025) - DJS - added a path for investment note opportunities to gift commitment</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Determines Gift Commitment record type ID based on the record type of the triggering Opportunity</description>
+        <name>f_GiftCommitmentRecordTypeID</name>
+        <dataType>String</dataType>
+        <expression>IF(
+    {!$Record.RecordType.Name} = &quot;Grant&quot;, 
+    {!Get_RecordTypeID_for_Grant_Gift_Commitment.Id}, 
+    IF(
+        {!$Record.RecordType.Name} = &quot;Debt Prospecting&quot;, 
+        {!Get_RecordTypeID_for_Debt_Gift_Commitment.Id}, 
+        {!Get_RecordTypeID_for_Grant_Gift_Commitment.Id}
+    )
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Arkus (OT) 10/08/2024 sets a last date of the month as a</description>
+        <name>fXDate_LastDayofTheMonth</name>
+        <dataType>Date</dataType>
+        <expression>DATE(
+  YEAR(TODAY()),
+  MONTH(TODAY()) + 1,
+  1
+) - 1</expression>
+    </formulas>
+    <formulas>
+        <description>Arkus (OT) 10/08/2024 conditional if it&apos;s a person account (since it uses contact first and last name) vs account name for non-person accounts</description>
+        <name>fxT_AccountName</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  $Record.Account.IsPersonAccount, 
+  $Record.Account.FirstName &amp; &quot; &quot; &amp; $Record.Account.LastName, 
+  $Record.Account.Name
+)</expression>
+    </formulas>
+    <formulas>
+        <description>formula displays the first three characters of the donor name from the Opportunity record. Arkus (BL)</description>
+        <name>fxT_DonorFirstThreeCharacters</name>
+        <dataType>String</dataType>
+        <expression>IF(
+  $Record.Account.IsPersonAccount, 
+  UPPER(LEFT({!$Record.Account.FirstName}, 3)),
+  UPPER(LEFT({!$Record.Account.Name}, 3)) 
+)</expression>
+    </formulas>
+    <formulas>
+        <name>fxT_GiftCommitmentName</name>
+        <dataType>String</dataType>
+        <expression>{!$Record.Name}</expression>
+    </formulas>
+    <formulas>
+        <description>Arkus (BL) 2-24-2025 standard naming convention for gift transaction record (minus the auto number)</description>
+        <name>fxT_GiftTransactionName</name>
+        <dataType>String</dataType>
+        <expression>&quot;GT&quot; &amp; 
+
+(IF(
+  $Record.Account.IsPersonAccount, 
+  UPPER(LEFT({!$Record.Account.FirstName}, 3)),
+  UPPER(LEFT({!$Record.Account.Name}, 3)) 
+)) &amp; 
+
+TEXT(YEAR( {!$Flow.CurrentDate} )) &amp; 
+TEXT(MONTH( {!$Flow.CurrentDate} )) &amp; 
+TEXT(DAY( {!$Flow.CurrentDate} ))</expression>
+    </formulas>
+    <interviewLabel>Opportunity: After Save Flow {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Opportunity: After Save Flow</label>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordCreates>
+        <description>creates the debt gift commitment record associated w/ opp</description>
+        <name>Create_Debt_Gift_Commitment</name>
+        <label>Create Debt Gift Commitment</label>
+        <locationX>1282</locationX>
+        <locationY>647</locationY>
+        <inputReference>varR_GiftCommitment</inputReference>
+    </recordCreates>
+    <recordCreates>
+        <description>Arkus (OT) 10/08/2024 creates the gift commitment record associated w/ opp</description>
+        <name>Create_Gift_Commitment</name>
+        <label>Create Gift Commitment</label>
+        <locationX>578</locationX>
+        <locationY>947</locationY>
+        <connector>
+            <targetReference>Get_New_Gift_Commitment</targetReference>
+        </connector>
+        <inputReference>varR_GiftCommitment</inputReference>
+    </recordCreates>
+    <recordCreates>
+        <description>creates the Investment Note gift commitment record associated w/ opp</description>
+        <name>Create_Investment_Note_Gift_Commitment</name>
+        <label>Create Investment Note Gift Commitment</label>
+        <locationX>1546</locationX>
+        <locationY>647</locationY>
+        <inputReference>varR_GiftCommitment</inputReference>
+    </recordCreates>
+    <recordLookups>
+        <name>Get_New_Gift_Commitment</name>
+        <label>Get New Gift Commitment</label>
+        <locationX>578</locationX>
+        <locationY>1055</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Send_Reminder_to_Create_Transactions_Restrictions</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>OpportunityId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>GiftCommitment</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Arkus (BL) 3-19-25. Get RecordTypeID for Debt Gift Commitment so that we can create a Gift Commitment with Record Type = Debt Prospecting.</description>
+        <name>Get_RecordTypeID_for_Debt_Gift_Commitment</name>
+        <label>Get RecordTypeID for Debt Gift Commitment</label>
+        <locationX>1282</locationX>
+        <locationY>431</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Set_Debt_Gift_Commitment_Values</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SobjectType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>GiftCommitment</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Name</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Debt Prospecting</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>RecordType</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Arkus (BL) 2-13-25. Get RecordTypeID for Grant Gift Commitment so that we can create a Gift Commitment with Record Type = Grant.</description>
+        <name>Get_RecordTypeID_for_Grant_Gift_Commitment</name>
+        <label>Get RecordTypeID for Grant Gift Commitment</label>
+        <locationX>578</locationX>
+        <locationY>431</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>What_s_the_Opp_Stage</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SobjectType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>GiftCommitment</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Name</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Grant</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>RecordType</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>(DJS 12/15) - Updated Investment Note creation of GC on Opportunity Save</description>
+        <name>Get_RecordTypeID_for_Investment_Note_Gift_Commitment</name>
+        <label>Get RecordTypeID for Investment Note Gift Commitment</label>
+        <locationX>1546</locationX>
+        <locationY>431</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Set_Investment_Note_Gift_Commitment_Values</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>SobjectType</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>GiftCommitment</stringValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Name</field>
+            <operator>EqualTo</operator>
+            <value>
+                <stringValue>Investment Note</stringValue>
+            </value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>RecordType</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <start>
+        <locationX>1068</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>Record_Type_Routing</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>CloseDate</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <filters>
+            <field>Amount</field>
+            <operator>IsNull</operator>
+            <value>
+                <booleanValue>false</booleanValue>
+            </value>
+        </filters>
+        <object>Opportunity</object>
+        <recordTriggerType>Create</recordTriggerType>
+        <triggerType>RecordAfterSave</triggerType>
+    </start>
+    <status>Active</status>
+    <triggerOrder>300</triggerOrder>
+    <variables>
+        <name>varNEWGiftCommitment</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>GiftCommitment</objectType>
+    </variables>
+    <variables>
+        <description>Arkus (OT) 10/08/2024 gift commitment record associated with the opportunity</description>
+        <name>varR_GiftCommitment</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>GiftCommitment</objectType>
+    </variables>
+    <variables>
+        <description>Arkus (OT) 10/08/2024 gift commitment schedule to associated w/ Opp</description>
+        <name>varR_GiftCommitmentSchedule</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>GiftCommitmentSchedule</objectType>
+    </variables>
+    <variables>
+        <description>Arkus (OT) 10/08/2024 record variable for gift transaction</description>
+        <name>varR_GiftTransaction</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>GiftTransaction</objectType>
+    </variables>
+</Flow>

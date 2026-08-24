@@ -1,0 +1,1640 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_AsOngoing</name>
+        <label>Add Member to Collection</label>
+        <locationX>138</locationX>
+        <locationY>1332</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_People_in_the_Household_WhereHHStatusIsOngoing</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_LapsedToOngoing</name>
+        <label>Add Member to Collection</label>
+        <locationX>1274</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_Ongoing</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_MatchHH</name>
+        <label>Add Member to Collection</label>
+        <locationX>1978</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_Lapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_New</name>
+        <label>Add Member to Collection</label>
+        <locationX>794</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_People_in_the_Household_MembersNewOrNotYetADonor</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_NewToOngoing</name>
+        <label>Add Member to Collection</label>
+        <locationX>442</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_People_in_the_Household_MembersOngoingOrLapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_NotDonorToLapsed</name>
+        <label>Add Member to Collection</label>
+        <locationX>3338</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_Lapsed_whereHHNotDonor</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_NotDonorToNew</name>
+        <label>Add Member to Collection</label>
+        <locationX>2634</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_New_WhereHHNotDonor</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_NotDonorToOngoing</name>
+        <label>Add Member to Collection</label>
+        <locationX>2282</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_Ongoing_WhereHHIsNotDonor</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_NotDonorToSoonLapsed</name>
+        <label>Add Member to Collection</label>
+        <locationX>2986</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_Soon_to_be_Lapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_remainNotDonor</name>
+        <label>Add Member to Collection</label>
+        <locationX>3690</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_Not_Yet_a_Donor</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Add the current Household Member from the loop to the Collection of Household Members.</description>
+        <name>Add_Member_to_Collection_RemainSoonLapsed</name>
+        <label>Add Member to Collection</label>
+        <locationX>1626</locationX>
+        <locationY>1548</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMembersToUpdate_col</assignToReference>
+            <operator>Add</operator>
+            <value>
+                <elementReference>varR_HouseholdMemberAccount</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Loop_through_Household_Members_SoonLapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assign_Donor_Status_As_Of_Date</name>
+        <label>Assign Donor Status As Of Date</label>
+        <locationX>3853</locationX>
+        <locationY>2292</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_Triggering_Account</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status value determined by the subflow to the Triggering Account.</description>
+        <name>Assign_Donor_Status_from_Subflow_Household</name>
+        <label>Assign Donor Status from Subflow - Household</label>
+        <locationX>3096</locationX>
+        <locationY>468</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Run_Donor_Status_subflow_Household.recordid.Donor_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Get_ACRs_for_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status value determined by the subflow to the Triggering Account.</description>
+        <name>Assign_Donor_Status_from_Subflow_other</name>
+        <label>Assign Donor Status from Subflow - other</label>
+        <locationX>4610</locationX>
+        <locationY>468</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Run_Donor_Status_subflow_other.recordid.Donor_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Assign_Donor_Status_As_Of_Date</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each person account to have the same Donor Status as their household, and update the Donor Status As Of Date to today.</description>
+        <name>Assign_Donor_Status_to_HHMembers_New</name>
+        <label>Assign Donor Status to Members - New</label>
+        <locationX>794</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_People_in_the_Household_MembersNewOrNotYetADonor</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>New</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_New</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each person account to have the same Donor Status as their household, and update the Donor Status As Of Date to today.</description>
+        <name>Assign_Donor_Status_to_HHMembers_Ongoing</name>
+        <label>Assign Donor Status to Members - Ongoing</label>
+        <locationX>442</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_People_in_the_Household_MembersOngoingOrLapsed</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_NewToOngoing</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each person account to have the same Donor Status as their household, and update the Donor Status As Of Date to today.</description>
+        <name>Assign_Donor_Status_To_Members_asOngoing</name>
+        <label>Assign Donor Status To Members - Ongoing</label>
+        <locationX>138</locationX>
+        <locationY>1224</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_People_in_the_Household_WhereHHStatusIsOngoing</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_AsOngoing</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be Lapsed and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_Lapsed</name>
+        <label>Assign Members to Lapsed</label>
+        <locationX>3338</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_Lapsed_whereHHNotDonor</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Lapsed</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_NotDonorToLapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be the same as the Triggering Account&apos;s Donor Status, and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_match_HH</name>
+        <label>Assign Members to match HH</label>
+        <locationX>1978</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_Lapsed</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Run_Donor_Status_subflow_Household.recordid.Donor_Status__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_MatchHH</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be New and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_New</name>
+        <label>Assign Members to New</label>
+        <locationX>2634</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_New_WhereHHNotDonor</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>New</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_NotDonorToNew</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be Not Yet a Donor and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_Not_Yet_a_Donor</name>
+        <label>Assign Members to Not Yet a Donor</label>
+        <locationX>3690</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_Not_Yet_a_Donor</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Not Yet a Donor</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_remainNotDonor</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be Ongoing and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_Ongoing_whereHHLapsed</name>
+        <label>Assign Members to Ongoing</label>
+        <locationX>1274</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_Ongoing</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_LapsedToOngoing</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be Ongoing and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_Ongoing_whereHHNotDonor</name>
+        <label>Assign Members to Ongoing</label>
+        <locationX>2282</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_Ongoing_WhereHHIsNotDonor</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_NotDonorToOngoing</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be Soon to be Lapsed and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_Soon_to_be_Lapsed</name>
+        <label>Assign Members to Soon to be Lapsed</label>
+        <locationX>2986</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_Soon_to_be_Lapsed</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Soon to be Lapsed</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_NotDonorToSoonLapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Donor Status of each Household Member to be the same as the Triggering Account&apos;s Donor Status, and update the Donor Status As of Date to TODAY.</description>
+        <name>Assign_Members_to_Soon_to_Be_Lasped_whenHHLapsed</name>
+        <label>Assign Members to Soon to Be Lasped</label>
+        <locationX>1626</locationX>
+        <locationY>1440</locationY>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_through_Household_Members_SoonLapsed</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Soon to be Lapsed</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_HouseholdMemberAccount.Donor_Status_As_Of__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Flow.CurrentDate</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_Member_to_Collection_RemainSoonLapsed</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Triggering Account&apos;s Donor Status to Lapsed</description>
+        <name>Assign_Triggering_Household_as_Lapsed</name>
+        <label>Assign Triggering Household as Lapsed</label>
+        <locationX>3250</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Lapsed</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Triggering Account&apos;s Donor Status to New</description>
+        <name>Assign_Triggering_Household_as_New</name>
+        <label>Assign Triggering Household as New</label>
+        <locationX>2546</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>New</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Triggering Account&apos;s Donor Status to Ongoing.</description>
+        <name>Assign_Triggering_Household_as_Ongoing</name>
+        <label>Assign Triggering Household as Ongoing</label>
+        <locationX>1186</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Since one person in the household was Ongoing OR Lapsed at the time the Household Donor Status was New, then everyone in the Household, and the Household itself should be &quot;Ongoing.&quot;</description>
+        <name>Assign_Triggering_Household_as_Ongoing_fromNew</name>
+        <label>Assign Triggering Household as Ongoing</label>
+        <locationX>354</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Triggering Account&apos;s Donor Status to Ongoing.</description>
+        <name>Assign_Triggering_Household_as_Ongoing_fromNotADonor</name>
+        <label>Assign Triggering Household as Ongoing</label>
+        <locationX>2194</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Ongoing</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Triggering Account&apos;s Donor Status to Soon to be Lapsed</description>
+        <name>Assign_Triggering_Household_as_Soon_to_be_Lapsed</name>
+        <label>Assign Triggering Household as Soon to be Lapsed</label>
+        <locationX>2898</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Soon to be Lapsed</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <description>Assign the Triggering Account&apos;s Donor Status to Ongoing.</description>
+        <name>Assign_Triggering_Household_as_Soon_to_Be_Lapsed_fromLapsed</name>
+        <label>Assign Triggering Household as Soon to Be Lapsed</label>
+        <locationX>1538</locationX>
+        <locationY>1740</locationY>
+        <assignmentItems>
+            <assignToReference>$Record.Donor_Status__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Soon to be Lapsed</stringValue>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </connector>
+    </assignments>
+    <decisions>
+        <description>Did the &quot;Get ACRs (HH)&quot; element find any Account Contact Relationship records linked to the triggering Household account?</description>
+        <name>Were_Account_Contact_Relationships_HH_Found</name>
+        <label>Were Account Contact Relationships (HH) Found?</label>
+        <locationX>3096</locationX>
+        <locationY>684</locationY>
+        <defaultConnector>
+            <targetReference>Assign_Donor_Status_As_Of_Date</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No</defaultConnectorLabel>
+        <rules>
+            <name>Yes_ACRs_forHousehold_Found</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Get_ACRs_for_Household</leftValueReference>
+                <operator>IsNull</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>List_People_from_ACRs</targetReference>
+            </connector>
+            <label>Yes</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Let&apos;s check the Donor status of the Household that triggered the flow (using the output values from the subflow). 
+  - If it&apos;s New or Ongoing, we want to assign the &quot;Ongoing&quot; Donor Status to all Person Accounts in the household.
+  - If it&apos;s Lapsed or any other status, we want to check if the household members are Ongoing donors, and, if so, then update the household Donor Status to ongoing.</description>
+        <name>What_s_the_Household_Donor_Status</name>
+        <label>What&apos;s the Household Donor Status?</label>
+        <locationX>2022</locationX>
+        <locationY>1008</locationY>
+        <defaultConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Other</defaultConnectorLabel>
+        <rules>
+            <name>Ongoing_Household</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Run_Donor_Status_subflow_Household.recordid.Donor_Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Ongoing</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_People_in_the_Household_WhereHHStatusIsOngoing</targetReference>
+            </connector>
+            <label>Ongoing</label>
+        </rules>
+        <rules>
+            <name>New_Household</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Run_Donor_Status_subflow_Household.recordid.Donor_Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>New</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew</targetReference>
+            </connector>
+            <label>New</label>
+        </rules>
+        <rules>
+            <name>Lapsed_Household</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Run_Donor_Status_subflow_Household.recordid.Donor_Status__c</leftValueReference>
+                <operator>Contains</operator>
+                <rightValue>
+                    <stringValue>Lapsed</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>List_Donor_Statuses_of_Household_Members_whenHouseholdIsLapsed</targetReference>
+            </connector>
+            <label>Lapsed</label>
+        </rules>
+        <rules>
+            <name>Not_Yet_a_Donor_Household</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Run_Donor_Status_subflow_Household.recordid.Donor_Status__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Not Yet a Donor</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>List_Donor_Statuses_of_Household_Members_WhenHouseholdIsNotYetADonor</targetReference>
+            </connector>
+            <label>Not Yet a Donor</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>If Household Donor Status is Not Yet A Donor:
+
+  - And Member contains Ongoing (And does not contain Lapsed), then Members + HH should be Ongoing
+
+  - And Member contains New (And does not contain Ongoing, or Lapsed), then Members + HH should be New
+
+  - And Member contains Soon to be Lapsed (And does not contain Ongoing, New, or NotYetDonor), then Members + HH should be Soon to be Lapsed
+
+  - And Member contains Lapsed (And does not contain Ongoing, New, or NotYetDonor), then Members + HH should be Lapsed
+      - Right here, we won’t be able to distinguish which lapsed status is needed. So we will just set the Household to “Lapsed”, and the household members might have other lapsed statuses such as “Recent Lapsed” or “Lapsed 3+”
+
+  - And Member DOES NOT CONTAIN New, Ongoing, Lapsed, then Members + HH should be Not Yet a Donor</description>
+        <name>What_s_the_Member_Status_WhenHouseholdIsNotYetADonor</name>
+        <label>What&apos;s the Member Status?</label>
+        <locationX>3006</locationX>
+        <locationY>1224</locationY>
+        <defaultConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>HHNotYetADonor_MemberIsOngoing</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_Ongoing_WhereHHIsNotDonor</targetReference>
+            </connector>
+            <label>Ongoing</label>
+        </rules>
+        <rules>
+            <name>HHNotYetADonor_MemberIsNew</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_New_WhereHHNotDonor</targetReference>
+            </connector>
+            <label>New</label>
+        </rules>
+        <rules>
+            <name>HHNotYetADonor_MemberIsSoonToBeLapsed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsSoonToBeLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_Soon_to_be_Lapsed</targetReference>
+            </connector>
+            <label>Soon to be Lapsed</label>
+        </rules>
+        <rules>
+            <name>HHNotYetADonor_MemberIsLapsed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsSoonToBeLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_Lapsed_whereHHNotDonor</targetReference>
+            </connector>
+            <label>Lapsed</label>
+        </rules>
+        <rules>
+            <name>HHNotYetADonor_MemberIsNotYetADonor</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsNotYetADonor</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_Not_Yet_a_Donor</targetReference>
+            </connector>
+            <label>Not Yet A Donor</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>Checks to see if the Account that triggered the flow is one of these: 
+1. Has type=household
+2. Is a person account where IsHouseholdMember=True, or 
+3. Is any other Account</description>
+        <name>What_type_of_Account</name>
+        <label>What type of Account?</label>
+        <locationX>3853</locationX>
+        <locationY>252</locationY>
+        <defaultConnector>
+            <targetReference>Run_Donor_Status_subflow_other</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Other</defaultConnectorLabel>
+        <rules>
+            <name>Household</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.Type</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <stringValue>Household</stringValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Run_Donor_Status_subflow_Household</targetReference>
+            </connector>
+            <label>Household</label>
+        </rules>
+        <rules>
+            <name>Household_Member</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>$Record.IsPersonAccount</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>$Record.Is_Household_Member__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <label>Household Member</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>If Household Donor Status is Lapsed:
+
+  - And Member contains Ongoing OR New, then Members + HH should be Ongoing
+
+  - And Member contains Lapsed or Not Yet a Donor (And does not contain Ongoing or New), then HH should be Lapsed, and members should match HH</description>
+        <name>Whats_the_Member_Status_whenHouseholdIsLapsed</name>
+        <label>What&apos;s the Member Status?</label>
+        <locationX>1538</locationX>
+        <locationY>1224</locationY>
+        <defaultConnector>
+            <targetReference>Loop_through_Household_Members_Lapsed</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Lapsed/Other</defaultConnectorLabel>
+        <rules>
+            <name>HHLapsed_Member_Is_New_or_Ongoing</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_Ongoing</targetReference>
+            </connector>
+            <label>New/Ongoing</label>
+        </rules>
+        <rules>
+            <name>HHLapsed_Member_Is_SoonToBeLapsed</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsSoonToBeLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_Household_Members_SoonLapsed</targetReference>
+            </connector>
+            <label>Soon to be Lapsed</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <description>If Household Donor Status is New
+  - And Member contains Ongoing, then Members + HH should be Ongoing
+
+  - And Member contains New (NOT ONGOING, NOT LAPSED), thenMembers + HH should be New
+
+  - And Member contains Lapsed (NOT NEW, NOT ONGOING, NOT NotYetDonor), then Members + HH should be Ongoing
+
+  - And Member DOES NOT CONTAIN New, Ongoing, Lapsed, then Members + HH should be New</description>
+        <name>Whats_the_Member_Status_whenHouseholdIsNew</name>
+        <label>What&apos;s the Member Status?</label>
+        <locationX>638</locationX>
+        <locationY>1224</locationY>
+        <defaultConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Default Outcome</defaultConnectorLabel>
+        <rules>
+            <name>HHNew_Member_Contains_OngoingOrLapsed</name>
+            <conditionLogic>or</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_People_in_the_Household_MembersOngoingOrLapsed</targetReference>
+            </connector>
+            <label>Contains Ongoing or Lapsed</label>
+        </rules>
+        <rules>
+            <name>HHNew_Member_Contains_NewOrNotYetADonor</name>
+            <conditionLogic>(1 OR 2) AND (3 AND 4)</conditionLogic>
+            <conditions>
+                <leftValueReference>householdMemberContainsNew</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsNotYetADonor</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsOngoing</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <conditions>
+                <leftValueReference>householdMemberContainsLapsed</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>false</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Loop_through_People_in_the_Household_MembersNewOrNotYetADonor</targetReference>
+            </connector>
+            <label>Contains New or NotYetADonor</label>
+        </rules>
+    </decisions>
+    <description>This flow runs daily on Accounts. It launches a subflow that gets their Donor Gift Summary and assigns Donor Status. Then it goes down a specific path for Household, Household Member, or Other to ensure that Donor Status is updated accordingly across households &amp; related household members. Arkus/BL 4-21-26
+v22 - fix logic on the decision element for Lapsed Households. Arkus/BL 4-30-26</description>
+    <environments>Default</environments>
+    <formulas>
+        <description>Formula is true if the List of Donor Statuses of the Household members CONTAINS &quot;Lapsed&quot;</description>
+        <name>householdMemberContainsLapsed</name>
+        <dataType>Boolean</dataType>
+        <expression>IF(
+CONTAINS({!List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew},&quot;Lapsed&quot;),
+TRUE,
+FALSE
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Formula is true if the List of Donor Statuses of the Household members CONTAINS &quot;New&quot;</description>
+        <name>householdMemberContainsNew</name>
+        <dataType>Boolean</dataType>
+        <expression>IF(
+CONTAINS({!List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew},&quot;New&quot;),
+TRUE,
+FALSE
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Formula is true if the List of Donor Statuses of the Household members CONTAINS &quot;Not Yet a Donor&quot;</description>
+        <name>householdMemberContainsNotYetADonor</name>
+        <dataType>Boolean</dataType>
+        <expression>IF(
+CONTAINS({!List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew},&quot;Not Yet a Donor&quot;),
+TRUE,
+FALSE
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Formula is true if the List of Donor Statuses of the Household members CONTAINS &quot;Ongoing&quot;</description>
+        <name>householdMemberContainsOngoing</name>
+        <dataType>Boolean</dataType>
+        <expression>IF(
+CONTAINS({!List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew},&quot;Ongoing&quot;),
+TRUE,
+FALSE
+)</expression>
+    </formulas>
+    <formulas>
+        <description>Formula is true if the List of Donor Statuses of the Household members CONTAINS &quot;Soon to be Lapsed&quot;</description>
+        <name>householdMemberContainsSoonToBeLapsed</name>
+        <dataType>Boolean</dataType>
+        <expression>IF(
+CONTAINS({!List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew},&quot;Soon to be Lapsed&quot;),
+TRUE,
+FALSE
+)</expression>
+    </formulas>
+    <interviewLabel>Account: Daily Donor Status Update {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Account: Daily Donor Status Update 6AM</label>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_Lapsed</name>
+        <label>Loop through Household Members - Lapsed</label>
+        <locationX>1890</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_match_HH</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_Lapsed_whereHHNotDonor</name>
+        <label>Loop through Household Members - Lapsed</label>
+        <locationX>3250</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_Lapsed</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_Lapsed</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_New_WhereHHNotDonor</name>
+        <label>Loop through Household Members - New</label>
+        <locationX>2546</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_New</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_New</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_Not_Yet_a_Donor</name>
+        <label>Loop through Household Members - Not Yet a Donor</label>
+        <locationX>3602</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_Not_Yet_a_Donor</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_Ongoing</name>
+        <label>Loop through Household Members - Ongoing</label>
+        <locationX>1186</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_Ongoing_whereHHLapsed</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_Ongoing</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_Ongoing_WhereHHIsNotDonor</name>
+        <label>Loop through Household Members - Ongoing</label>
+        <locationX>2194</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_Ongoing_whereHHNotDonor</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_Ongoing_fromNotADonor</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_Soon_to_be_Lapsed</name>
+        <label>Loop through Household Members - Soon to be Lapsed</label>
+        <locationX>2898</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_Soon_to_be_Lapsed</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_Soon_to_be_Lapsed</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_Household_Members_SoonLapsed</name>
+        <label>Loop through Household Members - SoonLapsed</label>
+        <locationX>1538</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Members_to_Soon_to_Be_Lasped_whenHHLapsed</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_Soon_to_Be_Lapsed_fromLapsed</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_People_in_the_Household_MembersNewOrNotYetADonor</name>
+        <label>Loop through People in the Household</label>
+        <locationX>706</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Donor_Status_to_HHMembers_New</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_People_in_the_Household_MembersOngoingOrLapsed</name>
+        <label>Loop through People in the Household</label>
+        <locationX>354</locationX>
+        <locationY>1332</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Donor_Status_to_HHMembers_Ongoing</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Assign_Triggering_Household_as_Ongoing_fromNew</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <loops>
+        <description>Loop through each person account related to the Household account.</description>
+        <name>Loop_through_People_in_the_Household_WhereHHStatusIsOngoing</name>
+        <label>Loop through People in the Household</label>
+        <locationX>50</locationX>
+        <locationY>1116</locationY>
+        <collectionReference>Get_People_from_ACRs</collectionReference>
+        <iterationOrder>Asc</iterationOrder>
+        <nextValueConnector>
+            <targetReference>Assign_Donor_Status_To_Members_asOngoing</targetReference>
+        </nextValueConnector>
+        <noMoreValuesConnector>
+            <targetReference>Update_People_in_Household</targetReference>
+        </noMoreValuesConnector>
+    </loops>
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>CanvasMode</name>
+        <value>
+            <stringValue>AUTO_LAYOUT_CANVAS</stringValue>
+        </value>
+    </processMetadataValues>
+    <processMetadataValues>
+        <name>OriginBuilderType</name>
+        <value>
+            <stringValue>LightningFlowBuilder</stringValue>
+        </value>
+    </processMetadataValues>
+    <processType>AutoLaunchedFlow</processType>
+    <recordLookups>
+        <description>Get Account Contact Relationships (ACRs) for the Household Account that triggered the flow.</description>
+        <name>Get_ACRs_for_Household</name>
+        <label>Get ACRs for Household</label>
+        <locationX>3096</locationX>
+        <locationY>576</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Were_Account_Contact_Relationships_HH_Found</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>AccountId</field>
+            <operator>EqualTo</operator>
+            <value>
+                <elementReference>$Record.Id</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>AccountContactRelation</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordLookups>
+        <description>Now we can get the actual person account records for the people that have relationships with the Triggering Household account.</description>
+        <name>Get_People_from_ACRs</name>
+        <label>Get People from ACRs</label>
+        <locationX>2022</locationX>
+        <locationY>900</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>What_s_the_Household_Donor_Status</targetReference>
+        </connector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>PersonContactId</field>
+            <operator>In</operator>
+            <value>
+                <elementReference>List_People_from_ACRs</elementReference>
+            </value>
+        </filters>
+        <getFirstRecordOnly>false</getFirstRecordOnly>
+        <object>Account</object>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </recordLookups>
+    <recordUpdates>
+        <description>Now that we&apos;ve assigned Donor Status and the Donor Status As of Date, let&apos;s actually update the Person Accounts.</description>
+        <name>Update_People_in_Household</name>
+        <label>Update People in Household</label>
+        <locationX>2022</locationX>
+        <locationY>2016</locationY>
+        <connector>
+            <targetReference>Assign_Donor_Status_As_Of_Date</targetReference>
+        </connector>
+        <inputReference>varR_HouseholdMembersToUpdate_col</inputReference>
+    </recordUpdates>
+    <recordUpdates>
+        <name>Update_Triggering_Account</name>
+        <label>Update Triggering Account</label>
+        <locationX>3853</locationX>
+        <locationY>2400</locationY>
+        <inputReference>$Record</inputReference>
+    </recordUpdates>
+    <start>
+        <locationX>3727</locationX>
+        <locationY>0</locationY>
+        <connector>
+            <targetReference>What_type_of_Account</targetReference>
+        </connector>
+        <object>Account</object>
+        <schedule>
+            <dayOfMonthToRun>0</dayOfMonthToRun>
+            <frequency>Daily</frequency>
+            <frequencyNumber>0</frequencyNumber>
+            <startDate>2025-03-06</startDate>
+            <startTime>16:38:00.000Z</startTime>
+        </schedule>
+        <triggerType>Scheduled</triggerType>
+    </start>
+    <status>Active</status>
+    <subflows>
+        <description>Runs the subflow that determines donor status based on the triggering Account&apos;s Donor Gift Summary.</description>
+        <name>Run_Donor_Status_subflow_Household</name>
+        <label>Run Donor Status subflow - Household</label>
+        <locationX>3096</locationX>
+        <locationY>360</locationY>
+        <connector>
+            <targetReference>Assign_Donor_Status_from_Subflow_Household</targetReference>
+        </connector>
+        <flowName>Subflow_Determine_Donor_Status</flowName>
+        <inputAssignments>
+            <name>recordid</name>
+            <value>
+                <elementReference>$Record</elementReference>
+            </value>
+        </inputAssignments>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </subflows>
+    <subflows>
+        <description>Runs the subflow that determines donor status based on the triggering Account&apos;s Donor Gift Summary.</description>
+        <name>Run_Donor_Status_subflow_other</name>
+        <label>Run Donor Status subflow - other</label>
+        <locationX>4610</locationX>
+        <locationY>360</locationY>
+        <connector>
+            <targetReference>Assign_Donor_Status_from_Subflow_other</targetReference>
+        </connector>
+        <flowName>Subflow_Determine_Donor_Status</flowName>
+        <inputAssignments>
+            <name>recordid</name>
+            <value>
+                <elementReference>$Record</elementReference>
+            </value>
+        </inputAssignments>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+    </subflows>
+    <transforms>
+        <description>Now that we got the people related to the household, let&apos;s list all the Donor Statuses of the People in the Household, and store those as a text list.</description>
+        <name>List_Donor_Statuses_of_Household_Members_whenHouseholdIsLapsed</name>
+        <label>List Donor Statuses of Household Members</label>
+        <locationX>1538</locationX>
+        <locationY>1116</locationY>
+        <connector>
+            <targetReference>Whats_the_Member_Status_whenHouseholdIsLapsed</targetReference>
+        </connector>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>Get_People_from_ACRs[$EachItem].Donor_Status__c</elementReference>
+                </value>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <transforms>
+        <description>Now that we got the people related to the household, let&apos;s list all the Donor Statuses of the People in the Household, and store those as a text list.</description>
+        <name>List_Donor_Statuses_of_Household_Members_whenHouseholdIsNew</name>
+        <label>List Donor Statuses of Household Members</label>
+        <locationX>638</locationX>
+        <locationY>1116</locationY>
+        <connector>
+            <targetReference>Whats_the_Member_Status_whenHouseholdIsNew</targetReference>
+        </connector>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>Get_People_from_ACRs[$EachItem].Donor_Status__c</elementReference>
+                </value>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <transforms>
+        <description>Now that we got the people related to the household, let&apos;s list all the Donor Statuses of the People in the Household, and store those as a text list.</description>
+        <name>List_Donor_Statuses_of_Household_Members_WhenHouseholdIsNotYetADonor</name>
+        <label>List Donor Statuses of Household Members</label>
+        <locationX>3006</locationX>
+        <locationY>1116</locationY>
+        <connector>
+            <targetReference>What_s_the_Member_Status_WhenHouseholdIsNotYetADonor</targetReference>
+        </connector>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>Get_People_from_ACRs[$EachItem].Donor_Status__c</elementReference>
+                </value>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <transforms>
+        <description>Let&apos;s create a list of the PersonContactIds from the Account Contact Relationship records we found. This transform element is creating a list of Person Accounts (more specifically, the contact ids from those person accounts).</description>
+        <name>List_People_from_ACRs</name>
+        <label>List People from ACRs</label>
+        <locationX>2022</locationX>
+        <locationY>792</locationY>
+        <connector>
+            <targetReference>Get_People_from_ACRs</targetReference>
+        </connector>
+        <dataType>String</dataType>
+        <isCollection>true</isCollection>
+        <scale>0</scale>
+        <storeOutputAutomatically>true</storeOutputAutomatically>
+        <transformValues>
+            <transformValueActions>
+                <transformType>Map</transformType>
+                <value>
+                    <elementReference>Get_ACRs_for_Household[$EachItem].ContactId</elementReference>
+                </value>
+            </transformValueActions>
+        </transformValues>
+    </transforms>
+    <variables>
+        <name>currentItem_Filter_Households</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>currentItem_Filter_to_only_Household_Account</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>currentItemFromSourceCollection</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>AccountContactRelation</objectType>
+    </variables>
+    <variables>
+        <description>Holds the Household Member (Person Account) record so we can assign a new Donor Status value.</description>
+        <name>varR_HouseholdMemberAccount</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Account</objectType>
+    </variables>
+    <variables>
+        <description>Holds the collection of Household Member (Person Account) records so we can update them later in the flow.</description>
+        <name>varR_HouseholdMembersToUpdate_col</name>
+        <dataType>SObject</dataType>
+        <isCollection>true</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>Account</objectType>
+    </variables>
+</Flow>
