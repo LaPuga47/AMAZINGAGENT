@@ -52,10 +52,20 @@ public with sharing class HeadroomService {
             return result;
         }
 
-        // Step 3 — identify the Budget Line. Exact key when fully specified, else progressive.
-        List<Budget_Line__c> hits = d.hasAllSevenDimensions()
-            ? lines.findByUniqueKey(HeadroomKeyBuilder.build(d))
-            : lines.findByDimensions(d);
+        // Step 3 — identify the Budget Line. When all seven dimensions are given, try the
+        // exact composite key first (fast, unambiguous). Fall back to the structured search
+        // if the key finds nothing — the key is exact on BusinessUnit__c, so a base name
+        // like "Core Program" won't key-match the org's suffixed "Core Program - KE", but
+        // the structured search applies the business-unit suffix tolerance.
+        List<Budget_Line__c> hits;
+        if (d.hasAllSevenDimensions()) {
+            hits = lines.findByUniqueKey(HeadroomKeyBuilder.build(d));
+            if (hits == null || hits.isEmpty()) {
+                hits = lines.findByDimensions(d);
+            }
+        } else {
+            hits = lines.findByDimensions(d);
+        }
 
         if (hits == null || hits.isEmpty()) {
             result.status = HeadroomAnalysis.Status.NOT_FOUND;

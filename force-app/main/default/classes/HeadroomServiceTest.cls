@@ -234,6 +234,21 @@ private class HeadroomServiceTest {
         }
     }
 
+    // Suffix tolerance: a bare business-unit name resolves the org's "- KE" variant.
+    @isTest
+    static void baseBusinessUnitNameResolvesSuffixedLine() {
+        Id scenarioId = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
+        // A program that exists ONLY as a country-suffixed variant (like the real org data).
+        HeadroomTestData.makeLine(scenarioId, 'Kenya', 'Shared Services - KE', 'N/A', 'N/A', 'N/A', 'N/A',
+            -600000, 100000, 0, 0);
+        // User supplies the bare base name + all other dims — should still resolve the one line.
+        HeadroomAnalysis a = new HeadroomService().analyze(
+            dims('Kenya', 'Shared Services', '2027', 'N/A', 'N/A', 'N/A', 'N/A'));
+        System.assertEquals(HeadroomAnalysis.Status.FOUND, a.status,
+            'Bare "Shared Services" should resolve "Shared Services - KE"');
+        System.assertEquals('Shared Services - KE', a.line.BusinessUnit__c);
+    }
+
     // #15 (over-allocation view)
     @isTest
     static void portfolio_overAllocatedOnly() {
