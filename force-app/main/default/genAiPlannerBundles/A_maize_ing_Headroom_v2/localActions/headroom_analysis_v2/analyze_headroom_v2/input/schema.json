@@ -1,0 +1,59 @@
+{
+  "required": [
+    "country",
+    "businessUnit"
+  ],
+  "unevaluatedProperties": false,
+  "properties": {
+    "country": {
+      "title": "Country",
+      "description": "Country of the Budget Line, e.g. Kenya",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "businessUnit": {
+      "title": "Business Unit",
+      "description": "Salesforce Business Unit / program, e.g. Core Program",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "fiscalYear": {
+      "title": "Fiscal Year",
+      "description": "Fiscal year, e.g. 2027",
+      "lightning:type": "lightning__integerType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "subUnit": {
+      "title": "Sub-Unit",
+      "description": "Salesforce Sub-Unit. Pass N/A when there is no sub-unit.",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "department": {
+      "title": "Department",
+      "description": "Salesforce Department. Pass N/A when not applicable.",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "costType": {
+      "title": "Cost Type",
+      "description": "Salesforce Cost Type. Pass N/A when not applicable.",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    },
+    "costCategory": {
+      "title": "Cost Category",
+      "description": "Salesforce Cost Category. Pass N/A when not applicable.",
+      "lightning:type": "lightning__textType",
+      "lightning:isPII": false,
+      "copilotAction:isUserInput": false
+    }
+  },
+  "lightning:type": "lightning__objectType"
+}
