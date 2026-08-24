@@ -11,6 +11,16 @@ public with sharing class AmaizeFormat {
      *   2000000  -> "$2M"        80000  -> "$80K"        0       -> "$0"
      */
     public static String money(Decimal value) {
+        return money(value, null);
+    }
+
+    /**
+     * Format a currency amount, preserving the record's currency. USD (or a blank
+     * ISO code) renders with a "$" the way the brief shows it; any other currency is
+     * prefixed with its ISO code so figures are never silently shown as dollars:
+     *   money(1200000, 'KES') -> "KES 1.2M"      money(-150000, 'EUR') -> "-EUR 150K"
+     */
+    public static String money(Decimal value, String isoCode) {
         // Treat a missing value as zero so we never print "null".
         if (value == null) {
             value = 0;
@@ -18,21 +28,26 @@ public with sharing class AmaizeFormat {
         // Remember whether the number was negative, then work with its size.
         Boolean isNegative = value < 0;
         Decimal size = Math.abs(value);
-        String text;
+        String amountText;
 
         if (size >= 1000000) {
             // Millions: show up to two decimals, then drop trailing zeros (1.10 -> 1.1, 2.00 -> 2).
-            Decimal millions = (size / 1000000).setScale(2);
-            text = '$' + trimZeros(millions) + 'M';
+            amountText = trimZeros((size / 1000000).setScale(2)) + 'M';
         } else if (size >= 1000) {
             // Thousands: round to a whole number of thousands (350000 -> 350K).
-            Decimal thousands = (size / 1000).setScale(0, System.RoundingMode.HALF_UP);
-            text = '$' + String.valueOf(thousands) + 'K';
+            amountText = String.valueOf((size / 1000).setScale(0, System.RoundingMode.HALF_UP)) + 'K';
         } else {
-            // Small amounts: just show the whole number of dollars.
-            text = '$' + String.valueOf(size.setScale(0, System.RoundingMode.HALF_UP));
+            // Small amounts: just show the whole number.
+            amountText = String.valueOf(size.setScale(0, System.RoundingMode.HALF_UP));
         }
-        // Put the minus sign in front of the dollar sign for negatives.
+
+        // USD / blank -> "$"; any other currency -> "ISO " prefix so it's unmistakable.
+        String symbol = (String.isBlank(isoCode) || isoCode.equalsIgnoreCase('USD'))
+            ? '$'
+            : isoCode.trim().toUpperCase() + ' ';
+        String text = symbol + amountText;
+
+        // Put the minus sign in front of the amount for negatives.
         return isNegative ? '-' + text : text;
     }
 
