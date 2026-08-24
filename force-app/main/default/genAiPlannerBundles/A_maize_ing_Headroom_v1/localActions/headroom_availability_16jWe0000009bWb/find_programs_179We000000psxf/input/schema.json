@@ -1,0 +1,28 @@
+{
+  "required" : [ "statusFilter" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "country" : {
+      "title" : "Country",
+      "description" : "Optional country to narrow the scan.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "statusFilter" : {
+      "title" : "Status Filter",
+      "description" : "needs-funding/room, over-funded, tight, or all.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "year" : {
+      "title" : "Year",
+      "description" : "Optional fiscal year to narrow the scan.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

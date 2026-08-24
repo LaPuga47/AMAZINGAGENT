@@ -1,0 +1,28 @@
+{
+  "required" : [ "country", "program" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "country" : {
+      "title" : "Country",
+      "description" : "The country to check, matched to Budget_Line__c.Country__c.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "program" : {
+      "title" : "Program",
+      "description" : "The program to check, matched to Budget_Line__c.BusinessUnit__c.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "year" : {
+      "title" : "Year",
+      "description" : "Optional fiscal year to narrow the check.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
