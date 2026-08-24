@@ -23,26 +23,78 @@ start_agent agent_router:
     reasoning:
         instructions: ->
             | Classify the user's message and conversation history into exactly one of:
-                - A funding-headroom question, for a single program in a country, or
-                  a portfolio-wide/ranked-need question, or a question that references a
-                  named grant — hand off to headroom_availability.
-                - A request that is unclear, or a headroom question missing the country
-                  and/or program and not resolvable from a named grant — hand off to
-                  ambiguous_question.
+                - A funding-headroom question — anything about headroom, funding gap,
+                  room to raise, available funding capacity, additional funding needed,
+                  over-allocation, secured headroom, forecast headroom, or funding
+                  availability, whether for a single Budget Line (country + business
+                  unit, optionally sub-unit / department / cost type / cost category +
+                  fiscal year), a portfolio-wide/ranked-need question, or a question
+                  that references a named grant — hand off to headroom_analysis. Route
+                  here even when some dimensions are missing: that subagent asks for the
+                  missing information itself rather than guessing.
+                - A message that is genuinely unclear or empty of any headroom intent
+                  (not merely missing a dimension) — hand off to ambiguous_question.
                 - Anything not about grant funding headroom (general knowledge,
                   greetings aside) — hand off to off_topic.
               If it's unclear, make your best guess.
         actions:
-            go_to_headroom_availability: @utils.transition to @subagent.headroom_availability
+            go_to_headroom_analysis: @utils.transition to @subagent.headroom_analysis
             go_to_off_topic: @utils.transition to @subagent.off_topic
             go_to_ambiguous_question: @utils.transition to @subagent.ambiguous_question
 
 
-subagent headroom_availability:
-    label: "Headroom Availability"
-    description: "Answers funding-headroom questions for a single program and country, and ranks portfolio-wide fundraising need, using only the data returned by its actions"
+subagent headroom_analysis:
+    label: "Headroom Analysis"
+    description: "Answers funding headroom / funding-gap questions by first identifying the correct Budget Line from its dimensions, then reporting its budget, secured/likely/pipeline funding and headroom — or asking which Budget Line to use. Also ranks Budget Lines for portfolio questions. Uses only the data returned by its actions."
 
     actions:
+        analyze_headroom:
+            target: "apex://AmaizeAnalyzeHeadroom"
+            description: "Identifies a single Budget Line from its dimensions and reports its budget, secured/likely/pipeline funding and headroom. Returns found=true only when exactly one Budget Line matches. Otherwise found=false and the summary either asks for the missing required dimension(s), lists how the matching Budget Lines differ so the user can choose, or reports that no Budget Line matched."
+            inputs:
+                country: string
+                    description: "Country of the Budget Line, e.g. Kenya."
+                    is_required: True
+                businessUnit: string
+                    description: "Salesforce Business Unit / program, e.g. Core Program."
+                    is_required: True
+                fiscalYear: integer
+                    description: "Fiscal year, e.g. 2027."
+                    is_required: False
+                subUnit: string
+                    description: "Salesforce Sub-Unit. Pass the literal N/A when the user says there is no sub-unit; leave blank only when the user has not said."
+                    is_required: False
+                department: string
+                    description: "Salesforce Department. Pass N/A when the user says not applicable."
+                    is_required: False
+                costType: string
+                    description: "Salesforce Cost Type. Pass N/A when the user says not applicable."
+                    is_required: False
+                costCategory: string
+                    description: "Salesforce Cost Category. Pass N/A when the user says not applicable."
+                    is_required: False
+            outputs:
+                summary: string
+                signal: string
+                headroomJson: string
+                found: boolean
+        rank_headroom:
+            target: "apex://AmaizeRankHeadroom"
+            description: "Ranks current-scenario Budget Lines by forecast headroom for portfolio questions — which have the most headroom / largest funding gap, or which are over-allocated. Each Budget Line is listed separately with its own dimensions; they are never merged."
+            inputs:
+                statusFilter: string
+                    description: "most headroom / funding gap (room to raise), over-allocated (over-funded), or all."
+                    is_required: True
+                country: string
+                    description: "Optional country to narrow the ranking."
+                    is_required: False
+                fiscalYear: integer
+                    description: "Optional fiscal year to narrow the ranking."
+                    is_required: False
+            outputs:
+                summary: string
+                matchCount: integer
+                resultsJson: string
         get_opportunity_context:
             target: "apex://AmaizeGetOpportunityContext"
             description: "Resolves a named grant's eligible country and program from its Restriction (Restriction_Country__c + Business_Unit__c), plus the year from the Opportunity, so a headroom check can run off it. Returns found=true with a single country and program only when the grant resolves to exactly one of each; otherwise found=false and the summary asks which country or program to use."
@@ -56,80 +108,68 @@ subagent headroom_availability:
                 program: string
                 year: integer
                 found: boolean
-        check_headroom:
-            target: "apex://AmaizeCheckHeadroom"
-            description: "Computes summed funding headroom for a single program in a country (optionally a fiscal year) and returns a Headroom Available / Some Headroom Available / Headroom Unavailable verdict with reasoning."
-            inputs:
-                country: string
-                    description: "The country to check, matched to Budget_Line__c.Country__c."
-                    is_required: True
-                program: string
-                    description: "The program to check, matched to Budget_Line__c.BusinessUnit__c."
-                    is_required: True
-                year: integer
-                    description: "Optional fiscal year to narrow the check."
-                    is_required: False
-            outputs:
-                summary: string
-                signal: string
-                headroomJson: string
-                found: boolean
-        find_programs:
-            target: "apex://AmaizeFindPrograms"
-            description: "Scans all current-scenario budget lines to find programs that need funding, are over-funded, or are tight, ranked by need with the current and next fiscal year first."
-            inputs:
-                statusFilter: string
-                    description: "needs-funding/room, over-funded, tight, or all."
-                    is_required: True
-                country: string
-                    description: "Optional country to narrow the scan."
-                    is_required: False
-                year: integer
-                    description: "Optional fiscal year to narrow the scan."
-                    is_required: False
-            outputs:
-                summary: string
-                matchCount: integer
-                resultsJson: string
 
     reasoning:
         instructions: ->
-            | Answer only from the data returned by your actions. Every figure, program
-              name, verdict, and recommendation must come verbatim from the action's
-              summary field — never paraphrase, round, recompute, or add numbers of
-              your own. Do NOT use the show_command tool. Always compose your response
-              as direct text using the summary field, and do not re-invoke an action
-              you already have a fresh summary for.
-              If the user references a named grant instead of stating a country and
-              program directly, call get_opportunity_context first to resolve its
-              country, program, and year. When it resolves the grant to a single specific
-              country and program (found is set), pass its country into check_headroom's
-              country, its program into check_headroom's program, and its year into
-              check_headroom's year. When it could not resolve a single country and/or
-              program (not found), do NOT call check_headroom yet — relay its summary
-              verbatim (it names the country and/or program still needed), ask the user to
-              pick, then run check_headroom once you have a single country and program.
-              If the user asks about a single program in a single country, call
-              check_headroom with that country and program (and year if given).
-              If the user asks a portfolio-wide or ranked-need question (e.g. which
-              programs need funding, are over-funded, or are tight), call find_programs
-              with the appropriate statusFilter, and country/year if given.
-              When headroom is tight, mixed, or negative, the summary already
-              recommends confirming with Grants Finance before pitching — present that
-              recommendation as written.
-              If the conversation moves away from grant funding headroom, transition
-              back to agent_router for reclassification.
+            | You answer funding headroom questions by identifying the correct Budget
+              Line FIRST, then reporting its headroom. Answer only from the data your
+              actions return: every figure, dimension, status, and recommendation must
+              come verbatim from an action's summary field — never paraphrase, round,
+              recompute, or invent numbers. Do NOT use the show_command tool. Compose
+              your reply as direct text from the summary, and do not re-invoke an action
+              you already have a fresh summary for. You are strictly read-only: never
+              claim to create, change, delete, or approve any Budget Line or Allocation.
+              Do not expose Salesforce internals — SOQL, record IDs, match keys, or field
+              API names — unless an administrator explicitly asks.
+
+              A Budget Line is identified by fiscal year, country, Salesforce business
+              unit, Salesforce sub-unit, Salesforce department, Salesforce cost type, and
+              Salesforce cost category. Treat an explicit "N/A" the user gives as a REAL
+              value, not as missing — pass it through as N/A. The more of these you pass,
+              the more precisely the Budget Line is identified.
+
+              For a single-Budget-Line question, call analyze_headroom with every
+              dimension the user supplied (at least country and business unit). Then:
+                - If found is true, present its summary — that is the grounded headroom
+                  answer, including any recommendation and how negative headroom (over-
+                  allocation) is explained.
+                - If found is false, the summary either asks for a missing dimension
+                  (relay it and wait — e.g. it may ask for the fiscal year and sub-unit,
+                  telling the user they can say N/A), lists how several matching Budget
+                  Lines differ (relay it and ask which to use), or reports that no Budget
+                  Line matched (relay it — never estimate headroom anyway). Once the user
+                  supplies the missing or chosen dimension, call analyze_headroom again
+                  with the fuller set.
+
+              For a portfolio question (which programs have the most headroom / the
+              largest funding gap, or which Budget Lines are over-allocated), call
+              rank_headroom with the appropriate statusFilter, plus country/fiscalYear if
+              given. Present the ranked list as written; do not merge Budget Lines.
+
+              If the user references a named grant instead of dimensions, call
+              get_opportunity_context first to resolve its country, program, and year,
+              then feed those into analyze_headroom's country, businessUnit, and
+              fiscalYear (asking for the sub-unit, since a grant does not pin one down).
+              When get_opportunity_context returns found=false, relay its summary and ask
+              the user to pick before continuing.
+
+              If the conversation moves away from grant funding headroom, transition back
+              to agent_router for reclassification.
         actions:
-            get_opportunity_context: @actions.get_opportunity_context
-                with opportunityName=...
-            check_headroom: @actions.check_headroom
+            analyze_headroom: @actions.analyze_headroom
                 with country=...
-                with program=...
-                with year=...
-            find_programs: @actions.find_programs
+                with businessUnit=...
+                with fiscalYear=...
+                with subUnit=...
+                with department=...
+                with costType=...
+                with costCategory=...
+            rank_headroom: @actions.rank_headroom
                 with statusFilter=...
                 with country=...
-                with year=...
+                with fiscalYear=...
+            get_opportunity_context: @actions.get_opportunity_context
+                with opportunityName=...
             go_to_agent_router: @utils.transition to @subagent.agent_router
 
 subagent off_topic:

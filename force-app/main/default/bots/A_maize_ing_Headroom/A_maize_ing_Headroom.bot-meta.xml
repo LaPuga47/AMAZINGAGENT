@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bot xmlns="http://soap.sforce.com/2006/04/metadata">
+    <agentDSLEnabled>true</agentDSLEnabled>
+    <agentType>AgentforceEmployeeAgent</agentType>
+    <botMlDomain>
+        <label>A-maize-ing Headroom Assistant</label>
+        <name>A_maize_ing_Headroom</name>
+    </botMlDomain>
+    <botSource>None</botSource>
+    <description>Internal assistant for One Acre Fund Fundraising Relationship Managers that answers grant funding headroom questions — read-only, grounded in Budget_Scenario__c / Budget_Line__c data.</description>
+    <label>A-maize-ing Headroom Assistant</label>
+    <logPrivateConversationData>false</logPrivateConversationData>
+    <richContentEnabled>true</richContentEnabled>
+    <sessionTimeout>0</sessionTimeout>
+    <type>InternalCopilot</type>
+</Bot>
