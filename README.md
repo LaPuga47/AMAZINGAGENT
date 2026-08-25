@@ -72,26 +72,62 @@ Thin invocable actions over a selector → service → DTO stack (all `with shar
 
 ### Agent bundle
 
-- Authoring source: `aiAuthoringBundles/A_maize_ing_Headroom/A_maize_ing_Headroom.agent`
-- Compiled/deployed: `genAiPlannerBundles/A_maize_ing_Headroom_v2/` + `bots/A_maize_ing_Headroom/`
-- Router sends headroom / funding-gap / room-to-raise / over-allocation /
-  secured-/forecast-headroom / funding-availability questions to the Headroom Analysis
-  subagent; off-topic and ambiguous requests fall through to their own topics.
+- **Authoring source (the one file you edit):**
+  `aiAuthoringBundles/A_maize_ing_Headroom/A_maize_ing_Headroom.agent` — the Agent Script
+  that declares every subagent, its actions, and the router.
+- **Compiled/deployed (generated — do not hand-edit):**
+  `genAiPlannerBundles/A_maize_ing_Headroom_v<N>/` (planner bundle, agent graph, per-action
+  schemas) + `bots/A_maize_ing_Headroom/v<N>.botVersion-meta.xml`. Each activation is a new
+  version `v<N>`; the current live version is **v4**, with subagents
+  `agent_router → { competing_grants, headroom_analysis, off_topic, ambiguous_question }`.
+- The router sends competing-grants / overfunding / "if these close" questions to
+  **Competing Grants Analysis**, and single-scope headroom / funding-gap / over-allocation /
+  secured-/forecast-headroom questions to **Headroom Analysis**; off-topic and ambiguous
+  requests fall through to their own topics.
 
-### Build, test, deploy
+### Changing the agent — use `sf agent publish` (not a hand-built deploy)
+
+The `genAiPlannerBundle` / `agentGraph` is a **compiler output**. Do not author or
+`sf project deploy` it by hand — the server rejects inconsistent bundles, and a new version
+of an active agent can't be added by a raw metadata deploy anyway. Instead, edit the
+authoring `.agent` and let the platform compile and version it:
 
 ```bash
-# Run the headroom Apex tests
+# 1. Edit the Agent Script
+#    aiAuthoringBundles/A_maize_ing_Headroom/A_maize_ing_Headroom.agent
+
+# 2. Validate it compiles
+sf agent validate authoring-bundle --api-name A_maize_ing_Headroom --target-org <alias>
+
+# 3. Publish — compiles server-side and creates a NEW version (e.g. v5),
+#    retrieving the generated genAiPlannerBundle + botVersion back into the project
+sf agent publish authoring-bundle --api-name A_maize_ing_Headroom --target-org <alias>
+
+# 4. Activate the new version (only one version is active at a time)
+sf agent activate --api-name A_maize_ing_Headroom --version <N> --target-org <alias>
+```
+
+Notes:
+- To add/replace a version while the agent is already active, the platform requires it to be
+  inactive first: `sf agent deactivate --api-name A_maize_ing_Headroom` (a re-activate then
+  deactivate normalizes the state if `deactivate` reports "no active version"). `publish`
+  followed by `activate` is the normal flow; `activate` auto-supersedes the prior version.
+- Deploy the **Apex actions first** (below) so `publish` can bind the new topic's actions.
+- `sf agent preview` needs an interactive TTY; for headless checks, call the invocable
+  actions via `sf apex run` (they are the exact code the live agent invokes).
+
+### Build, test, deploy (Apex)
+
+```bash
+# Run the Apex tests
 sf apex run test --tests HeadroomKeyBuilderTest BudgetLineSelectorTest \
   AllocationSelectorTest HeadroomServiceTest AmaizeAnalyzeHeadroomTest \
-  AmaizeRankHeadroomTest --result-format human --target-org <alias>
+  AmaizeRankHeadroomTest CompetingGrantsServiceTest AmaizeFindCompetingGrantsTest \
+  --result-format human --target-org <alias>
 
 # Deploy the Apex
 sf project deploy start --source-dir force-app/main/default/classes \
   --test-level RunSpecifiedTests --target-org <alias>
-
-# Activate an agent version (creates/switches the live version)
-sf agent activate --api-name A_maize_ing_Headroom --version 2 --target-org <alias>
 ```
 
 ---
