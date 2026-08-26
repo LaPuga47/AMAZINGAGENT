@@ -123,12 +123,48 @@ Notes:
 sf apex run test --tests HeadroomKeyBuilderTest BudgetLineSelectorTest \
   AllocationSelectorTest HeadroomServiceTest AmaizeAnalyzeHeadroomTest \
   AmaizeRankHeadroomTest CompetingGrantsServiceTest AmaizeFindCompetingGrantsTest \
+  FundingContextServiceTest AmaizeGetFundingContextTest \
   --result-format human --target-org <alias>
 
 # Deploy the Apex
 sf project deploy start --source-dir force-app/main/default/classes \
   --test-level RunSpecifiedTests --target-org <alias>
 ```
+
+### Testing the agent — required user access
+
+The agent's actions run in **user mode** (`with sharing` + `AccessLevel.USER_MODE`), so each
+user only sees what their permissions allow. If one tester gets grounded answers and another
+gets "not found" / empty results or the agent doesn't respond, it is almost always an access
+gap, not a bug. A user testing the agent needs **all** of:
+
+1. **Agentforce Employee Agent permission set** — assign the `Agentforce_Employee_Agent`
+   permission set (or your equivalent) to the user.
+2. **Agentforce Coworker permission-set _license_** — `AISearchUserPsl`. This is **required to
+   run an Employee Agent and is NOT granted by the System Administrator profile** — it is a
+   seat-based license assigned per user. This is the most common cause of "my tests pass but
+   my colleague's fail": the colleague has the permission set but not the license.
+
+   ```bash
+   sf org assign permsetlicense --name AISearchUserPsl \
+     --on-behalf-of <username> --target-org <alias>
+   ```
+3. **Data access** to the funding objects — `Budget_Scenario__c`, `Budget_Line__c`,
+   `Allocation__c`, `Restriction__c`, `GiftCommitment`, `Opportunity`. Internal org-wide
+   defaults are open (ReadWrite / ControlledByParent), and `GiftCommitment` access comes via
+   the **Fundraising Access** license, so ensure testers have that too.
+
+After assigning a license, the user must **log out and back in** for it to take effect. Verify
+with:
+
+```bash
+sf data query --target-org <alias> --query "SELECT PermissionSetLicense.MasterLabel \
+  FROM PermissionSetLicenseAssign WHERE Assignee.Username='<username>'"
+```
+
+> Tip: bundle the `Agentforce_Employee_Agent` permission set + the Agentforce Coworker license
+> (+ Fundraising Access) into your tester onboarding / a permission-set group so every tester
+> gets identical access.
 
 ---
 
