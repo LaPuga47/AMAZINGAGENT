@@ -8,31 +8,46 @@ recomputes, or invents numbers.
 
 ## Headroom Analysis architecture
 
-The current agent version (**v2**) routes headroom questions to a dedicated
-**Headroom Analysis** subagent that follows a strict **Budget-Line-first** sequence:
+The current agent version (**v6**) routes questions to three read-only sub-agents —
+**Headroom Analysis** (single-scope headroom), **Competing Grants Analysis** (competition +
+funding lineage), and the router's off-topic/ambiguous fallbacks. All are **Budget-Line-first**:
+the Budget Line is the authoritative source; allocations and lineage hang off it.
 
-1. Interpret the request and normalize the supplied dimensions.
-2. Identify the intended **Budget Line** (never start from allocations).
-3. Confirm the Budget Line is specific enough — otherwise ask, don't guess.
-4. Retrieve the allocations for *that* Budget Line (direct link first, then Match Key).
-5. Read headroom from the Budget Line's own stored/calculated fields.
-6. Return a grounded, decision-ready answer.
+### Governed Headroom aggregation
 
-### Budget Line identification
+`analyze_headroom` resolves a **Headroom category/program** to its governed Budget Line
+population, then **SUMs** the financial fields across **all** qualifying lines for the given
+country and fiscal year — it never picks one line, averages, or recalculates the stored
+headroom fields. `HeadroomCategoryResolver` is the single source of truth for the mapping:
 
-A Budget Line is identified by seven dimensions:
-**Fiscal Year, Country, Business Unit, Sub-Unit, Department, Cost Type, Cost Category.**
+| Category (synonyms) | Business Unit base | Department filter | Notes |
+|---|---|---|---|
+| **Core Program** (Core Field Program, Field Program) | `Core Program` | — | HR-001 |
+| **Rural Retail** (RRT) | `Farm Input Sales` | `Rural Retail` | HR-002 |
+| **Market Access** (MKT) | `Farm Input Sales` | `Market Access` | HR-003 |
+| **Trees** (TRE) | `Farm Input Sales` | `Trees` | HR-004 |
+| **System Change Extension & Other Programs** | `Systems Change` | — | HR-005 |
+| **Unrestricted** | — | — | HR-006 — governed **zero**, status *Not Applicable* |
+| **Working Capital** | — | — | HR-007 — governed **zero**, status *Not Applicable* |
+| Other Support Departments, Miscellaneous | — | — | **Not configured** — the agent says so, never guesses |
 
-- An explicit `N/A` is treated as a **real value**, not as missing data.
-- Minimum useful input is Fiscal Year + Country + Business Unit (+ Sub-Unit when it exists).
-- When all seven are supplied, an **exact composite-key** lookup is used
-  (`HeadroomKeyBuilder` reproduces `Budget_Line_Unique_Key__c` byte-for-byte); otherwise a
-  **progressive structured-field** search runs.
-- Business units are matched with **country-suffix tolerance** — a base name like
-  `Core Program` matches the org's suffixed `Core Program - KE` (and vice-versa),
-  country-scoped so `- KE` never cross-matches `- RW`.
-- **One match** → proceed. **Several** → return the *distinguishing* dimensions and ask
-  which to use (never merge unrelated Budget Lines). **None** → say so honestly.
+Resolution rules:
+- **Country** is the authoritative filter; business units are matched **suffix-tolerant** on
+  the base name (`Core Program` matches the org's `Core Program - KE`), never by parsing the
+  suffix. Fiscal Year filters explicitly and defaults to the current scenario when omitted.
+- An explicit `N/A` is a **real value**, not missing data.
+- Aggregation is scoped to the **current Budget Scenario**, so materially different scenarios
+  are never silently combined; the scenario used is reported.
+- **No qualifying lines is reported as such — never as a financial value of zero.** Unknown
+  categories fall back to a direct business-unit match (a literal filter, not a guessed mapping).
+- The historical spreadsheet rules are **not** recreated (e.g. Systems Change is not reduced by
+  Rural Retail / Market Access / Trees — the org's Business Unit + Department mapping already
+  separates them).
+
+Every successful aggregation returns the **eight governed fields** — Budget Amount, Secured /
+Likely / Pipeline / Forecast Funding, Secured / Forecast Headroom, Headroom Status — plus the
+**number of Budget Lines included** and a short interpretation. Headroom Status is *derived*
+from the summed Secured Headroom (a status is never summed).
 
 ### Allocation matching (priority order)
 
@@ -63,7 +78,10 @@ Negative headroom is valid and is explained as **over-allocation**, not an error
 Thin invocable actions over a selector → service → DTO stack (all `with sharing`,
 `USER_MODE`, no DML in the read path):
 
-- **Actions:** `AmaizeAnalyzeHeadroom` (single Budget Line), `AmaizeRankHeadroom` (portfolio).
+- **Actions:** `AmaizeAnalyzeHeadroom` (governed category aggregation), `AmaizeRankHeadroom`
+  (portfolio), `AmaizeFindCompetingGrants` + `AmaizeGetFundingContext` (competing grants &
+  funding lineage). Category rules live in `HeadroomCategoryResolver`; aggregation in
+  `HeadroomService.aggregate` + `BudgetLineSelector.aggregateScope`.
 - **Service/DTOs:** `HeadroomService`, `HeadroomAnalysis`, `BudgetLineDimensions`,
   `AllocationBreakdown`, `HeadroomKeyBuilder`, `HeadroomFormat`, `AmaizeFormat`.
 - **Selectors:** `BudgetLineSelector` / `IBudgetLineSelector`,
