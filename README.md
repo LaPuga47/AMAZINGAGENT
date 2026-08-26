@@ -1,4 +1,138 @@
-# Salesforce DX Project
+# A-maize-ing Headroom Assistant
+
+An internal **Agentforce** agent for One Acre Fund that answers grant **funding-headroom**
+questions for Fundraising Relationship Managers and Grants Finance staff. It is
+**read-only** and every figure it states is grounded in the org's own
+`Budget_Scenario__c` / `Budget_Line__c` / `Allocation__c` data — it never paraphrases,
+recomputes, or invents numbers.
+
+## Headroom Analysis architecture
+
+The current agent version (**v2**) routes headroom questions to a dedicated
+**Headroom Analysis** subagent that follows a strict **Budget-Line-first** sequence:
+
+1. Interpret the request and normalize the supplied dimensions.
+2. Identify the intended **Budget Line** (never start from allocations).
+3. Confirm the Budget Line is specific enough — otherwise ask, don't guess.
+4. Retrieve the allocations for *that* Budget Line (direct link first, then Match Key).
+5. Read headroom from the Budget Line's own stored/calculated fields.
+6. Return a grounded, decision-ready answer.
+
+### Budget Line identification
+
+A Budget Line is identified by seven dimensions:
+**Fiscal Year, Country, Business Unit, Sub-Unit, Department, Cost Type, Cost Category.**
+
+- An explicit `N/A` is treated as a **real value**, not as missing data.
+- Minimum useful input is Fiscal Year + Country + Business Unit (+ Sub-Unit when it exists).
+- When all seven are supplied, an **exact composite-key** lookup is used
+  (`HeadroomKeyBuilder` reproduces `Budget_Line_Unique_Key__c` byte-for-byte); otherwise a
+  **progressive structured-field** search runs.
+- Business units are matched with **country-suffix tolerance** — a base name like
+  `Core Program` matches the org's suffixed `Core Program - KE` (and vice-versa),
+  country-scoped so `- KE` never cross-matches `- RW`.
+- **One match** → proceed. **Several** → return the *distinguishing* dimensions and ask
+  which to use (never merge unrelated Budget Lines). **None** → say so honestly.
+
+### Allocation matching (priority order)
+
+1. **Direct** `Allocation__c.Budget_Line__c` lookup.
+2. **Approved Match Key** — `Allocation_Match_Key__c = Budget_Line_Unique_Key__c` (the
+   `Allocation - Budget Line Linking` flow's mechanism; not reinvented in Apex).
+3. Otherwise, clarify rather than make a weak match.
+
+Allocations are summed by `Allocation_Type__c` (**Secured / Likely / Pipeline**), which is
+set by the `Automatically Classify Allocation Type by Probability` flow.
+
+### Headroom calculation (source of truth)
+
+Figures are read from the Budget Line's **stored/calculated fields**, so the agent can
+never disagree with the org's own formulas:
+
+| Concept | Field / formula |
+|---|---|
+| Budget (cost) | `-Budget_Amount__c` (stored negative as an expense) |
+| Secured Headroom | `Secured_Headroom__c` = `-Budget_Amount__c - Secured_Funding__c` |
+| Forecast Headroom | `Forecast_Headroom__c` = `-Budget_Amount__c - (Secured + Likely + Pipeline)` |
+| Status | `Headroom_status__c` (≥250K → Available; ≥0 → Some; else → Unavailable) |
+
+Negative headroom is valid and is explained as **over-allocation**, not an error.
+
+### Apex layering
+
+Thin invocable actions over a selector → service → DTO stack (all `with sharing`,
+`USER_MODE`, no DML in the read path):
+
+- **Actions:** `AmaizeAnalyzeHeadroom` (single Budget Line), `AmaizeRankHeadroom` (portfolio).
+- **Service/DTOs:** `HeadroomService`, `HeadroomAnalysis`, `BudgetLineDimensions`,
+  `AllocationBreakdown`, `HeadroomKeyBuilder`, `HeadroomFormat`, `AmaizeFormat`.
+- **Selectors:** `BudgetLineSelector` / `IBudgetLineSelector`,
+  `AllocationSelector` / `IAllocationSelector`.
+- **Shared calc:** `AmaizeBudgetHeadroom` mirrors the org's Budget Line formulas exactly.
+
+### Agent bundle
+
+- **Authoring source (the one file you edit):**
+  `aiAuthoringBundles/A_maize_ing_Headroom/A_maize_ing_Headroom.agent` — the Agent Script
+  that declares every subagent, its actions, and the router.
+- **Compiled/deployed (generated — do not hand-edit):**
+  `genAiPlannerBundles/A_maize_ing_Headroom_v<N>/` (planner bundle, agent graph, per-action
+  schemas) + `bots/A_maize_ing_Headroom/v<N>.botVersion-meta.xml`. Each activation is a new
+  version `v<N>`; the current live version is **v4**, with subagents
+  `agent_router → { competing_grants, headroom_analysis, off_topic, ambiguous_question }`.
+- The router sends competing-grants / overfunding / "if these close" questions to
+  **Competing Grants Analysis**, and single-scope headroom / funding-gap / over-allocation /
+  secured-/forecast-headroom questions to **Headroom Analysis**; off-topic and ambiguous
+  requests fall through to their own topics.
+
+### Changing the agent — use `sf agent publish` (not a hand-built deploy)
+
+The `genAiPlannerBundle` / `agentGraph` is a **compiler output**. Do not author or
+`sf project deploy` it by hand — the server rejects inconsistent bundles, and a new version
+of an active agent can't be added by a raw metadata deploy anyway. Instead, edit the
+authoring `.agent` and let the platform compile and version it:
+
+```bash
+# 1. Edit the Agent Script
+#    aiAuthoringBundles/A_maize_ing_Headroom/A_maize_ing_Headroom.agent
+
+# 2. Validate it compiles
+sf agent validate authoring-bundle --api-name A_maize_ing_Headroom --target-org <alias>
+
+# 3. Publish — compiles server-side and creates a NEW version (e.g. v5),
+#    retrieving the generated genAiPlannerBundle + botVersion back into the project
+sf agent publish authoring-bundle --api-name A_maize_ing_Headroom --target-org <alias>
+
+# 4. Activate the new version (only one version is active at a time)
+sf agent activate --api-name A_maize_ing_Headroom --version <N> --target-org <alias>
+```
+
+Notes:
+- To add/replace a version while the agent is already active, the platform requires it to be
+  inactive first: `sf agent deactivate --api-name A_maize_ing_Headroom` (a re-activate then
+  deactivate normalizes the state if `deactivate` reports "no active version"). `publish`
+  followed by `activate` is the normal flow; `activate` auto-supersedes the prior version.
+- Deploy the **Apex actions first** (below) so `publish` can bind the new topic's actions.
+- `sf agent preview` needs an interactive TTY; for headless checks, call the invocable
+  actions via `sf apex run` (they are the exact code the live agent invokes).
+
+### Build, test, deploy (Apex)
+
+```bash
+# Run the Apex tests
+sf apex run test --tests HeadroomKeyBuilderTest BudgetLineSelectorTest \
+  AllocationSelectorTest HeadroomServiceTest AmaizeAnalyzeHeadroomTest \
+  AmaizeRankHeadroomTest CompetingGrantsServiceTest AmaizeFindCompetingGrantsTest \
+  --result-format human --target-org <alias>
+
+# Deploy the Apex
+sf project deploy start --source-dir force-app/main/default/classes \
+  --test-level RunSpecifiedTests --target-org <alias>
+```
+
+---
+
+## Developing with Salesforce DX
 
 Salesforce DX is a development approach that brings source-driven development, team collaboration, and continuous integration to the Salesforce Platform. Instead of working directly in an org through a web browser, you work with metadata as source files in a local DX project, track changes in version control, and deploy through automated processes.
 
