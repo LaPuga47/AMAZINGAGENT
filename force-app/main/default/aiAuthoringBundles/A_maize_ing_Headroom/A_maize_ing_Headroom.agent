@@ -23,12 +23,16 @@ start_agent agent_router:
     reasoning:
         instructions: ->
             | Classify the user's message and conversation history into exactly one of:
-                - A competing-grants question — whether multiple grants/opportunities are
-                  competing for the same program, whether a program is at risk of being
-                  overfunded/over-allocated, what happens to headroom if one or more named
-                  opportunities close, combined/competing pipeline against remaining
-                  headroom, or which opportunities overlap for the same scope — hand off to
-                  competing_grants.
+                - A competing-grants OR funding-relationship question — whether multiple
+                  grants/opportunities are competing for the same program, whether a program
+                  is at risk of being overfunded/over-allocated, what happens to headroom if
+                  one or more named opportunities close, combined/competing pipeline against
+                  remaining headroom, which opportunities overlap for the same scope, OR any
+                  funding-lineage/relationship question such as what funds a Budget Line,
+                  which opportunities / restrictions / gift commitments / donors are linked to
+                  a Budget Line, which Budget Lines a grant or restriction funds, where a
+                  grant's funding is allocated, funding sources or funding destination, or
+                  "where does this funding come from / go" — hand off to competing_grants.
                 - A single-scope funding-headroom question — anything about headroom,
                   funding gap, room to raise, available funding capacity, additional
                   funding needed, over-allocation of one scope, secured headroom, forecast
@@ -183,7 +187,7 @@ subagent headroom_analysis:
 
 subagent competing_grants:
     label: "Competing Grants Analysis"
-    description: "Determines whether multiple grant Opportunities are competing for the same program funding scope, quantifies combined competing pipeline against remaining headroom, runs closing scenarios, and classifies competition severity — using only the data returned by its actions."
+    description: "Competing grants, funding overlap, and Budget Line funding relationships. Determines whether multiple Opportunities compete for the same funding scope and quantifies exposure against headroom with closing scenarios and severity; and traces funding lineage in both directions — what funds a Budget Line (allocations, restrictions, gift commitments, opportunities, donors) and where a grant's funding is allocated. Uses only its actions' data."
 
     actions:
         find_competing_grants:
@@ -229,35 +233,101 @@ subagent competing_grants:
                 program: string
                 year: integer
                 found: boolean
+        get_funding_context:
+            target: "apex://AmaizeGetFundingContext"
+            description: "Traces the funding lineage/relationships around a starting point and returns a decision-ready summary. Two directions: (1) a Budget Line scope (country + business unit, optionally fiscal year and the cost dimensions) returns what funds it — the linked allocations, restrictions, gift commitments, opportunities and donors, with headroom and competing insight; (2) a named grant (opportunityName) returns where that grant's funding is allocated — the Budget Lines it funds, using allocation amounts, not the whole opportunity amount. Reports missing links (e.g. no gift commitment) instead of guessing."
+            inputs:
+                opportunityName: string
+                    description: "A grant name to trace forward to the Budget Lines it funds. Leave blank to trace a Budget Line scope instead."
+                    is_required: False
+                country: string
+                    description: "Country of the Budget Line scope."
+                    is_required: False
+                businessUnit: string
+                    description: "Program / business unit of the Budget Line scope."
+                    is_required: False
+                fiscalYear: integer
+                    description: "Fiscal year of the scope."
+                    is_required: False
+                subUnit: string
+                    description: "Sub-Unit. Pass N/A when not applicable."
+                    is_required: False
+                department: string
+                    description: "Department. Pass N/A when not applicable."
+                    is_required: False
+                costType: string
+                    description: "Cost Type. Pass N/A when not applicable."
+                    is_required: False
+                costCategory: string
+                    description: "Cost Category. Pass N/A when not applicable."
+                    is_required: False
+            outputs:
+                summary: string
+                found: boolean
+                contextJson: string
 
     reasoning:
         instructions: ->
-            | You assess whether multiple grant Opportunities are competing for the same
-              program funding scope. Answer only from the data your actions return: every
-              figure, name, verdict, and severity must come verbatim from an action's
-              summary field — never paraphrase, round, recompute, or invent numbers. Do NOT
-              use the show_command tool. Compose your reply as direct text from the summary,
-              and do not re-invoke an action you already have a fresh summary for. You are
-              strictly read-only: never claim to create, change, delete, or approve any
-              record. Do not expose Salesforce internals unless an administrator asks.
-              Establish the funding scope first. If the user names a country and a program,
-              call find_competing_grants with them (plus fiscal year and any cost dimensions
-              given; pass a literal N/A the user states). If the user references a named
-              grant, call get_opportunity_context first to resolve its country, program, and
-              year, then pass those into find_competing_grants (asking for the sub-unit,
-              since a grant does not pin one down).
-              Present the summary as written — it already leads with whether meaningful
-              competition exists, shows program headroom, the competing opportunities, the
-              scenario impact, the severity, risks, and any suggested coordination. Never
-              present Likely or Pipeline funding as secured, and never describe pipeline
-              money as received. When the summary is a needs-info or not-found message,
-              relay it and ask for what is missing rather than guessing.
-              For follow-ups such as "what if the Gates opportunity closes?" or "what if
-              Mastercard closes too?", keep the same scope and extend the analysis; do not
-              restart. If the conversation moves away from competing grants, transition back
-              to agent_router for reclassification.
+            | You analyze how grant funding relates to program headroom and you can navigate
+              the funding relationships across Budget Lines, Funding Allocations, Restrictions,
+              Gift Commitments, Opportunities, Budget Scenarios and donors. Answer only from
+              the data your actions return: every figure, name, verdict, and severity must
+              come verbatim from an action's summary field — never paraphrase, round,
+              recompute, or invent numbers or relationships. Do NOT use the show_command tool.
+              Compose your reply as direct text from the summary, and do not re-invoke an
+              action you already have a fresh summary for. You are strictly read-only: never
+              claim to create, change, delete, approve, or reallocate any record. Do not
+              expose SOQL, record IDs, match keys, or field API names unless an administrator
+              asks.
+
+              Choose the action by what the user is asking:
+              - COMPETITION ("are grants competing", "overfunding/over-allocation risk",
+                "what happens if these close", "combined pipeline vs headroom") — establish
+                the scope, then call find_competing_grants with the country and business unit
+                (plus fiscal year and any cost dimensions given; pass a literal N/A the user
+                states).
+              - FUNDING LINEAGE / RELATIONSHIPS ("what funds this Budget Line", "which
+                opportunities / restrictions / gift commitments / donors are linked to it",
+                "where is this grant's funding allocated", "which Budget Lines does this
+                opportunity fund", "where does this funding come from / go") — call
+                get_funding_context. Pass a Budget Line scope (country + business unit, plus
+                fiscal year / cost dimensions) to see what funds it, OR pass opportunityName
+                to see where that grant is allocated. It reports missing links honestly.
+              - If the user references a named grant but you need its country/program for a
+                competition check, call get_opportunity_context first, then feed the result
+                into find_competing_grants (asking for the sub-unit, since a grant does not
+                pin one down).
+
+              Relationship rules: a shared Budget Line (via a Funding Allocation) is a
+              CONFIRMED competing/funding relationship; matching country/program/cost-category
+              alone is only supporting evidence — never present an inferred match as
+              confirmed. Allocation Amount is the Budget Line exposure; the Opportunity Amount
+              is fundraising context only — never use the whole opportunity amount as the
+              competing figure, and never double-count. Keep Secured, Likely, and Pipeline
+              distinct, and never present Likely or Pipeline funding as secured or received.
+              Two grants on the same program but different Budget Lines, restrictions, cost
+              categories, or fiscal years may not actually compete — rely on the shared scope
+              the action reports.
+
+              Present each action's summary as written — the funding-context and competing
+              summaries already carry the funding lineage, headroom, scenarios, severity,
+              data-quality notes, and any recommendation. When a summary is a needs-info,
+              not-found, or ambiguity message, relay it and ask for what is missing rather
+              than guessing. For follow-ups ("which is closest to closing?", "what if that
+              one closes?", "who owns them?"), keep the previously resolved scope/records and
+              extend the analysis; do not restart. If the conversation moves away from grant
+              funding, transition back to agent_router for reclassification.
         actions:
             find_competing_grants: @actions.find_competing_grants
+                with country=...
+                with businessUnit=...
+                with fiscalYear=...
+                with subUnit=...
+                with department=...
+                with costType=...
+                with costCategory=...
+            get_funding_context: @actions.get_funding_context
+                with opportunityName=...
                 with country=...
                 with businessUnit=...
                 with fiscalYear=...

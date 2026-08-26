@@ -12,4 +12,7 @@ public interface IBudgetLineSelector {
 
     /** Budget Lines in the current scenario, optionally scoped by country and/or fiscal year. */
     List<Budget_Line__c> findPortfolio(String country, String fiscalYear);
+
+    /** Budget Lines by record Id (any scenario) — used to resolve lines an allocation points to. */
+    List<Budget_Line__c> byIds(Set<Id> ids);
 }

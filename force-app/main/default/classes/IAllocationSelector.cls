@@ -18,4 +18,7 @@ public interface IAllocationSelector {
 
     /** Not-yet-linked allocations whose Match Key equals any of the given Budget Line keys. */
     List<Allocation__c> byMatchKeysUnlinked(Set<String> matchKeys);
+
+    /** Allocations for a given Opportunity (via Restriction -> Gift Commitment -> Opportunity). */
+    List<Allocation__c> byOpportunityId(Id opportunityId);
 }

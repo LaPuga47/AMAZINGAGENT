@@ -63,6 +63,24 @@ public with sharing class AllocationSelector implements IAllocationSelector {
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
+    /**
+     * Allocations for a given Opportunity, reached through the only path that exists in this
+     * org: Allocation -> Restriction -> Gift Commitment -> Opportunity (there is no direct
+     * Opportunity lookup on Allocation__c). Used to navigate from an Opportunity to the
+     * Budget Lines its funding is allocated against.
+     */
+    public List<Allocation__c> byOpportunityId(Id opportunityId) {
+        if (opportunityId == null) {
+            return new List<Allocation__c>();
+        }
+        Map<String, Object> binds = new Map<String, Object>{ 'oid' => opportunityId, 'lim' => 2000 };
+        String query =
+            'SELECT ' + FIELDS + ' FROM Allocation__c ' +
+            'WHERE Restriction__r.Gift_Commitment__r.OpportunityId = :oid ' +
+            'LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     /** Not-yet-linked allocations whose Match Key equals any of the given Budget Line keys. */
     public List<Allocation__c> byMatchKeysUnlinked(Set<String> matchKeys) {
         if (matchKeys == null || matchKeys.isEmpty()) {

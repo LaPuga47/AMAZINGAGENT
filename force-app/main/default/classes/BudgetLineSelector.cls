@@ -87,6 +87,16 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
         return '(' + String.join(parts, ' OR ') + ')';
     }
 
+    public List<Budget_Line__c> byIds(Set<Id> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new List<Budget_Line__c>();
+        }
+        Map<String, Object> binds = new Map<String, Object>{ 'ids' => ids, 'lim' => 2000 };
+        String query =
+            'SELECT ' + FIELDS + ' FROM Budget_Line__c WHERE Id IN :ids LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     public List<Budget_Line__c> findPortfolio(String country, String fiscalYear) {
         List<String> clauses = new List<String>{ CURRENT_SCENARIO };
         Map<String, Object> binds = new Map<String, Object>();
