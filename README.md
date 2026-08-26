@@ -138,8 +138,16 @@ user only sees what their permissions allow. If one tester gets grounded answers
 gets "not found" / empty results or the agent doesn't respond, it is almost always an access
 gap, not a bug. A user testing the agent needs **all** of:
 
-1. **Agentforce Employee Agent permission set** — assign the `Agentforce_Employee_Agent`
-   permission set (or your equivalent) to the user.
+1. **The agent's permission sets** — assign the sets that grant the object Read and
+   field-level security the agent queries. In this org those are
+   **`Amaize_Grant_Assistant_Admin`** (Budget Scenario/Line objects + `Opportunity.Guardian__c`
+   FLS), **`OAF_Agent_ReadOnly`** (Restriction / Gift Commitment / Opportunity / Account read),
+   and **`Fundraising_User`**, plus **`Agentforce_Employee_Agent`**. A missing field grant
+   surfaces at runtime as a confusing `System.QueryException: No such column 'X'` (user mode
+   hides fields the user can't read) — e.g. `No such column 'Guardian__c' on entity
+   'Opportunity'` means the user lacks FLS on `Guardian__c`, granted by
+   `Amaize_Grant_Assistant_Admin`. Note the **System Administrator profile does not grant
+   custom-field FLS**, so admins need these sets too.
 2. **Agentforce Coworker permission-set _license_** — `AISearchUserPsl`. This is **required to
    run an Employee Agent and is NOT granted by the System Administrator profile** — it is a
    seat-based license assigned per user. This is the most common cause of "my tests pass but
