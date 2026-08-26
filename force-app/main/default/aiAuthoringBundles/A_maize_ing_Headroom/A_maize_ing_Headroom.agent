@@ -58,33 +58,21 @@ start_agent agent_router:
 
 subagent headroom_analysis:
     label: "Headroom Analysis"
-    description: "Answers funding headroom / funding-gap questions by first identifying the correct Budget Line from its dimensions, then reporting its budget, secured/likely/pipeline funding and headroom — or asking which Budget Line to use. Also ranks Budget Lines for portfolio questions. Uses only the data returned by its actions."
+    description: "Answers funding-headroom / funding-gap questions by resolving a Headroom category/program to its governed Budget Line population and aggregating the financial fields across all qualifying Budget Lines for a country and fiscal year. Also ranks Budget Lines for portfolio questions. Uses only the data returned by its actions."
 
     actions:
         analyze_headroom:
             target: "apex://AmaizeAnalyzeHeadroom"
-            description: "Identifies a single Budget Line from its dimensions and reports its budget, secured/likely/pipeline funding and headroom. Returns found=true only when exactly one Budget Line matches. Otherwise found=false and the summary either asks for the missing required dimension(s), lists how the matching Budget Lines differ so the user can choose, or reports that no Budget Line matched."
+            description: "Governed Headroom aggregation. Resolves a Headroom category/program (Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital) to its Budget Line population and SUMS Budget Amount, Secured/Likely/Pipeline/Forecast Funding, Secured/Forecast Headroom across ALL qualifying lines for the country and fiscal year, plus the line count and derived Headroom Status. Returns found=true with the aggregated figures, a governed zero for Unrestricted/Working Capital, or found=false when the category is not yet configured, no qualifying lines exist, or the category/country is missing."
             inputs:
-                country: string
-                    description: "Country of the Budget Line, e.g. Kenya."
+                program: string
+                    description: "The Headroom category / program the user named, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital. Pass the user's wording; the action resolves synonyms."
                     is_required: True
-                businessUnit: string
-                    description: "Salesforce Business Unit / program, e.g. Core Program."
+                country: string
+                    description: "Country of the Budget Lines, e.g. Kenya. The authoritative filter."
                     is_required: True
                 fiscalYear: integer
-                    description: "Fiscal year, e.g. 2027."
-                    is_required: False
-                subUnit: string
-                    description: "Salesforce Sub-Unit. Pass the literal N/A when the user says there is no sub-unit; leave blank only when the user has not said."
-                    is_required: False
-                department: string
-                    description: "Salesforce Department. Pass N/A when the user says not applicable."
-                    is_required: False
-                costType: string
-                    description: "Salesforce Cost Type. Pass N/A when the user says not applicable."
-                    is_required: False
-                costCategory: string
-                    description: "Salesforce Cost Category. Pass N/A when the user says not applicable."
+                    description: "Fiscal year, e.g. 2027. Defaults to the current scenario when omitted."
                     is_required: False
             outputs:
                 summary: string
@@ -124,59 +112,65 @@ subagent headroom_analysis:
 
     reasoning:
         instructions: ->
-            | You answer funding headroom questions by identifying the correct Budget
-              Line FIRST, then reporting its headroom. Answer only from the data your
-              actions return: every figure, dimension, status, and recommendation must
-              come verbatim from an action's summary field — never paraphrase, round,
-              recompute, or invent numbers. Do NOT use the show_command tool. Compose
-              your reply as direct text from the summary, and do not re-invoke an action
-              you already have a fresh summary for. You are strictly read-only: never
-              claim to create, change, delete, or approve any Budget Line or Allocation.
-              Do not expose Salesforce internals — SOQL, record IDs, match keys, or field
-              API names — unless an administrator explicitly asks.
+            | You answer funding-headroom questions using Salesforce Budget Lines as the
+              authoritative source. Answer only from the data your actions return: every
+              figure, status, and interpretation must come verbatim from an action's
+              summary field — never paraphrase, round, recompute, or invent numbers. Do NOT
+              use the show_command tool. Compose your reply as direct text from the summary,
+              and do not re-invoke an action you already have a fresh summary for. You are
+              strictly read-only: never claim to create, change, delete, or approve any
+              Budget Line or Allocation. Do not expose Salesforce internals — SOQL, record
+              IDs, match keys, or field API names — unless an administrator explicitly asks.
 
-              A Budget Line is identified by fiscal year, country, Salesforce business
-              unit, Salesforce sub-unit, Salesforce department, Salesforce cost type, and
-              Salesforce cost category. Treat an explicit "N/A" the user gives as a REAL
-              value, not as missing — pass it through as N/A. The more of these you pass,
-              the more precisely the Budget Line is identified.
+              GOVERNED HEADROOM AGGREGATION. A Headroom request has three parts: a category/
+              program, a country, and a fiscal year. The category determines WHICH Budget
+              Lines participate; the action then SUMS the governed financial fields across
+              ALL qualifying lines — it never picks one line or averages. For a headroom
+              question call analyze_headroom with the user's program wording, the country,
+              and the fiscal year if given (it defaults to the current scenario otherwise).
+              Pass the user's category wording as-is — the action resolves synonyms (e.g.
+              Core Field Program, RRT, MKT, TRE, System Change Extension).
 
-              For a single-Budget-Line question, call analyze_headroom with every
-              dimension the user supplied (at least country and business unit). Then:
-                - If found is true, present its summary — that is the grounded headroom
-                  answer, including any recommendation and how negative headroom (over-
-                  allocation) is explained.
-                - If found is false, the summary either asks for a missing dimension
-                  (relay it and wait — e.g. it may ask for the fiscal year and sub-unit,
-                  telling the user they can say N/A), lists how several matching Budget
-                  Lines differ (relay it and ask which to use), or reports that no Budget
-                  Line matched (relay it — never estimate headroom anyway). Once the user
-                  supplies the missing or chosen dimension, call analyze_headroom again
-                  with the fuller set.
+              Present the summary exactly as returned. It reports all eight governed fields
+              — Budget Amount, Secured Funding, Likely Funding, Pipeline Funding, Forecast
+              Funding, Secured Headroom, Forecast Headroom, Headroom Status — plus the
+              number of Budget Lines included and a short interpretation. Do not add,
+              re-order, or recompute figures.
 
-              For a portfolio question (which programs have the most headroom / the
-              largest funding gap, or which Budget Lines are over-allocated), call
-              rank_headroom with the appropriate statusFilter, plus country/fiscalYear if
-              given. Present the ranked list as written; do not merge Budget Lines.
+              Handle the action's outcomes:
+                - found=true: present the aggregated figures and interpretation.
+                - Unrestricted or Working Capital: the action returns a governed zero with
+                  Headroom Status "Not Applicable" — relay it; do not go looking for other
+                  Budget Lines.
+                - signal NOT_CONFIGURED (e.g. "Other support departments", "Miscellaneous"):
+                  relay that the rule is not yet configured; do NOT guess a mapping or
+                  recreate any historical spreadsheet rule.
+                - signal NONE: relay "No qualifying Budget Line records were found for the
+                  requested scope." Never treat no-match as a financial value of zero.
+                - signal NEEDS_INFO: ask for the missing category and/or country.
 
-              If the user references a named grant instead of dimensions, call
-              get_opportunity_context first to resolve its country, program, and year,
-              then feed those into analyze_headroom's country, businessUnit, and
-              fiscalYear (asking for the sub-unit, since a grant does not pin one down).
-              When get_opportunity_context returns found=false, relay its summary and ask
-              the user to pick before continuing.
+              SAFETY. Never guess a category mapping. Never mix countries, fiscal years, or
+              materially different Budget Scenarios unless the user explicitly asks — analyze
+              one scope at a time and, for comparisons, run each group separately and present
+              them side by side. Do not require the user to name a Budget Scenario.
 
-              If the conversation moves away from grant funding headroom, transition back
-              to agent_router for reclassification.
+              For a portfolio question (which programs have the most headroom / the largest
+              funding gap, or which Budget Lines are over-allocated), call rank_headroom with
+              the appropriate statusFilter, plus country/fiscalYear if given.
+
+              If the user references a named grant, call get_opportunity_context first to
+              resolve its country and program, then feed the program and country into
+              analyze_headroom. When get_opportunity_context returns found=false, relay its
+              summary and ask the user to pick before continuing.
+
+              If the conversation moves to competing grants or funding lineage, or otherwise
+              away from single-scope headroom, transition back to agent_router for
+              reclassification.
         actions:
             analyze_headroom: @actions.analyze_headroom
+                with program=...
                 with country=...
-                with businessUnit=...
                 with fiscalYear=...
-                with subUnit=...
-                with department=...
-                with costType=...
-                with costCategory=...
             rank_headroom: @actions.rank_headroom
                 with statusFilter=...
                 with country=...

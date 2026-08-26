@@ -15,4 +15,7 @@ public interface IBudgetLineSelector {
 
     /** Budget Lines by record Id (any scenario) — used to resolve lines an allocation points to. */
     List<Budget_Line__c> byIds(Set<Id> ids);
+
+    /** Aggregate the governed financial fields (SUM) + line count across a category population. */
+    AggregateResult aggregateScope(BudgetLineDimensions dimensions);
 }
