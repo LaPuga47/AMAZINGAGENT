@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenAiPlannerBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Internal assistant for One Acre Fund Fundraising Relationship Managers that answers grant funding headroom questions — read-only, grounded in Budget_Scenario__c / Budget_Line__c data.</description>
+    <localTopicLinks>
+        <genAiPluginName>agent_router_16jWe0000009ysz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>ambiguous_question_16jWe0000009ysz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>competing_grants_16jWe0000009ysz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>headroom_analysis_16jWe0000009ysz</genAiPluginName>
+    </localTopicLinks>
+    <localTopicLinks>
+        <genAiPluginName>off_topic_16jWe0000009ysz</genAiPluginName>
+    </localTopicLinks>
+    <localTopics>
+        <fullName>off_topic_16jWe0000009ysz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Redirect conversation to grant funding headroom topics when the user request goes off-topic</description>
+        <developerName>off_topic_16jWe0000009ysz</developerName>
+        <genAiPluginInstructions>
+            <description>You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don&apos;t have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action&apos;s summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record.</description>
+            <developerName>instruction0_179We000000q2Ab</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179We000000q2Ab</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>off_topic</localDeveloperName>
+        <masterLabel>Off Topic</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>headroom_analysis_16jWe0000009ysz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Answers funding-headroom / funding-gap questions by resolving a Headroom category/program to its governed Budget Line population and aggregating the financial fields across all qualifying Budget Lines for a country and fiscal year. Also ranks Budget Lines for portfolio questions. Uses only the data returned by its actions.</description>
+        <developerName>headroom_analysis_16jWe0000009ysz</developerName>
+        <genAiPluginInstructions>
+            <description>You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don&apos;t have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action&apos;s summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record.</description>
+            <developerName>instruction0_179We000000q2Ae</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179We000000q2Ae</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>rank_headroom_179We000000q2Ae</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_opportunity_context_179We000000q2Ae</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>analyze_headroom_179We000000q2Ae</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>rank_headroom_179We000000q2Ae</fullName>
+            <description>Ranks current-scenario Budget Lines by forecast headroom for portfolio questions — which have the most headroom / largest funding gap, or which are over-allocated. Each Budget Line is listed separately with its own dimensions; they are never merged.</description>
+            <developerName>rank_headroom_179We000000q2Ae</developerName>
+            <invocationTarget>AmaizeRankHeadroom</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>rank_headroom</localDeveloperName>
+            <masterLabel>Rank Headroom</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>analyze_headroom_179We000000q2Ae</fullName>
+            <description>Governed Headroom aggregation. Resolves a Headroom category/program (Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital) to its Budget Line population and SUMS Budget Amount, Secured/Likely/Pipeline/Forecast Funding, Secured/Forecast Headroom across ALL qualifying lines for the country and fiscal year, plus the line count and derived Headroom Status. Returns found=true with the aggregated figures, a governed zero for Unrestricted/Working Capital, or found=false when the category is not yet configured, no qualifying lines exist, or the category/country is missing.</description>
+            <developerName>analyze_headroom_179We000000q2Ae</developerName>
+            <invocationTarget>AmaizeAnalyzeHeadroom</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>analyze_headroom</localDeveloperName>
+            <masterLabel>Analyze Headroom</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>get_opportunity_context_179We000000q2Ae</fullName>
+            <description>Resolves a named grant&apos;s eligible country and program from its Restriction (Restriction_Country__c + Business_Unit__c), plus the year from the Opportunity, so a headroom check can run off it. Returns found=true with a single country and program only when the grant resolves to exactly one of each; otherwise found=false and the summary asks which country or program to use.</description>
+            <developerName>get_opportunity_context_179We000000q2Ae</developerName>
+            <invocationTarget>AmaizeGetOpportunityContext</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>get_opportunity_context</localDeveloperName>
+            <masterLabel>Get Opportunity Context</masterLabel>
+        </localActions>
+        <localDeveloperName>headroom_analysis</localDeveloperName>
+        <masterLabel>Headroom Analysis</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>ambiguous_question_16jWe0000009ysz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Ask for the missing country and/or program when a headroom request is too ambiguous to act on</description>
+        <developerName>ambiguous_question_16jWe0000009ysz</developerName>
+        <genAiPluginInstructions>
+            <description>You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don&apos;t have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action&apos;s summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record.</description>
+            <developerName>instruction0_179We000000q2Af</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179We000000q2Af</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>ambiguous_question</localDeveloperName>
+        <masterLabel>Ambiguous Question</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>competing_grants_16jWe0000009ysz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Competing grants, funding overlap, and Budget Line funding relationships. Determines whether multiple Opportunities compete for the same funding scope and quantifies exposure against headroom with closing scenarios and severity; and traces funding lineage in both directions — what funds a Budget Line (allocations, restrictions, gift commitments, opportunities, donors) and where a grant&apos;s funding is allocated. Uses only its actions&apos; data.</description>
+        <developerName>competing_grants_16jWe0000009ysz</developerName>
+        <genAiPluginInstructions>
+            <description>You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don&apos;t have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action&apos;s summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record.</description>
+            <developerName>instruction0_179We000000q2Ac</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179We000000q2Ac</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localActionLinks>
+            <functionName>get_opportunity_context_179We000000q2Ac</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>get_funding_context_179We000000q2Ac</functionName>
+        </localActionLinks>
+        <localActionLinks>
+            <functionName>find_competing_grants_179We000000q2Ac</functionName>
+        </localActionLinks>
+        <localActions>
+            <fullName>get_funding_context_179We000000q2Ac</fullName>
+            <description>Traces the funding lineage/relationships around a starting point and returns a decision-ready summary. Two directions: (1) a Budget Line scope (country + business unit, optionally fiscal year and the cost dimensions) returns what funds it — the linked allocations, restrictions, gift commitments, opportunities and donors, with headroom and competing insight; (2) a named grant (opportunityName) returns where that grant&apos;s funding is allocated — the Budget Lines it funds, using allocation amounts, not the whole opportunity amount. Reports missing links (e.g. no gift commitment) instead of guessing.</description>
+            <developerName>get_funding_context_179We000000q2Ac</developerName>
+            <invocationTarget>AmaizeGetFundingContext</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>get_funding_context</localDeveloperName>
+            <masterLabel>Get Funding Context</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>get_opportunity_context_179We000000q2Ac</fullName>
+            <description>Resolves a named grant&apos;s eligible country and program from its Restriction, plus the year, so a competing-grants analysis can run off it. Returns found=true with a single country and program only when the grant resolves to exactly one of each; otherwise found=false and the summary asks which to use.</description>
+            <developerName>get_opportunity_context_179We000000q2Ac</developerName>
+            <invocationTarget>AmaizeGetOpportunityContext</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>get_opportunity_context</localDeveloperName>
+            <masterLabel>Get Opportunity Context</masterLabel>
+        </localActions>
+        <localActions>
+            <fullName>find_competing_grants_179We000000q2Ac</fullName>
+            <description>Governed competing-grants analysis. Resolves the SAME governed Budget Line population Headroom Analysis uses (Headroom category/program + country + fiscal year), aggregates the governed Headroom fields across all qualifying Budget Lines, then reports the Opportunities competing for that population by allocation EXPOSURE (not Opportunity Amount), split by Secured/Likely/Pipeline, with clickable Salesforce record links, a closing scenario, and severity (No Material / Moderate / High / Critical). Returns found=false for a governed-zero category, a not-yet-configured category, no qualifying lines, or a missing category/country.</description>
+            <developerName>find_competing_grants_179We000000q2Ac</developerName>
+            <invocationTarget>AmaizeFindCompetingGrants</invocationTarget>
+            <invocationTargetType>apex</invocationTargetType>
+            <isConfirmationRequired>false</isConfirmationRequired>
+            <isIncludeInProgressIndicator>false</isIncludeInProgressIndicator>
+            <localDeveloperName>find_competing_grants</localDeveloperName>
+            <masterLabel>Find Competing Grants</masterLabel>
+        </localActions>
+        <localDeveloperName>competing_grants</localDeveloperName>
+        <masterLabel>Competing Grants Analysis</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <localTopics>
+        <fullName>agent_router_16jWe0000009ysz</fullName>
+        <canEscalate>false</canEscalate>
+        <description>Welcome the user and determine whether the request is a funding-headroom question, off-topic, or too ambiguous to act on</description>
+        <developerName>agent_router_16jWe0000009ysz</developerName>
+        <genAiPluginInstructions>
+            <description>You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don&apos;t have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action&apos;s summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record.</description>
+            <developerName>instruction0_179We000000q2Ad</developerName>
+            <language>en_US</language>
+            <masterLabel>instruction0_179We000000q2Ad</masterLabel>
+            <sortOrder>1</sortOrder>
+        </genAiPluginInstructions>
+        <language>en_US</language>
+        <localDeveloperName>agent_router</localDeveloperName>
+        <masterLabel>Agent Router</masterLabel>
+        <pluginType>Topic</pluginType>
+    </localTopics>
+    <masterLabel>A-maize-ing Headroom Assistant</masterLabel>
+    <plannerType>Atlas__ConcurrentMultiAgentOrchestration</plannerType>
+</GenAiPlannerBundle>

@@ -16,7 +16,9 @@ public with sharing class AllocationSelector implements IAllocationSelector {
     private static final String FIELDS =
         'Id, Name, Budget_Line__c, Allocation_Type__c, Allocation_Status__c, ' +
         'Funds_Allocated__c, Prob_Weighted_Allocation_Amount__c, Allocation_Match_Key__c, CurrencyIsoCode, ' +
+        'Restriction__c, Restriction__r.Name, ' +
         'Restriction__r.Restriction_Country__c, Restriction__r.Business_Unit__c, ' +
+        'Restriction__r.Gift_Commitment__c, Restriction__r.Gift_Commitment__r.Name, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Id, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Name, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Amount, ' +
@@ -24,6 +26,7 @@ public with sharing class AllocationSelector implements IAllocationSelector {
         'Restriction__r.Gift_Commitment__r.Opportunity.StageName, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.CloseDate, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Guardian__c, ' +
+        'Restriction__r.Gift_Commitment__r.Opportunity.AccountId, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Account.Name';
 
     public List<Allocation__c> byBudgetLineId(Id budgetLineId) {
@@ -47,6 +50,30 @@ public with sharing class AllocationSelector implements IAllocationSelector {
             'SELECT ' + FIELDS + ' FROM Allocation__c ' +
             'WHERE Allocation_Match_Key__c = :key AND Budget_Line__c = null ' +
             'LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
+    /**
+     * Portfolio rollup: competing (Likely + Pipeline, non-cancelled) allocation exposure
+     * summed and grouped by the linked Budget Line's (Country, Business Unit, Department,
+     * Fiscal Year), across the current scenario. One query for the whole portfolio.
+     */
+    public List<AggregateResult> aggregateCompetingPortfolio(String country, String fiscalYear) {
+        List<String> clauses = new List<String>{
+            'Budget_Line__r.Budget_Scenario__r.Is_Current_Scenario__c = true',
+            'Allocation_Type__c IN (\'Likely\',\'Pipeline\')',
+            'Allocation_Status__c != \'Cancelled\''
+        };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (String.isNotBlank(country))    { clauses.add('Budget_Line__r.Country__c = :country'); binds.put('country', country); }
+        if (String.isNotBlank(fiscalYear)) { clauses.add('Budget_Line__r.Fiscal_Year__c = :fy');  binds.put('fy', fiscalYear); }
+        String query =
+            'SELECT Budget_Line__r.Country__c c, Budget_Line__r.BusinessUnit__c bu, ' +
+            'Budget_Line__r.Department__c dept, Budget_Line__r.Fiscal_Year__c fy, ' +
+            'SUM(Funds_Allocated__c) amt, COUNT(Id) cnt ' +
+            'FROM Allocation__c WHERE ' + String.join(clauses, ' AND ') +
+            ' GROUP BY Budget_Line__r.Country__c, Budget_Line__r.BusinessUnit__c, ' +
+            'Budget_Line__r.Department__c, Budget_Line__r.Fiscal_Year__c LIMIT 5000';
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
@@ -77,6 +104,22 @@ public with sharing class AllocationSelector implements IAllocationSelector {
         String query =
             'SELECT ' + FIELDS + ' FROM Allocation__c ' +
             'WHERE Restriction__r.Gift_Commitment__r.OpportunityId = :oid ' +
+            'LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
+    /**
+     * ALL allocations for a set of Opportunities (any Budget Line / scope), for computing
+     * each opportunity's total mapped allocation vs. its scope exposure. One bulk query.
+     */
+    public List<Allocation__c> byOpportunityIds(Set<Id> opportunityIds) {
+        if (opportunityIds == null || opportunityIds.isEmpty()) {
+            return new List<Allocation__c>();
+        }
+        Map<String, Object> binds = new Map<String, Object>{ 'oids' => opportunityIds, 'lim' => 5000 };
+        String query =
+            'SELECT ' + FIELDS + ' FROM Allocation__c ' +
+            'WHERE Restriction__r.Gift_Commitment__r.OpportunityId IN :oids ' +
             'LIMIT :lim';
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }

@@ -94,6 +94,29 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
      * business unit is matched base<->suffix tolerant; Department and any further cost
      * dimensions narrow only when supplied. Returns a single AggregateResult row.
      */
+    /**
+     * The COMPLETE governed Budget Line population for a category scope (all qualifying
+     * records, not one), so competing-grants analysis retrieves allocations across the same
+     * population Headroom Analysis aggregates. Same filters as aggregateScope.
+     */
+    public List<Budget_Line__c> findByGovernedScope(BudgetLineDimensions d) {
+        if (d == null) { return new List<Budget_Line__c>(); }
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (d.fiscalYear != null)   { clauses.add('Fiscal_Year__c = :fy');    binds.put('fy', d.fiscalYear); }
+        if (d.country != null)      { clauses.add('Country__c = :country');    binds.put('country', d.country); }
+        if (d.businessUnit != null) { clauses.add(businessUnitClause(d.businessUnit, binds)); }
+        if (d.subUnit != null)      { clauses.add('Sub__c = :sub');            binds.put('sub', d.subUnit); }
+        if (d.department != null)   { clauses.add('Department__c = :dept');    binds.put('dept', d.department); }
+        if (d.costType != null)     { clauses.add('Cost_Type__c = :ctype');    binds.put('ctype', d.costType); }
+        if (d.costCategory != null) { clauses.add('Cost_Category__c = :ccat'); binds.put('ccat', d.costCategory); }
+        binds.put('lim', 5000);
+        String query =
+            'SELECT ' + FIELDS + ' FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ') +
+            ' LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     public AggregateResult aggregateScope(BudgetLineDimensions d) {
         List<String> clauses = new List<String>{ CURRENT_SCENARIO };
         Map<String, Object> binds = new Map<String, Object>();
@@ -113,6 +136,27 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
             'FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ');
         List<AggregateResult> rows = Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
         return rows.isEmpty() ? null : rows[0];
+    }
+
+    /**
+     * Portfolio rollup: the governed financial fields summed and grouped by
+     * (Country, Business Unit, Department, Fiscal Year) across the current scenario, so a
+     * scope-by-scope competition scan needs only ONE query regardless of how many scopes
+     * exist. Optionally scoped by country / fiscal year.
+     */
+    public List<AggregateResult> aggregatePortfolio(String country, String fiscalYear) {
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (String.isNotBlank(country))    { clauses.add('Country__c = :country'); binds.put('country', country); }
+        if (String.isNotBlank(fiscalYear)) { clauses.add('Fiscal_Year__c = :fy');  binds.put('fy', fiscalYear); }
+        String query =
+            'SELECT Country__c c, BusinessUnit__c bu, Department__c dept, Fiscal_Year__c fy, ' +
+            'SUM(Budget_Amount__c) bud, SUM(Secured_Funding__c) sec, SUM(Likely_Funding__c) lik, ' +
+            'SUM(Pipeline_Funding__c) pipe, SUM(Forecast_Funding__c) fcf, SUM(Secured_Headroom__c) sh, ' +
+            'SUM(Forecast_Headroom__c) fh, COUNT(Id) cnt, MAX(CurrencyIsoCode) iso ' +
+            'FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ') +
+            ' GROUP BY Country__c, BusinessUnit__c, Department__c, Fiscal_Year__c LIMIT 5000';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
     public List<Budget_Line__c> byIds(Set<Id> ids) {

@@ -1,126 +1,95 @@
 /**
- * CompetingGrantsServiceTest — competition detection, exposure, and severity against the
- * Budget-Line-first engine. Allocations are created inside each test (the DLRS trigger +
- * org flows on the allocation chain are SOQL-heavy, so they stay out of @TestSetup).
- *
- * The Budget Line's stored funding fields are set to match the competing allocations, since
- * a scratch/sandbox transaction has no live rollup — the service reads headroom from those
- * stored fields and the competing detail from the allocations.
+ * CompetingGrantsServiceTest — governed competing-grants analysis:
+ * - cross-agent CONSISTENCY: same scope -> identical governed Headroom totals + BL count as
+ *   Headroom Analysis (the mandatory alignment test).
+ * - full-population allocation retrieval, exposure grouped once per Opportunity across lines.
+ * - governed zero / not-configured / none / needs-info states.
+ * Allocations are created inside tests (the chain is SOQL-heavy).
  */
 @isTest
 private class CompetingGrantsServiceTest {
 
     @TestSetup
     static void setup() {
-        HeadroomTestData.makeCurrentScenario();
+        Budget_Scenario__c s = HeadroomTestData.makeCurrentScenario();
+        // Two Core Program - KE lines (the governed population must include BOTH).
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Extension', 'N/A', 'N/A',
+            -1000000, 300000, 100000, 100000);
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Field Operations', 'N/A', 'N/A',
+            -500000, 100000, 0, 0);
     }
 
-    private static BudgetLineDimensions dims(String country, String bu, String fy) {
-        BudgetLineDimensions d = new BudgetLineDimensions();
-        d.country = country; d.businessUnit = bu; d.fiscalYear = fy;
-        d.subUnit = 'N/A'; d.department = 'N/A'; d.costType = 'N/A'; d.costCategory = 'N/A';
-        return d;
-    }
-
+    // MANDATORY: Headroom Analysis and Competing Grants resolve the identical governed scope.
     @isTest
-    static void highWhenAllClosingWouldExceedHeadroom() {
-        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
-        // Budget 5.0M. Funding rolls up FROM allocations: one Secured $3.2M (-> secured
-        // headroom 1.8M) plus $2.8M of competing Likely/Pipeline. If all competing close it
-        // overshoots by $1.0M (High), but the probability-weighted pipeline ($1.8M) does not
-        // exceed headroom, so it is not Critical.
-        Budget_Line__c line = HeadroomTestData.makeLine(sid, 'Kenya', 'Core Program - KE',
-            'N/A', 'N/A', 'N/A', 'N/A', -5000000, 0, 0, 0);
-        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
-            new HeadroomTestData.AllocSpec('Secured', 3200000),  // already secured
-            new HeadroomTestData.AllocSpec('Likely', 1200000),   // Gates
-            new HeadroomTestData.AllocSpec('Likely', 1000000),   // Mastercard
-            new HeadroomTestData.AllocSpec('Pipeline', 600000)   // ABC
-        }, line.Id, 'Kenya', 'Core Program - KE');
-
+    static void headroomTotalsMatchHeadroomAnalysis() {
         Test.startTest();
-        CompetingGrantsResult r = new CompetingGrantsService().analyze(dims('Kenya', 'Core Program - KE', '2027'));
+        HeadroomAggregate h = new HeadroomService().aggregate('Core Program', 'Kenya', '2027');
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Core Program', 'Kenya', '2027');
         Test.stopTest();
 
-        System.assertEquals(CompetingGrantsResult.Status.FOUND, r.status);
-        System.assertEquals(4, r.grants.size(), 'One secured + three competing opportunities');
-        System.assert(r.hasCompetition(), 'Should detect competition');
-        System.assertEquals(2800000, r.combinedCompeting, 'Combined Likely+Pipeline allocated (secured excluded)');
-        System.assertEquals(1800000, r.securedHeadroom);
-        System.assertEquals(1000000, r.potentialExcess, 'Combined 2.8M - 1.8M headroom');
-        System.assertEquals('High Competition', r.severity, 'All-close overshoots but prob-weighted does not');
+        System.assertEquals(HeadroomAggregate.State.FOUND, h.state);
+        System.assertEquals(CompetingGrantsResult.Status.FOUND, c.status);
+        System.assertEquals(h.budgetLinesIncluded, c.budgetLineCount, 'Same Budget Line count');
+        System.assertEquals(h.budgetAmount, c.budgetAmount, 'Same Budget Amount');
+        System.assertEquals(h.securedFunding, c.securedFunding);
+        System.assertEquals(h.likelyFunding, c.likelyFunding);
+        System.assertEquals(h.pipelineFunding, c.pipelineFunding);
+        System.assertEquals(h.forecastFunding, c.forecastFunding);
+        System.assertEquals(h.securedHeadroom, c.securedHeadroom, 'Same Secured Headroom');
+        System.assertEquals(h.forecastHeadroom, c.forecastHeadroom, 'Same Forecast Headroom');
+        System.assertEquals(h.headroomStatus, c.headroomStatus);
     }
 
     @isTest
-    static void criticalWhenAlreadyOverAllocatedOnSecured() {
-        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
-        // Secured funding already exceeds the budget -> secured headroom is negative.
-        Budget_Line__c line = HeadroomTestData.makeLine(sid, 'Malawi', 'Core Program - MW',
-            'N/A', 'N/A', 'N/A', 'N/A', -5000000, 0, 0, 0);
-        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
-            new HeadroomTestData.AllocSpec('Secured', 5500000),
-            new HeadroomTestData.AllocSpec('Pipeline', 400000)
-        }, line.Id, 'Malawi', 'Core Program - MW');
+    static void aggregatesAllQualifyingLines() {
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Core Program', 'Kenya', '2027');
+        System.assertEquals(2, c.budgetLineCount, 'Both Core Program - KE lines participate');
+        System.assertEquals(1500000, c.budgetAmount);   // 1.0M + 0.5M
+        System.assertEquals(1100000, c.securedHeadroom); // 0.7M + 0.4M
+    }
+
+    @isTest
+    static void sumsExposureOnceByOpportunityAcrossLines() {
+        List<Id> lineIds = new List<Id>();
+        for (Budget_Line__c bl : [SELECT Id FROM Budget_Line__c WHERE BusinessUnit__c = 'Core Program - KE']) {
+            lineIds.add(bl.Id);
+        }
+        // One opportunity allocated $200k to EACH of the two lines (Pipeline).
+        HeadroomTestData.makeOppAllocations('Pipeline', lineIds, 200000, 'Kenya', 'Core Program - KE');
 
         Test.startTest();
-        CompetingGrantsResult r = new CompetingGrantsService().analyze(dims('Malawi', 'Core Program - MW', '2027'));
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Core Program', 'Kenya', '2027');
         Test.stopTest();
 
-        System.assertEquals(CompetingGrantsResult.Status.FOUND, r.status);
-        System.assert(r.securedHeadroom < 0, 'Secured funding exceeds budget: ' + r.securedHeadroom);
-        System.assertEquals('Critical / Over-allocated', r.severity);
+        System.assertEquals(1, c.grants.size(), 'One opportunity, counted once');
+        CompetingGrant g = c.grants[0];
+        System.assertEquals(400000, g.allocatedAmount, 'Exposure summed across both lines (2 x 200k)');
+        System.assertEquals(2, g.allocationCount);
+        System.assertEquals(2, g.budgetLineIds.size(), 'Exposure spans two budget lines');
+        System.assertEquals(400000, c.combinedCompeting);
     }
 
     @isTest
-    static void noMaterialWhenHeadroomComfortablyExceedsPipeline() {
-        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
-        // Big headroom (5M budget, 0 secured -> 5M), one small $0.3M pipeline.
-        Budget_Line__c line = HeadroomTestData.makeLine(sid, 'Rwanda', 'Core Program - RW',
-            'N/A', 'N/A', 'N/A', 'N/A', -5000000, 0, 0, 300000);
-        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
-            new HeadroomTestData.AllocSpec('Pipeline', 300000)
-        }, line.Id, 'Rwanda', 'Core Program - RW');
-
-        Test.startTest();
-        CompetingGrantsResult r = new CompetingGrantsService().analyze(dims('Rwanda', 'Core Program - RW', '2027'));
-        Test.stopTest();
-
-        System.assertEquals(CompetingGrantsResult.Status.FOUND, r.status);
-        System.assertEquals(300000, r.combinedCompeting);
-        System.assertEquals('No Material Competition', r.severity);
-        System.assert(!r.hasCompetition(), 'One grant is not competition');
+    static void unrestrictedIsZeroNoCompetition() {
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Unrestricted', 'Kenya', '2027');
+        System.assertEquals(CompetingGrantsResult.Status.ZERO, c.status);
     }
 
     @isTest
-    static void needsInfoWhenBusinessUnitMissing() {
-        BudgetLineDimensions d = new BudgetLineDimensions();
-        d.country = 'Kenya'; d.fiscalYear = '2027';   // no business unit
-        CompetingGrantsResult r = new CompetingGrantsService().analyze(d);
-        System.assertEquals(CompetingGrantsResult.Status.NEEDS_INFO, r.status);
-        System.assert(r.missingDimensions.contains('business unit'), r.missingDimensions.toString());
+    static void miscellaneousNotConfigured() {
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Miscellaneous', 'Kenya', '2027');
+        System.assertEquals(CompetingGrantsResult.Status.NOT_CONFIGURED, c.status);
     }
 
     @isTest
-    static void notFoundWhenScopeHasNoBudgetLine() {
-        CompetingGrantsResult r = new CompetingGrantsService().analyze(dims('Tanzania', 'Core Program', '2027'));
-        System.assertEquals(CompetingGrantsResult.Status.NOT_FOUND, r.status);
+    static void noQualifyingLinesIsNone() {
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Trees', 'Kenya', '2027');
+        System.assertEquals(CompetingGrantsResult.Status.NONE, c.status);
     }
 
     @isTest
-    static void resolvesCompetingGrantViaMatchKey() {
-        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
-        // Allocation created before its Budget Line exists -> left unlinked (Match Key path).
-        HeadroomTestData.makeAllocation('Likely', 400000, null,
-            'Uganda', 'Core Program - UG', 'N/A', 'N/A', 'N/A', 'N/A');
-        Budget_Line__c line = HeadroomTestData.makeLine(sid, 'Uganda', 'Core Program - UG',
-            'N/A', 'N/A', 'N/A', 'N/A', -2000000, 500000, 400000, 0);
-
-        Test.startTest();
-        CompetingGrantsResult r = new CompetingGrantsService().analyze(dims('Uganda', 'Core Program - UG', '2027'));
-        Test.stopTest();
-
-        System.assertEquals(CompetingGrantsResult.Status.FOUND, r.status);
-        System.assertEquals(1, r.grants.size(), 'The unlinked allocation should resolve via Match Key');
-        System.assertEquals(400000, r.combinedCompeting);
+    static void missingCountryNeedsInfo() {
+        CompetingGrantsResult c = new CompetingGrantsService().analyze('Core Program', null, '2027');
+        System.assertEquals(CompetingGrantsResult.Status.NEEDS_INFO, c.status);
     }
 }

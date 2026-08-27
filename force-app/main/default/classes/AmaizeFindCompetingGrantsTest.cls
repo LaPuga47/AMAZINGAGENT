@@ -1,19 +1,21 @@
 /**
- * AmaizeFindCompetingGrantsTest — the action layer: composed summary sections, severity/
- * exposure outputs, the read-only guardrail, and the needs-info / not-found messages.
+ * AmaizeFindCompetingGrantsTest — the governed action: composed response with the governed
+ * Headroom block, competing opportunities by exposure (not Opportunity Amount) with clickable
+ * record links, and the zero / not-configured / none / needs-info states. Read-only.
  */
 @isTest
 private class AmaizeFindCompetingGrantsTest {
 
     @TestSetup
     static void setup() {
-        HeadroomTestData.makeCurrentScenario();
+        Budget_Scenario__c s = HeadroomTestData.makeCurrentScenario();
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Extension', 'N/A', 'N/A',
+            -5000000, 3200000, 0, 0);   // secured headroom 1.8M
     }
 
-    private static AmaizeFindCompetingGrants.Request req(String country, String bu, Integer fy) {
+    private static AmaizeFindCompetingGrants.Request req(String program, String country, Integer fy) {
         AmaizeFindCompetingGrants.Request r = new AmaizeFindCompetingGrants.Request();
-        r.country = country; r.businessUnit = bu; r.fiscalYear = fy;
-        r.subUnit = 'N/A'; r.department = 'N/A'; r.costType = 'N/A'; r.costCategory = 'N/A';
+        r.program = program; r.country = country; r.fiscalYear = fy;
         return r;
     }
 
@@ -22,60 +24,65 @@ private class AmaizeFindCompetingGrantsTest {
     }
 
     @isTest
-    static void composesDecisionReadySummary() {
-        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
-        Budget_Line__c line = HeadroomTestData.makeLine(sid, 'Kenya', 'Core Program - KE',
-            'N/A', 'N/A', 'N/A', 'N/A', -5000000, 0, 0, 0);
+    static void composesGovernedResponseWithExposureAndLinks() {
+        Id lineId = [SELECT Id FROM Budget_Line__c WHERE BusinessUnit__c = 'Core Program - KE' LIMIT 1].Id;
         HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
-            new HeadroomTestData.AllocSpec('Secured', 3200000),
-            new HeadroomTestData.AllocSpec('Likely', 1200000),
-            new HeadroomTestData.AllocSpec('Likely', 1000000),
-            new HeadroomTestData.AllocSpec('Pipeline', 600000)
-        }, line.Id, 'Kenya', 'Core Program - KE');
+            new HeadroomTestData.AllocSpec('Pipeline', 1200000),
+            new HeadroomTestData.AllocSpec('Pipeline', 1000000)
+        }, lineId, 'Kenya', 'Core Program - KE');
 
         Test.startTest();
-        AmaizeFindCompetingGrants.Result res = run(req('Kenya', 'Core Program - KE', 2027));
+        AmaizeFindCompetingGrants.Result res = run(req('Core Program', 'Kenya', 2027));
         Test.stopTest();
 
         System.assertEquals(true, res.found);
-        System.assertEquals('High Competition', res.severity);
-        System.assertEquals(2800000, res.combinedPipeline);
-        System.assertEquals(1800000, res.remainingHeadroom);
-        // Response contains the designed sections.
         System.assert(res.summary.contains('**Competing Grants Summary**'), res.summary);
-        System.assert(res.summary.contains('**Program Headroom**'), res.summary);
-        System.assert(res.summary.contains('**Competing Opportunities**'), res.summary);
-        System.assert(res.summary.contains('**Scenario Impact**'), res.summary);
-        System.assert(res.summary.contains('Competition severity: High'), res.summary);
-        System.assert(res.summary.contains('Suggested Coordination'), 'High should suggest coordination');
+        System.assert(res.summary.contains('**Headroom Position**'), res.summary);
+        System.assert(res.summary.contains('Budget Lines Included:'), res.summary);
+        System.assert(res.summary.contains('Exposure to this scope'), res.summary);
+        // Clickable record link (Markdown + Lightning URL) is present.
+        System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'Expected an Opportunity record link: ' + res.summary);
+        // Exposure is allocation-based (not Opportunity Amount), and Phase-2 analysis is present.
+        System.assert(res.resultsJson.contains('"exposureToCurrentScope"'), res.resultsJson);
+        System.assert(res.resultsJson.contains('"analysisConfidence"'), res.resultsJson);
+        System.assert(res.summary.contains('**Risk & Confidence**'), res.summary);
+        System.assert(res.summary.contains('**Why They Compete**'), res.summary);
     }
 
     @isTest
-    static void needsInfoWhenBusinessUnitMissing() {
-        AmaizeFindCompetingGrants.Request r = req('Kenya', null, 2027);
-        AmaizeFindCompetingGrants.Result res = run(r);
+    static void unrestrictedHasNoCompetition() {
+        AmaizeFindCompetingGrants.Result res = run(req('Unrestricted', 'Kenya', 2027));
         System.assertEquals(false, res.found);
-        System.assertEquals('NEEDS_INFO', res.severity);
-        System.assert(res.summary.contains('business unit'), res.summary);
+        System.assertEquals('ZERO', res.severity);
+        System.assert(res.summary.containsIgnoreCase('no governed headroom capacity'), res.summary);
     }
 
     @isTest
-    static void notFoundWhenScopeMissing() {
-        AmaizeFindCompetingGrants.Result res = run(req('Tanzania', 'Core Program', 2027));
-        System.assertEquals(false, res.found);
-        System.assertEquals('NOT_FOUND', res.severity);
-        System.assert(res.summary.containsIgnoreCase('couldn\'t find'), res.summary);
+    static void notConfiguredCategory() {
+        AmaizeFindCompetingGrants.Result res = run(req('Miscellaneous', 'Kenya', 2027));
+        System.assertEquals('NOT_CONFIGURED', res.severity);
+        System.assert(res.summary.contains('has not yet been configured'), res.summary);
     }
 
     @isTest
-    static void actionPerformsNoDml() {
-        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
-        HeadroomTestData.makeLine(sid, 'Kenya', 'Core Program - KE',
-            'N/A', 'N/A', 'N/A', 'N/A', -5000000, 3200000, 0, 0);
+    static void noQualifyingLines() {
+        AmaizeFindCompetingGrants.Result res = run(req('Trees', 'Kenya', 2027));
+        System.assertEquals('NONE', res.severity);
+        System.assert(res.summary.contains('No qualifying Budget Line records were found'), res.summary);
+    }
+
+    @isTest
+    static void budgetLinesButNoAllocations() {
+        AmaizeFindCompetingGrants.Result res = run(req('Core Program', 'Kenya', 2027));  // lines exist, no allocations
+        System.assertEquals(true, res.found);
+        System.assert(res.summary.contains('no Funding Allocations are currently linked'), res.summary);
+    }
+
+    @isTest
+    static void performsNoDml() {
         Test.startTest();
-        Integer before = Limits.getDmlStatements();
-        run(req('Kenya', 'Core Program - KE', 2027));
-        System.assertEquals(before, Limits.getDmlStatements(), 'Competing-grants analysis must never write data');
+        run(req('Core Program', 'Kenya', 2027));
+        System.assertEquals(0, Limits.getDmlStatements(), 'Competing-grants analysis must never write data');
         Test.stopTest();
     }
 }
