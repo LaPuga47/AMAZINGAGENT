@@ -267,6 +267,103 @@ public with sharing class CompetingGrantsService {
         return name.split('[–-]', 2)[0].trim();
     }
 
+    // Cap how many governed scopes an opportunity-start analysis expands into (keeps SOQL bounded).
+    private static final Integer MAX_OPP_SCOPES = 5;
+
+    /**
+     * Opportunity-start competition: resolve the named grant, find the Budget Lines its
+     * allocations touch, determine the governed Headroom scopes those belong to, and run the
+     * governed competition for EACH scope (a multi-scope opportunity is analyzed per scope,
+     * never collapsed). Grounded in shared Budget Line population, not program text.
+     */
+    public OpportunityCompetition analyzeForOpportunity(String opportunityName) {
+        OpportunityCompetition r = new OpportunityCompetition();
+        if (String.isBlank(opportunityName)) {
+            r.status = OpportunityCompetition.Status.NEEDS_INFO;
+            return r;
+        }
+        List<Opportunity> hits = matchOpportunities(opportunityName);
+        if (hits.isEmpty()) { r.status = OpportunityCompetition.Status.NOT_FOUND; return r; }
+        if (hits.size() > 1) {
+            r.status = OpportunityCompetition.Status.AMBIGUOUS;
+            r.ambiguousChoices = new List<String>();
+            for (Opportunity o : hits) { r.ambiguousChoices.add(o.Name); }
+            return r;
+        }
+        Opportunity opp = hits[0];
+        r.opportunityId = opp.Id; r.opportunityName = opp.Name; r.accountId = opp.AccountId;
+        r.donorName = (opp.Account != null) ? opp.Account.Name : null;
+        r.owner = opp.Guardian__c; r.stage = opp.StageName; r.opportunityAmount = opp.Amount;
+
+        List<Allocation__c> allocs = allocations.byOpportunityId(opp.Id);
+        Set<Id> blIds = new Set<Id>();
+        for (Allocation__c a : allocs) {
+            if (a.Allocation_Status__c == 'Cancelled') { continue; }
+            if (a.Budget_Line__c != null) { blIds.add(a.Budget_Line__c); }
+            if (r.currencyIsoCode == null) { r.currencyIsoCode = a.CurrencyIsoCode; }
+        }
+        if (blIds.isEmpty()) { r.status = OpportunityCompetition.Status.NO_ALLOCATIONS; return r; }
+
+        Map<Id, Budget_Line__c> blById = new Map<Id, Budget_Line__c>();
+        for (Budget_Line__c bl : lines.byIds(blIds)) { blById.put(bl.Id, bl); }
+        Map<String, Decimal> exposureByScope = new Map<String, Decimal>();
+        Map<String, List<String>> scopeParts = new Map<String, List<String>>();
+        for (Allocation__c a : allocs) {
+            if (a.Allocation_Status__c == 'Cancelled' || a.Budget_Line__c == null) { continue; }
+            Budget_Line__c bl = blById.get(a.Budget_Line__c);
+            if (bl == null) { continue; }
+            String cat = HeadroomCategoryResolver.categoryForBudgetLine(bl.BusinessUnit__c, bl.Department__c);
+            if (cat == null) { continue; }
+            String k = cat + '||' + bl.Country__c + '||' + bl.Fiscal_Year__c;
+            Decimal cur = exposureByScope.containsKey(k) ? exposureByScope.get(k) : 0;
+            exposureByScope.put(k, cur + AmaizeBudgetHeadroom.nz(a.Funds_Allocated__c));
+            if (!scopeParts.containsKey(k)) {
+                scopeParts.put(k, new List<String>{ cat, bl.Country__c, bl.Fiscal_Year__c });
+            }
+        }
+        r.scopesTouched = exposureByScope.size();
+        if (exposureByScope.isEmpty()) { r.status = OpportunityCompetition.Status.NO_ALLOCATIONS; return r; }
+
+        // Largest exposure first; cap the number of governed scopes we expand into.
+        List<String> keys = new List<String>(exposureByScope.keySet());
+        for (Integer i = 0; i < keys.size(); i++) {
+            Integer mx = i;
+            for (Integer j = i + 1; j < keys.size(); j++) {
+                if (exposureByScope.get(keys[j]) > exposureByScope.get(keys[mx])) { mx = j; }
+            }
+            if (mx != i) { String t = keys[i]; keys[i] = keys[mx]; keys[mx] = t; }
+        }
+        Integer limitN = Math.min(keys.size(), MAX_OPP_SCOPES);
+        r.capped = keys.size() > limitN;
+        for (Integer i = 0; i < limitN; i++) {
+            List<String> parts = scopeParts.get(keys[i]);
+            CompetingGrantsResult cr = analyze(parts[0], parts[1], parts[2]);
+            r.scopes.add(new OpportunityCompetition.ScopeCompetition(
+                parts[0], parts[1], parts[2], exposureByScope.get(keys[i]), cr));
+        }
+        r.status = OpportunityCompetition.Status.FOUND;
+        return r;
+    }
+
+    /** Match Opportunities by the significant words in a quoted name (excludes Closed Lost). */
+    private List<Opportunity> matchOpportunities(String name) {
+        List<String> toks = AmaizeMatch.significantTokens(name);
+        if (toks.isEmpty()) { return new List<Opportunity>(); }
+        List<String> likes = new List<String>();
+        Map<String, Object> binds = new Map<String, Object>();
+        Integer i = 0;
+        for (String t : toks) {
+            likes.add('Name LIKE :tok' + i);
+            binds.put('tok' + i, '%' + t + '%');
+            i++;
+        }
+        binds.put('lim', 200);
+        String soql = 'SELECT Id, Name, Amount, StageName, Probability, CloseDate, Guardian__c, '
+            + 'AccountId, Account.Name FROM Opportunity WHERE StageName != \'Closed Lost\' AND '
+            + String.join(likes, ' AND ') + ' LIMIT :lim';
+        return AmaizeMatch.tokenMatch(name, Database.queryWithBinds(soql, binds, AccessLevel.USER_MODE));
+    }
+
     /**
      * Shared severity rule (also used elsewhere): Critical when already over-allocated on
      * secured funding or the probability-weighted competing pipeline alone would exceed

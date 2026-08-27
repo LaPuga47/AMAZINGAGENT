@@ -1,0 +1,28 @@
+{
+  "required" : [ "statusFilter" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "country" : {
+      "title" : "Country",
+      "description" : "Optional country to narrow the ranking.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Optional fiscal year to narrow the ranking.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "statusFilter" : {
+      "title" : "Status Filter",
+      "description" : "most headroom / funding gap (room to raise), over-allocated (over-funded), or all.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

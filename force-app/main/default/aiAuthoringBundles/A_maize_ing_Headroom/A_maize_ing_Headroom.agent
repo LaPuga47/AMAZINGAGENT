@@ -228,6 +228,17 @@ subagent competing_grants:
                 summary: string
                 matchCount: integer
                 resultsJson: string
+        analyze_opportunity_competition:
+            target: "apex://AmaizeOpportunityCompetition"
+            description: "Opportunity-start competition. Given a grant name, finds the Budget Lines its allocations touch, determines the governed Headroom scopes those belong to, and reports the OTHER opportunities competing for the same governed headroom in EACH scope (a multi-scope grant is analyzed per scope, never collapsed), with the focus grant's exposure per scope and clickable record links. Returns found=false when the grant is not found, is ambiguous, or has no allocations tied to a governed Budget Line."
+            inputs:
+                opportunityName: string
+                    description: "The grant/opportunity to analyze competition for, e.g. the name the user quoted."
+                    is_required: True
+            outputs:
+                summary: string
+                found: boolean
+                resultsJson: string
         get_opportunity_context:
             target: "apex://AmaizeGetOpportunityContext"
             description: "Resolves a named grant's eligible country and program from its Restriction, plus the year, so a competing-grants analysis can run off it. Returns found=true with a single country and program only when the grant resolves to exactly one of each; otherwise found=false and the summary asks which to use."
@@ -314,9 +325,14 @@ subagent competing_grants:
                 get_funding_context. Pass a Budget Line scope (country + business unit, plus
                 fiscal year / cost dimensions) to see what funds it, OR pass opportunityName
                 to see where that grant is allocated.
-              - If the user references a named grant but you need its category/country for a
-                competition check, call get_opportunity_context first, then feed the resolved
-                program and country into find_competing_grants.
+              - OPPORTUNITY-START COMPETITION ("what competes with the Gates opportunity",
+                "which grants compete with <named grant>", "what else is consuming the same
+                headroom as this grant") — call analyze_opportunity_competition with the grant
+                name. It resolves the grant's own Budget Lines, finds every governed scope its
+                allocations touch, and reports the other competing opportunities per scope.
+              - If the user instead gives a category + country directly for a competition check,
+                use find_competing_grants. If a named grant needs its category/country resolved
+                for a category-level check, call get_opportunity_context first.
 
               Rules: Allocation exposure is the Budget Line exposure; the Opportunity Amount is
               fundraising context only — never use the whole opportunity amount as the competing
@@ -355,6 +371,8 @@ subagent competing_grants:
                 with country=...
                 with fiscalYear=...
                 with topN=...
+            analyze_opportunity_competition: @actions.analyze_opportunity_competition
+                with opportunityName=...
             get_funding_context: @actions.get_funding_context
                 with opportunityName=...
                 with country=...
