@@ -53,6 +53,30 @@ public with sharing class AllocationSelector implements IAllocationSelector {
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
+    /**
+     * Portfolio rollup: competing (Likely + Pipeline, non-cancelled) allocation exposure
+     * summed and grouped by the linked Budget Line's (Country, Business Unit, Department,
+     * Fiscal Year), across the current scenario. One query for the whole portfolio.
+     */
+    public List<AggregateResult> aggregateCompetingPortfolio(String country, String fiscalYear) {
+        List<String> clauses = new List<String>{
+            'Budget_Line__r.Budget_Scenario__r.Is_Current_Scenario__c = true',
+            'Allocation_Type__c IN (\'Likely\',\'Pipeline\')',
+            'Allocation_Status__c != \'Cancelled\''
+        };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (String.isNotBlank(country))    { clauses.add('Budget_Line__r.Country__c = :country'); binds.put('country', country); }
+        if (String.isNotBlank(fiscalYear)) { clauses.add('Budget_Line__r.Fiscal_Year__c = :fy');  binds.put('fy', fiscalYear); }
+        String query =
+            'SELECT Budget_Line__r.Country__c c, Budget_Line__r.BusinessUnit__c bu, ' +
+            'Budget_Line__r.Department__c dept, Budget_Line__r.Fiscal_Year__c fy, ' +
+            'SUM(Funds_Allocated__c) amt, COUNT(Id) cnt ' +
+            'FROM Allocation__c WHERE ' + String.join(clauses, ' AND ') +
+            ' GROUP BY Budget_Line__r.Country__c, Budget_Line__r.BusinessUnit__c, ' +
+            'Budget_Line__r.Department__c, Budget_Line__r.Fiscal_Year__c LIMIT 5000';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     /** Allocations DIRECTLY linked to any of the given Budget Lines (scope may span lines). */
     public List<Allocation__c> byBudgetLineIds(Set<Id> budgetLineIds) {
         if (budgetLineIds == null || budgetLineIds.isEmpty()) {

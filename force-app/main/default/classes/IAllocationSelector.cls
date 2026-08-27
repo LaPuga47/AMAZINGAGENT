@@ -24,4 +24,7 @@ public interface IAllocationSelector {
 
     /** ALL allocations for a set of Opportunities (any scope) — for mapped-vs-scope coverage. */
     List<Allocation__c> byOpportunityIds(Set<Id> opportunityIds);
+
+    /** Portfolio rollup: competing exposure grouped by Budget Line Country/BU/Department/FY. */
+    List<AggregateResult> aggregateCompetingPortfolio(String country, String fiscalYear);
 }

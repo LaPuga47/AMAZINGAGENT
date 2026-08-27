@@ -79,6 +79,35 @@ public with sharing class HeadroomCategoryResolver {
         return new Rule(program.trim(), Mode.GENERIC, program.trim(), null);
     }
 
+    /**
+     * Reverse mapping for portfolio analysis: given a Budget Line's Business Unit and
+     * Department, return the canonical governed category label it belongs to, or null when it
+     * is not part of a governed category. Mirrors the forward rules so portfolio rollups and
+     * single-scope analysis stay consistent. Business unit is matched on its base name (the
+     * part before the " - <country code>" suffix).
+     */
+    public static String categoryForBudgetLine(String businessUnit, String department) {
+        String base = baseName(businessUnit);
+        if (base == null) { return null; }
+        if (base.equalsIgnoreCase('Core Program')) { return 'Core Program'; }
+        if (base.equalsIgnoreCase('Systems Change')) { return 'System Change Extension & Other Programs'; }
+        if (base.equalsIgnoreCase('Farm Input Sales')) {
+            String d = department == null ? '' : department.trim();
+            if (d.equalsIgnoreCase('Rural Retail')) { return 'Rural Retail'; }
+            if (d.equalsIgnoreCase('Market Access')) { return 'Market Access'; }
+            if (d.equalsIgnoreCase('Trees')) { return 'Trees'; }
+            return null;   // Farm Input Sales under a non-governed department
+        }
+        return null;
+    }
+
+    /** The base business-unit name, stripping any " - <code>" country suffix. */
+    public static String baseName(String businessUnit) {
+        if (String.isBlank(businessUnit)) { return null; }
+        String bu = businessUnit.trim();
+        return bu.contains(' - ') ? bu.substringBefore(' - ').trim() : bu;
+    }
+
     private static Boolean inSet(String p, Set<String> synonyms) {
         return synonyms.contains(p);
     }

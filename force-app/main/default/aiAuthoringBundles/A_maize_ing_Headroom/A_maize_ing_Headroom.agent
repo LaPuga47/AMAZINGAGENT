@@ -31,8 +31,11 @@ start_agent agent_router:
                   funding-lineage/relationship question such as what funds a Budget Line,
                   which opportunities / restrictions / gift commitments / donors are linked to
                   a Budget Line, which Budget Lines a grant or restriction funds, where a
-                  grant's funding is allocated, funding sources or funding destination, or
-                  "where does this funding come from / go" — hand off to competing_grants.
+                  grant's funding is allocated, funding sources or funding destination,
+                  "where does this funding come from / go", OR a portfolio-level competition
+                  question such as where the biggest competing-grant risks are, which countries
+                  or programs have the tightest headroom or the most competition, or the top
+                  headroom collision risks — hand off to competing_grants.
                 - A single-scope funding-headroom question — anything about headroom,
                   funding gap, room to raise, available funding capacity, additional
                   funding needed, over-allocation of one scope, secured headroom, forecast
@@ -202,6 +205,29 @@ subagent competing_grants:
                 severity: string
                 resultsJson: string
                 found: boolean
+        rank_portfolio_risks:
+            target: "apex://AmaizePortfolioRisks"
+            description: "Portfolio-level competing-grant risk. Ranks governed Headroom scopes (category + country + fiscal year) across the current scenario by collision risk, tightest headroom, or most competition — for questions like 'where are our biggest competing-grant risks?', 'which countries have the tightest Core Program headroom?', 'show me the top 10 headroom collision risks'. Optional category/country/fiscalYear filters and topN."
+            inputs:
+                metric: string
+                    description: "How to rank: collision risk (default), tightest headroom, or most competition."
+                    is_required: False
+                category: string
+                    description: "Optional Headroom category to limit to, e.g. Core Program, Rural Retail, Trees."
+                    is_required: False
+                country: string
+                    description: "Optional country to limit to, e.g. Kenya."
+                    is_required: False
+                fiscalYear: integer
+                    description: "Optional fiscal year, e.g. 2027."
+                    is_required: False
+                topN: integer
+                    description: "How many scopes to return (default 10)."
+                    is_required: False
+            outputs:
+                summary: string
+                matchCount: integer
+                resultsJson: string
         get_opportunity_context:
             target: "apex://AmaizeGetOpportunityContext"
             description: "Resolves a named grant's eligible country and program from its Restriction, plus the year, so a competing-grants analysis can run off it. Returns found=true with a single country and program only when the grant resolves to exactly one of each; otherwise found=false and the summary asks which to use."
@@ -275,6 +301,12 @@ subagent competing_grants:
                 this program's headroom") — call find_competing_grants with the program
                 (category), country, and fiscal year if given. Pass the user's category wording;
                 the action resolves synonyms and the full governed population.
+              - PORTFOLIO ("where are our biggest competing-grant risks", "which countries
+                have the tightest headroom", "which programs have the most competition", "top N
+                headroom collision risks") — call rank_portfolio_risks with the appropriate
+                metric (collision risk / tightest headroom / most competition) and any
+                category/country/fiscalYear/topN the user gives. Present the ranked list as
+                written; offer to drill into any scope for the full competing-grants breakdown.
               - FUNDING LINEAGE / RELATIONSHIPS ("what funds this Budget Line", "which
                 opportunities / restrictions / gift commitments / donors are linked to it",
                 "where is this grant's funding allocated", "which Budget Lines does this
@@ -317,6 +349,12 @@ subagent competing_grants:
                 with program=...
                 with country=...
                 with fiscalYear=...
+            rank_portfolio_risks: @actions.rank_portfolio_risks
+                with metric=...
+                with category=...
+                with country=...
+                with fiscalYear=...
+                with topN=...
             get_funding_context: @actions.get_funding_context
                 with opportunityName=...
                 with country=...

@@ -138,6 +138,27 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
         return rows.isEmpty() ? null : rows[0];
     }
 
+    /**
+     * Portfolio rollup: the governed financial fields summed and grouped by
+     * (Country, Business Unit, Department, Fiscal Year) across the current scenario, so a
+     * scope-by-scope competition scan needs only ONE query regardless of how many scopes
+     * exist. Optionally scoped by country / fiscal year.
+     */
+    public List<AggregateResult> aggregatePortfolio(String country, String fiscalYear) {
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (String.isNotBlank(country))    { clauses.add('Country__c = :country'); binds.put('country', country); }
+        if (String.isNotBlank(fiscalYear)) { clauses.add('Fiscal_Year__c = :fy');  binds.put('fy', fiscalYear); }
+        String query =
+            'SELECT Country__c c, BusinessUnit__c bu, Department__c dept, Fiscal_Year__c fy, ' +
+            'SUM(Budget_Amount__c) bud, SUM(Secured_Funding__c) sec, SUM(Likely_Funding__c) lik, ' +
+            'SUM(Pipeline_Funding__c) pipe, SUM(Forecast_Funding__c) fcf, SUM(Secured_Headroom__c) sh, ' +
+            'SUM(Forecast_Headroom__c) fh, COUNT(Id) cnt, MAX(CurrencyIsoCode) iso ' +
+            'FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ') +
+            ' GROUP BY Country__c, BusinessUnit__c, Department__c, Fiscal_Year__c LIMIT 5000';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     public List<Budget_Line__c> byIds(Set<Id> ids) {
         if (ids == null || ids.isEmpty()) {
             return new List<Budget_Line__c>();

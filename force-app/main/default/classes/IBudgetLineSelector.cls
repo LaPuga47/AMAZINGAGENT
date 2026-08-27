@@ -21,4 +21,7 @@ public interface IBudgetLineSelector {
 
     /** The complete governed Budget Line population (all qualifying records) for a category scope. */
     List<Budget_Line__c> findByGovernedScope(BudgetLineDimensions dimensions);
+
+    /** Portfolio rollup: governed fields grouped by Country/BusinessUnit/Department/FiscalYear. */
+    List<AggregateResult> aggregatePortfolio(String country, String fiscalYear);
 }
