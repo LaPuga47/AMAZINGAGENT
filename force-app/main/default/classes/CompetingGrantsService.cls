@@ -114,13 +114,157 @@ public with sharing class CompetingGrantsService {
         for (CompetingGrant g : r.grants) {
             if (g.isCompetingPipeline()) {
                 r.combinedCompeting += (g.likelyExposure + g.pipelineExposure);
+                r.combinedLikelyExposure += g.likelyExposure;
+                r.combinedPipelineExposure += g.pipelineExposure;
                 r.probWeightedCompeting += g.probWeightedAmount;
             }
         }
         r.potentialExcess = r.combinedCompeting - r.securedHeadroom;
+        r.minimumAdjustmentRequired = r.potentialExcess > 0 ? r.potentialExcess : 0;
         r.severity = severityFor(r.securedHeadroom, r.combinedCompeting, r.probWeightedCompeting);
+
+        enrich(r);   // coverage, concentration, what-can-fit, confidence, coordination, timing
+
         r.status = CompetingGrantsResult.Status.FOUND;
         return r;
+    }
+
+    /** Deterministic Phase-2 analytics: coverage, concentration, scenarios, confidence, etc. */
+    private void enrich(CompetingGrantsResult r) {
+        r.retrievalTime = System.now();
+        r.timingCollisionStatus = 'Full (same fiscal year)';   // scope is one FY; finer period data not in the model
+
+        // Allocation coverage: each opp's total mapped allocation across ALL scopes.
+        Set<Id> oppIds = new Set<Id>();
+        for (CompetingGrant g : r.grants) { oppIds.add(g.opportunityId); }
+        Map<Id, Decimal> totalMappedByOpp = new Map<Id, Decimal>();
+        for (Allocation__c a : allocations.byOpportunityIds(oppIds)) {
+            if (a.Allocation_Status__c == 'Cancelled') { continue; }
+            Opportunity o = opp(a);
+            if (o == null) { continue; }
+            Decimal cur = totalMappedByOpp.containsKey(o.Id) ? totalMappedByOpp.get(o.Id) : 0;
+            totalMappedByOpp.put(o.Id, cur + AmaizeBudgetHeadroom.nz(a.Funds_Allocated__c));
+        }
+
+        Set<String> owners = new Set<String>();
+        for (CompetingGrant g : r.grants) {
+            g.totalMappedAllocation = totalMappedByOpp.containsKey(g.opportunityId)
+                ? totalMappedByOpp.get(g.opportunityId) : g.allocatedAmount;
+            g.exposureElsewhere = g.totalMappedAllocation - g.allocatedAmount;
+            if (g.exposureElsewhere < 0) { g.exposureElsewhere = 0; }
+            if (g.opportunityAmount != null && g.opportunityAmount > 0) {
+                g.allocationCoveragePct = (g.totalMappedAllocation / g.opportunityAmount * 100).setScale(0);
+                Decimal unmapped = g.opportunityAmount - g.totalMappedAllocation;
+                g.unmappedAmount = unmapped > 0 ? unmapped : 0;
+                r.unmappedOpportunityAmountTotal += g.unmappedAmount;
+            }
+            if (r.securedHeadroom > 0) {
+                g.headroomConsumptionPct = (g.allocatedAmount / r.securedHeadroom * 100).setScale(0);
+            }
+            if (String.isNotBlank(g.owner)) { owners.add(g.owner); }
+        }
+        r.distinctOwnerCount = owners.size();
+
+        computeWhatCanFit(r);
+        computeConfidence(r);
+    }
+
+    /**
+     * "What can fit": combinations of competing opportunities whose exposure fits within
+     * secured headroom. Enumerate all subsets when few opportunities; otherwise use a small
+     * set of useful heuristic scenarios (avoids combinatorial explosion).
+     */
+    private void computeWhatCanFit(CompetingGrantsResult r) {
+        List<CompetingGrant> comp = new List<CompetingGrant>();
+        for (CompetingGrant g : r.grants) { if (g.isCompetingPipeline()) { comp.add(g); } }
+        if (comp.isEmpty()) { return; }
+        Decimal hr = r.securedHeadroom;
+
+        if (comp.size() <= 4) {
+            r.exhaustiveCombinations = true;
+            Integer n = comp.size();
+            for (Integer mask = 1; mask < (1 << n); mask++) {
+                List<String> names = new List<String>();
+                Decimal exp = 0;
+                for (Integer i = 0; i < n; i++) {
+                    if ((mask & (1 << i)) != 0) {
+                        names.add(shortName(comp[i].opportunityName));
+                        exp += (comp[i].likelyExposure + comp[i].pipelineExposure);
+                    }
+                }
+                r.whatCanFit.add(new CompetingGrantsResult.FitScenario(String.join(names, ' + '), exp, hr));
+            }
+        } else {
+            r.exhaustiveCombinations = false;
+            // Sort by competing exposure desc for the heuristic scenarios.
+            comp.sort(new ByExposureDesc());
+            r.whatCanFit.add(new CompetingGrantsResult.FitScenario(
+                shortName(comp[0].opportunityName) + ' (largest) only',
+                comp[0].likelyExposure + comp[0].pipelineExposure, hr));
+            if (comp.size() >= 2) {
+                r.whatCanFit.add(new CompetingGrantsResult.FitScenario(
+                    'Top two by exposure',
+                    (comp[0].likelyExposure + comp[0].pipelineExposure)
+                        + (comp[1].likelyExposure + comp[1].pipelineExposure), hr));
+            }
+            r.whatCanFit.add(new CompetingGrantsResult.FitScenario(
+                'All likely-stage', r.combinedLikelyExposure, hr));
+            r.whatCanFit.add(new CompetingGrantsResult.FitScenario(
+                'All competing (' + comp.size() + ')', r.combinedCompeting, hr));
+        }
+    }
+
+    /** Deterministic Analysis Confidence from data completeness (not LLM-chosen). */
+    private void computeConfidence(CompetingGrantsResult r) {
+        if (r.noAllocations) {
+            r.analysisConfidence = 'Low';
+            r.confidenceReasons.add('No Funding Allocations are linked to the governed Budget Lines, so competition cannot be assessed.');
+            return;
+        }
+        String level = 'High';
+        // Unmapped opportunity value materially reduces confidence.
+        Decimal totalOppAmt = 0, totalUnmapped = 0;
+        Boolean anyMissingAmount = false;
+        for (CompetingGrant g : r.grants) {
+            if (!g.isCompetingPipeline()) { continue; }
+            if (g.opportunityAmount != null && g.opportunityAmount > 0) {
+                totalOppAmt += g.opportunityAmount;
+                totalUnmapped += (g.unmappedAmount == null ? 0 : g.unmappedAmount);
+            } else {
+                anyMissingAmount = true;
+            }
+        }
+        if (totalOppAmt > 0) {
+            Decimal ratio = totalUnmapped / totalOppAmt;
+            if (ratio > 0.5) {
+                level = 'Low';
+                r.confidenceReasons.add(AmaizeFormat.money(totalUnmapped, r.currencyIsoCode)
+                    + ' of competing opportunity value is not mapped through Funding Allocations, so exposure cannot be fully determined.');
+            } else if (ratio > 0.15) {
+                level = 'Medium';
+                r.confidenceReasons.add(AmaizeFormat.money(totalUnmapped, r.currencyIsoCode)
+                    + ' of competing opportunity value is not yet mapped through Funding Allocations.');
+            }
+        }
+        if (anyMissingAmount && level == 'High') {
+            level = 'Medium';
+            r.confidenceReasons.add('Some competing opportunities have no amount, so mapped coverage cannot be computed for them.');
+        }
+        r.analysisConfidence = level;
+    }
+
+    private class ByExposureDesc implements Comparator<CompetingGrant> {
+        public Integer compare(CompetingGrant a, CompetingGrant b) {
+            Decimal ea = a.likelyExposure + a.pipelineExposure;
+            Decimal eb = b.likelyExposure + b.pipelineExposure;
+            if (ea == eb) { return 0; }
+            return (eb > ea) ? 1 : -1;
+        }
+    }
+
+    private static String shortName(String name) {
+        if (String.isBlank(name)) { return 'Opportunity'; }
+        return name.split('[–-]', 2)[0].trim();
     }
 
     /**

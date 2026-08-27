@@ -219,13 +219,23 @@ public class HeadroomTestData {
      */
     public static void makeOppAllocations(String desiredType, List<Id> budgetLineIds, Decimal amountEach,
             String country, String businessUnit) {
+        makeOppAllocations(desiredType, budgetLineIds, amountEach, country, businessUnit, null, 'Test RM');
+    }
+
+    /**
+     * As above, plus an optional Opportunity Amount (set via update to avoid the insert-time
+     * email flow) and owner, for allocation-coverage / confidence tests.
+     */
+    public static void makeOppAllocations(String desiredType, List<Id> budgetLineIds, Decimal amountEach,
+            String country, String businessUnit, Decimal opportunityAmount, String owner) {
         Account donor = makeDonorAccount('HR Multi Donor');
         Opportunity opp = new Opportunity(
             Name = 'HR MULTI OPP', AccountId = donor.Id, Country_Tag__c = country,
             Theme_Tag__c = 'Agroforestry/Tree', StageName = 'Negotiation',
-            CloseDate = Date.newInstance(2027, 6, 1), Guardian__c = 'Test RM');
+            CloseDate = Date.newInstance(2027, 6, 1), Guardian__c = owner);
         insert opp;
         opp.Probability = probabilityFor(desiredType);
+        if (opportunityAmount != null) { opp.Amount = opportunityAmount; }
         update opp;
         GiftCommitment gc = new GiftCommitment(
             Name = 'HR MULTI GC', DonorId = donor.Id, OpportunityId = opp.Id, Status = 'Active');

@@ -31,7 +31,16 @@ public with sharing class CompetingGrant {
 
     public Integer allocationCount = 0;
     public Set<Id> budgetLineIds = new Set<Id>();
+    public Set<Id> restrictionIds = new Set<Id>();
     public List<Allocation__c> allocations = new List<Allocation__c>();  // detail for drill-down/links
+
+    // Allocation coverage (computed once all allocations for the opportunity are known).
+    public Decimal totalMappedAllocation = 0;   // this opp's allocations across ALL scopes
+    public Decimal exposureElsewhere = 0;       // totalMapped - allocatedAmount(this scope)
+    public Decimal unmappedAmount;              // opportunityAmount - totalMapped (null if not computable)
+    public Decimal allocationCoveragePct;       // totalMapped / opportunityAmount (null if no amount)
+    public Decimal headroomConsumptionPct;      // allocatedAmount / secured headroom of the scope
+    public Datetime lastModifiedDate;
 
     /** The competing (not-yet-secured) portion: has any Likely or Pipeline allocation. */
     public Boolean isCompetingPipeline() {
@@ -45,6 +54,7 @@ public with sharing class CompetingGrant {
         allocatedAmount += amount;
         probWeightedAmount += probWeighted;
         if (a.Budget_Line__c != null) { budgetLineIds.add(a.Budget_Line__c); }
+        if (a.Restriction__c != null) { restrictionIds.add(a.Restriction__c); }
         String type = a.Allocation_Type__c;
         if (type == 'Secured') { securedExposure += amount; }
         else if (type == 'Likely') { likelyExposure += amount; }

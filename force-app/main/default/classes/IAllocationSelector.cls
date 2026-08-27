@@ -21,4 +21,7 @@ public interface IAllocationSelector {
 
     /** Allocations for a given Opportunity (via Restriction -> Gift Commitment -> Opportunity). */
     List<Allocation__c> byOpportunityId(Id opportunityId);
+
+    /** ALL allocations for a set of Opportunities (any scope) — for mapped-vs-scope coverage. */
+    List<Allocation__c> byOpportunityIds(Set<Id> opportunityIds);
 }

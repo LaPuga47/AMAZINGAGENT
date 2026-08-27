@@ -84,6 +84,22 @@ public with sharing class AllocationSelector implements IAllocationSelector {
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
+    /**
+     * ALL allocations for a set of Opportunities (any Budget Line / scope), for computing
+     * each opportunity's total mapped allocation vs. its scope exposure. One bulk query.
+     */
+    public List<Allocation__c> byOpportunityIds(Set<Id> opportunityIds) {
+        if (opportunityIds == null || opportunityIds.isEmpty()) {
+            return new List<Allocation__c>();
+        }
+        Map<String, Object> binds = new Map<String, Object>{ 'oids' => opportunityIds, 'lim' => 5000 };
+        String query =
+            'SELECT ' + FIELDS + ' FROM Allocation__c ' +
+            'WHERE Restriction__r.Gift_Commitment__r.OpportunityId IN :oids ' +
+            'LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     /** Not-yet-linked allocations whose Match Key equals any of the given Budget Line keys. */
     public List<Allocation__c> byMatchKeysUnlinked(Set<String> matchKeys) {
         if (matchKeys == null || matchKeys.isEmpty()) {

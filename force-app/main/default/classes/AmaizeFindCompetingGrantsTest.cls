@@ -42,8 +42,11 @@ private class AmaizeFindCompetingGrantsTest {
         System.assert(res.summary.contains('Exposure to this scope'), res.summary);
         // Clickable record link (Markdown + Lightning URL) is present.
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'Expected an Opportunity record link: ' + res.summary);
-        // Opportunity Amount is NOT used as exposure (allocations have no opp amount set here).
-        System.assert(res.resultsJson.contains('"totalExposure"'), res.resultsJson);
+        // Exposure is allocation-based (not Opportunity Amount), and Phase-2 analysis is present.
+        System.assert(res.resultsJson.contains('"exposureToCurrentScope"'), res.resultsJson);
+        System.assert(res.resultsJson.contains('"analysisConfidence"'), res.resultsJson);
+        System.assert(res.summary.contains('**Risk & Confidence**'), res.summary);
+        System.assert(res.summary.contains('**Why They Compete**'), res.summary);
     }
 
     @isTest

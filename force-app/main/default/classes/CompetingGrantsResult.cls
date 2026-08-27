@@ -36,13 +36,44 @@ public with sharing class CompetingGrantsResult {
 
     // Exposure roll-up (competing = Likely + Pipeline).
     public Decimal combinedCompeting = 0;
+    public Decimal combinedLikelyExposure = 0;
+    public Decimal combinedPipelineExposure = 0;
     public Decimal probWeightedCompeting = 0;
     public Decimal potentialExcess = 0;
+    public Decimal minimumAdjustmentRequired = 0;   // max(0, combinedCompeting - securedHeadroom)
     public String severity;
+
+    // Analysis confidence (deterministic).
+    public String analysisConfidence;               // High / Medium / Low
+    public List<String> confidenceReasons = new List<String>();
+
+    // "What can fit" scenarios (competing exposure vs secured headroom).
+    public List<FitScenario> whatCanFit = new List<FitScenario>();
+    public Boolean exhaustiveCombinations = false;   // true when all subsets enumerated
+
+    // Coordination + timing + freshness context.
+    public Integer distinctOwnerCount = 0;
+    public String timingCollisionStatus;             // FY-grain (finer period data not in model)
+    public Datetime retrievalTime;
 
     // Data quality.
     public Integer allocationsMissingGiftCommitment = 0;
     public Boolean noAllocations = false;   // governed lines found, but no allocations linked
+    public Decimal unmappedOpportunityAmountTotal = 0;
+
+    /** A "what can fit" combination: which opportunities, their combined exposure, fit/excess. */
+    public class FitScenario {
+        public String label;
+        public Decimal exposure;
+        public Boolean fits;
+        public Decimal excess;   // amount over headroom when it does not fit (else 0)
+        public FitScenario(String label, Decimal exposure, Decimal headroom) {
+            this.label = label;
+            this.exposure = exposure;
+            this.fits = exposure <= headroom;
+            this.excess = this.fits ? 0 : (exposure - headroom);
+        }
+    }
 
     /** True when two or more Opportunities have competing (Likely/Pipeline) exposure here. */
     public Boolean hasCompetition() {

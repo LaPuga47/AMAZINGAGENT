@@ -299,7 +299,15 @@ subagent competing_grants:
 
               Present each action's summary exactly as written, INCLUDING the clickable
               Salesforce record links it embeds (render the Markdown links as-is so the user
-              can open the records). Do not add, re-order, or recompute figures. For follow-ups
+              can open the records) and every section it returns — Risk & Confidence, Why They
+              Compete, Headroom Position, Competing Opportunities, What Can Fit, Minimum
+              Adjustment, coverage, timing, Data Quality, and the suggested follow-up
+              questions. The Analysis Confidence, coverage percentages, what-can-fit
+              combinations, and minimum adjustment are computed by the action — never invent or
+              recompute them. You may state objective facts (e.g. which opportunity has the
+              largest exposure or is furthest advanced), but do NOT decide or recommend which
+              grant One Acre Fund should prioritize or drop — no governed prioritization
+              framework exists. Do not add, re-order, or recompute figures. For follow-ups
               ("which is closest to closing?", "what if that one closes?", "who owns them?",
               "show the restrictions"), keep the previously resolved scope/records and extend
               the analysis; do not restart. If the conversation moves away from grant funding,
