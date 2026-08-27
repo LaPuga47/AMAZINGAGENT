@@ -165,11 +165,19 @@ public with sharing class CompetingGrantsService {
      *   None      — headroom comfortably exceeds the competing pipeline.
      */
     private String classify(CompetingGrantsResult r) {
-        if (r.securedHeadroom < 0) { return 'Critical / Over-allocated'; }
-        if (r.combinedCompeting <= 0) { return 'No Material Competition'; }
-        if (r.probWeightedCompeting > r.securedHeadroom) { return 'Critical / Over-allocated'; }
-        if (r.combinedCompeting > r.securedHeadroom) { return 'High Competition'; }
-        if (r.combinedCompeting > r.securedHeadroom / 2) { return 'Moderate Competition'; }
+        return severityFor(r.securedHeadroom, r.combinedCompeting, r.probWeightedCompeting);
+    }
+
+    /**
+     * The shared competition-severity rule, so any caller (e.g. FundingContextService)
+     * classifies identically. See classify() for the reasoning behind each branch.
+     */
+    public static String severityFor(Decimal securedHeadroom, Decimal combinedCompeting, Decimal probWeightedCompeting) {
+        if (securedHeadroom < 0) { return 'Critical / Over-allocated'; }
+        if (combinedCompeting <= 0) { return 'No Material Competition'; }
+        if (probWeightedCompeting > securedHeadroom) { return 'Critical / Over-allocated'; }
+        if (combinedCompeting > securedHeadroom) { return 'High Competition'; }
+        if (combinedCompeting > securedHeadroom / 2) { return 'Moderate Competition'; }
         return 'No Material Competition';
     }
 

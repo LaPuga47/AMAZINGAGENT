@@ -87,6 +87,44 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
         return '(' + String.join(parts, ' OR ') + ')';
     }
 
+    /**
+     * Aggregate the governed financial fields across ALL current-scenario Budget Lines that
+     * qualify for a Headroom category population. Sums the stored/calculated fields (never
+     * recalculated) and counts the lines. Country + Fiscal Year are explicit filters;
+     * business unit is matched base<->suffix tolerant; Department and any further cost
+     * dimensions narrow only when supplied. Returns a single AggregateResult row.
+     */
+    public AggregateResult aggregateScope(BudgetLineDimensions d) {
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (d.fiscalYear != null)   { clauses.add('Fiscal_Year__c = :fy');    binds.put('fy', d.fiscalYear); }
+        if (d.country != null)      { clauses.add('Country__c = :country');    binds.put('country', d.country); }
+        if (d.businessUnit != null) { clauses.add(businessUnitClause(d.businessUnit, binds)); }
+        if (d.subUnit != null)      { clauses.add('Sub__c = :sub');            binds.put('sub', d.subUnit); }
+        if (d.department != null)   { clauses.add('Department__c = :dept');    binds.put('dept', d.department); }
+        if (d.costType != null)     { clauses.add('Cost_Type__c = :ctype');    binds.put('ctype', d.costType); }
+        if (d.costCategory != null) { clauses.add('Cost_Category__c = :ccat'); binds.put('ccat', d.costCategory); }
+
+        String query =
+            'SELECT SUM(Budget_Amount__c) bud, SUM(Secured_Funding__c) sec, ' +
+            'SUM(Likely_Funding__c) lik, SUM(Pipeline_Funding__c) pipe, ' +
+            'SUM(Forecast_Funding__c) fcf, SUM(Secured_Headroom__c) sh, ' +
+            'SUM(Forecast_Headroom__c) fh, COUNT(Id) cnt, MAX(CurrencyIsoCode) iso ' +
+            'FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ');
+        List<AggregateResult> rows = Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+        return rows.isEmpty() ? null : rows[0];
+    }
+
+    public List<Budget_Line__c> byIds(Set<Id> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return new List<Budget_Line__c>();
+        }
+        Map<String, Object> binds = new Map<String, Object>{ 'ids' => ids, 'lim' => 2000 };
+        String query =
+            'SELECT ' + FIELDS + ' FROM Budget_Line__c WHERE Id IN :ids LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     public List<Budget_Line__c> findPortfolio(String country, String fiscalYear) {
         List<String> clauses = new List<String>{ CURRENT_SCENARIO };
         Map<String, Object> binds = new Map<String, Object>();

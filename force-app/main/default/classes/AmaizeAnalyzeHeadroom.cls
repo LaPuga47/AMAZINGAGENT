@@ -1,68 +1,44 @@
 /**
- * AmaizeAnalyzeHeadroom — the single-Budget-Line headroom action for the Headroom
- * Analysis subagent.
+ * AmaizeAnalyzeHeadroom — the governed Headroom aggregation action for the Headroom
+ * Analysis sub-agent.
  *
- * Given the identifying dimensions (fiscal year, country, business unit, and optionally
- * sub-unit, department, cost type, cost category), it identifies exactly one Budget Line
- * and reports its budget, secured / likely / pipeline funding, and headroom — all read
- * from the Budget Line's own stored/calculated fields (Secured_Headroom__c /
- * Forecast_Headroom__c / Headroom_status__c), never recomputed or invented.
+ * Given a Headroom category/program, a country, and (optionally) a fiscal year, it resolves
+ * the governed Budget Line population (HR-001..HR-007 via HeadroomCategoryResolver) and sums
+ * the eight governed financial fields across ALL qualifying Budget Lines in the current
+ * scenario — it does not pick one line, average, or recalculate the stored headroom fields.
+ * It reports the line count and derives Headroom Status from the summed Secured Headroom.
  *
- * When a specific line can't be pinned down it says so honestly:
- *   - NEEDS_INFO : asks for the missing required dimension(s).
- *   - AMBIGUOUS  : lists how the matching Budget Lines differ and asks the user to pick.
- *   - NOT_FOUND  : reports no matching Budget Line and which dimensions were used.
- *
- * Read-only. Scalar String/Boolean I/O per Agentforce platform rules.
+ * Governed zero categories (Unrestricted / Working Capital) return zeros with status "Not
+ * Applicable"; unconfigured categories say so; and "no qualifying lines" is reported as such,
+ * never as a financial value of zero. Read-only. Scalar I/O.
  */
 public with sharing class AmaizeAnalyzeHeadroom {
 
-    /* ---------------- Action input ---------------- */
     public class Request {
-        @InvocableVariable(label='Country' description='Country of the Budget Line, e.g. Kenya' required=true)
+        @InvocableVariable(label='Program' description='Headroom category / program, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital.' required=true)
+        public String program;
+        @InvocableVariable(label='Country' description='Country of the Budget Lines, e.g. Kenya. Authoritative filter.' required=true)
         public String country;
-
-        @InvocableVariable(label='Business Unit' description='Salesforce Business Unit / program, e.g. Core Program' required=true)
-        public String businessUnit;
-
-        @InvocableVariable(label='Fiscal Year' description='Fiscal year, e.g. 2027' required=false)
+        @InvocableVariable(label='Fiscal Year' description='Fiscal year, e.g. 2027. Defaults to the current scenario when omitted.' required=false)
         public Integer fiscalYear;
-
-        @InvocableVariable(label='Sub-Unit' description='Salesforce Sub-Unit. Use "N/A" when the Budget Line has no sub-unit.' required=false)
-        public String subUnit;
-
-        @InvocableVariable(label='Department' description='Salesforce Department. Use "N/A" when not applicable.' required=false)
-        public String department;
-
-        @InvocableVariable(label='Cost Type' description='Salesforce Cost Type. Use "N/A" when not applicable.' required=false)
-        public String costType;
-
-        @InvocableVariable(label='Cost Category' description='Salesforce Cost Category. Use "N/A" when not applicable.' required=false)
-        public String costCategory;
     }
 
-    /* ---------------- Action output ---------------- */
     public class Result {
-        @InvocableVariable(label='Summary' description='Human-readable headroom answer, clarification, or "not found" message to show the user.')
+        @InvocableVariable(label='Summary' description='Governed Headroom aggregation to show the user (all eight financial fields + line count + interpretation).')
         public String summary;
-
-        @InvocableVariable(label='Signal' description='Headroom status when found (Headroom Available / Some Headroom Available / Headroom Unavailable), otherwise NEEDS_INFO, AMBIGUOUS, or NOT_FOUND.')
+        @InvocableVariable(label='Signal' description='Headroom Status when found (Headroom Available / Some Headroom Available / Headroom Unavailable), or Not Applicable / NONE / NOT_CONFIGURED / NEEDS_INFO.')
         public String signal;
-
-        @InvocableVariable(label='Headroom JSON' description='Machine-readable headroom detail for the identified Budget Line.')
+        @InvocableVariable(label='Headroom JSON' description='Machine-readable aggregated Headroom detail.')
         public String headroomJson;
-
-        @InvocableVariable(label='Found' description='True only when exactly one Budget Line was identified.')
+        @InvocableVariable(label='Found' description='True when the request resolved to a governed result (aggregated lines or a governed zero category).')
         public Boolean found;
     }
 
     @InvocableMethod(
         label='Analyze Budget Line Headroom'
-        description='Identifies a single Budget Line from its dimensions and reports its budget, secured/likely/pipeline funding and headroom. Asks for missing or ambiguous dimensions instead of guessing.')
+        description='Resolves a Headroom category/program to its governed Budget Line population and sums Budget Amount, Secured/Likely/Pipeline/Forecast Funding, Secured/Forecast Headroom, and Headroom Status across all qualifying lines for a country and fiscal year.')
     public static List<Result> analyze(List<Request> requests) {
         List<Result> results = new List<Result>();
-        // Agentforce invokes an action with a single request; we still loop defensively.
-        // Each analyze() call is self-contained; there is no DML anywhere in this path.
         HeadroomService service = new HeadroomService();
         for (Request req : requests) {
             results.add(answerOne(req, service));
@@ -71,147 +47,106 @@ public with sharing class AmaizeAnalyzeHeadroom {
     }
 
     private static Result answerOne(Request req, HeadroomService service) {
-        BudgetLineDimensions dims = new BudgetLineDimensions();
-        dims.country = req.country;
-        dims.businessUnit = req.businessUnit;
-        dims.fiscalYear = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear) : null;
-        dims.subUnit = req.subUnit;
-        dims.department = req.department;
-        dims.costType = req.costType;
-        dims.costCategory = req.costCategory;
-
-        HeadroomAnalysis a = service.analyze(dims);
+        String fy = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear) : null;
+        HeadroomAggregate a = service.aggregate(req.program, req.country, fy);
 
         Result r = new Result();
-        switch on a.status {
+        switch on a.state {
             when FOUND {
                 r.found = true;
-                r.signal = a.line.Headroom_status__c;
+                r.signal = a.headroomStatus;
                 r.summary = foundSummary(a);
                 r.headroomJson = foundJson(a);
             }
-            when AMBIGUOUS {
-                r.found = false;
-                r.signal = 'AMBIGUOUS';
-                r.summary = ambiguousSummary(a);
-                r.headroomJson = '{"found":false,"status":"AMBIGUOUS","matchCount":' + a.candidates.size() + '}';
+            when ZERO {
+                r.found = true;
+                r.signal = 'Not Applicable';
+                r.summary = zeroSummary(a);
+                r.headroomJson = '{"category":"' + a.category + '","status":"Not Applicable","budgetLinesIncluded":0}';
             }
-            when NEEDS_INFO {
+            when NOT_CONFIGURED {
+                r.found = false;
+                r.signal = 'NOT_CONFIGURED';
+                r.summary = 'The Headroom aggregation rule for "' + a.category
+                    + '" has not yet been configured, so I can\'t compute it. '
+                    + 'Please ask Grants Finance to configure a governed Salesforce mapping for that category.';
+                r.headroomJson = '{"status":"NOT_CONFIGURED"}';
+            }
+            when NONE {
+                r.found = false;
+                r.signal = 'NONE';
+                r.summary = 'No qualifying Budget Line records were found for the requested scope ('
+                    + a.category + ', ' + a.country + (a.fiscalYear != null ? ', FY' + a.fiscalYear : '') + ').';
+                r.headroomJson = '{"status":"NONE","budgetLinesIncluded":0}';
+            }
+            when else { // NEEDS_INFO
                 r.found = false;
                 r.signal = 'NEEDS_INFO';
-                r.summary = needsInfoSummary(a);
-                r.headroomJson = '{"found":false,"status":"NEEDS_INFO"}';
-            }
-            when else { // NOT_FOUND
-                r.found = false;
-                r.signal = 'NOT_FOUND';
-                r.summary = notFoundSummary(a);
-                r.headroomJson = '{"found":false,"status":"NOT_FOUND"}';
+                r.summary = 'I can run that Headroom aggregation. I still need the '
+                    + HeadroomFormat.humanJoin(a.missing) + '.';
+                r.headroomJson = '{"status":"NEEDS_INFO"}';
             }
         }
         return r;
     }
 
-    /* ---------------- Summary composition ---------------- */
+    private static String foundSummary(HeadroomAggregate a) {
+        String iso = a.currencyIsoCode;
+        String header = '**' + a.category + ' — ' + a.country
+            + (a.fiscalYear != null ? ' — FY' + a.fiscalYear : '')
+            + (a.scenarioLabel != null ? ' (' + a.scenarioLabel + ')' : '') + '**';
 
-    private static String foundSummary(HeadroomAnalysis a) {
-        Budget_Line__c bl = a.line;
-        String iso = bl.CurrencyIsoCode;
-        Decimal budget = AmaizeBudgetHeadroom.budgetCost(bl.Budget_Amount__c);
-        Decimal secured = AmaizeBudgetHeadroom.nz(bl.Secured_Funding__c);
-        Decimal likely = AmaizeBudgetHeadroom.nz(bl.Likely_Funding__c);
-        Decimal pipeline = AmaizeBudgetHeadroom.nz(bl.Pipeline_Funding__c);
-        Decimal forecastHeadroom = AmaizeBudgetHeadroom.nz(bl.Forecast_Headroom__c);
-        Decimal securedHeadroom = AmaizeBudgetHeadroom.nz(bl.Secured_Headroom__c);
+        String figures = '\n\n'
+            + '- Budget Amount: ' + AmaizeFormat.money(a.budgetAmount, iso) + '\n'
+            + '- Secured Funding: ' + AmaizeFormat.money(a.securedFunding, iso) + '\n'
+            + '- Likely Funding: ' + AmaizeFormat.money(a.likelyFunding, iso) + '\n'
+            + '- Pipeline Funding: ' + AmaizeFormat.money(a.pipelineFunding, iso) + '\n'
+            + '- Forecast Funding: ' + AmaizeFormat.money(a.forecastFunding, iso) + '\n'
+            + '- Secured Headroom: ' + AmaizeFormat.money(a.securedHeadroom, iso) + '\n'
+            + '- Forecast Headroom: ' + AmaizeFormat.money(a.forecastHeadroom, iso) + '\n'
+            + '- Headroom Status: ' + a.headroomStatus + '\n'
+            + '- Budget Lines Included: ' + a.budgetLinesIncluded;
 
-        String label = HeadroomFormat.lineLabel(bl);
-        String funding = 'Secured funding is ' + AmaizeFormat.money(secured, iso)
-            + ', likely funding is ' + AmaizeFormat.money(likely, iso)
-            + ', and pipeline funding is ' + AmaizeFormat.money(pipeline, iso);
-
-        String body;
-        String recommendation;
-        if (forecastHeadroom < 0) {
-            // Negative headroom is valid: over-allocation, not an error.
-            body = label + ' has a budget of ' + AmaizeFormat.money(budget, iso) + '. ' + funding + '. '
-                + 'This Budget Line is currently over-allocated by ' + AmaizeFormat.money(-forecastHeadroom, iso)
-                + ' based on secured, likely, and pipeline funding.';
-            recommendation = '**Recommendation:** Don\'t raise more here — confirm with Grants Finance.';
+        // Concise interpretation, grounded in the summed governed figures.
+        String interp;
+        if (a.securedHeadroom < 0) {
+            interp = 'This program is over-allocated on secured funding by '
+                + AmaizeFormat.money(-a.securedHeadroom, iso) + ' across ' + a.budgetLinesIncluded
+                + ' budget line' + (a.budgetLinesIncluded == 1 ? '' : 's') + '.';
+        } else if (a.headroomStatus == 'Headroom Available') {
+            interp = 'There is ' + AmaizeFormat.money(a.securedHeadroom, iso)
+                + ' of secured headroom to raise against; forecast headroom after likely and pipeline funding is '
+                + AmaizeFormat.money(a.forecastHeadroom, iso) + '.';
         } else {
-            body = label + ' has a budget of ' + AmaizeFormat.money(budget, iso) + '. ' + funding
-                + ', leaving ' + AmaizeFormat.money(forecastHeadroom, iso) + ' in headroom. '
-                + 'Secured headroom (budget minus secured funding only) is '
-                + AmaizeFormat.money(securedHeadroom, iso) + '.';
-            if (bl.Headroom_status__c == 'Headroom Available') {
-                recommendation = '**Recommendation:** There\'s room to raise here.';
-            } else {
-                recommendation = '**Recommendation:** Room is tight — confirm with Grants Finance before pitching.';
-            }
+            interp = 'Secured headroom is tight at ' + AmaizeFormat.money(a.securedHeadroom, iso)
+                + '; confirm with Grants Finance before pitching. Forecast headroom is '
+                + AmaizeFormat.money(a.forecastHeadroom, iso) + '.';
         }
-
-        // Grounding note about where the allocation detail came from (or that there is none).
-        String allocNote;
-        if (a.allocationSource == 'none' || a.allocations == null || a.allocations.totalCount == 0) {
-            allocNote = '\n\n_No allocations are currently linked to this Budget Line; the figures above are the Budget Line\'s stored funding._';
-        } else {
-            allocNote = '\n\n_Based on ' + a.allocations.totalCount + ' allocation'
-                + (a.allocations.totalCount == 1 ? '' : 's') + ' on this Budget Line'
-                + (String.isNotBlank(a.allocations.topGrantName)
-                    ? ', the largest being ' + a.allocations.topGrantName : '') + '._';
-        }
-
-        return body + '\n\n' + recommendation + allocNote;
+        return header + figures + '\n\n' + interp;
     }
 
-    private static String ambiguousSummary(HeadroomAnalysis a) {
-        Integer n = a.candidates.size();
-        String diff = (a.distinguishingDimensions != null && !a.distinguishingDimensions.isEmpty())
-            ? ' They differ by ' + String.join(a.distinguishingDimensions, '; ') + '.'
-            : '';
-        String ask = a.subUnitMissing
-            ? ' Which one should I use? If the Budget Line has no sub-unit, you can specify N/A.'
-            : ' Which one should I use?';
-        return 'I found ' + n + ' Budget Lines matching the information provided.' + diff + ask;
+    private static String zeroSummary(HeadroomAggregate a) {
+        return '**' + a.category + ' — ' + a.country + '**\n\n'
+            + 'For the governed Headroom use case, ' + a.category + ' is defined as zero:\n'
+            + '- Budget Amount: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Secured Funding: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Likely Funding: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Pipeline Funding: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Forecast Funding: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Secured Headroom: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Forecast Headroom: ' + AmaizeFormat.money(0, null) + '\n'
+            + '- Headroom Status: Not Applicable';
     }
 
-    private static String needsInfoSummary(HeadroomAnalysis a) {
-        String missing = HeadroomFormat.humanJoin(a.missingDimensions);
-        String base = 'I can check that. I still need the ' + missing + '.';
-        if (a.subUnitMissing) {
-            base += ' Please also give the sub-unit — if there is no applicable sub-unit, specify N/A.';
-        }
-        return base;
-    }
-
-    private static String notFoundSummary(HeadroomAnalysis a) {
-        String used = HeadroomFormat.humanJoin(a.requested.suppliedPhrases());
-        return 'I couldn\'t find a Budget Line matching ' + used + '. '
-            + 'I won\'t estimate headroom without a matching Budget Line — '
-            + 'please double-check those values, or ask Grants Finance whether this Budget Line exists.';
-    }
-
-    private static String foundJson(HeadroomAnalysis a) {
-        Budget_Line__c bl = a.line;
-        Map<String, Object> j = new Map<String, Object>{
-            'found' => true,
-            'status' => bl.Headroom_status__c,
-            'fiscalYear' => bl.Fiscal_Year__c,
-            'country' => bl.Country__c,
-            'businessUnit' => bl.BusinessUnit__c,
-            'subUnit' => bl.Sub__c,
-            'department' => bl.Department__c,
-            'costType' => bl.Cost_Type__c,
-            'costCategory' => bl.Cost_Category__c,
-            'currency' => bl.CurrencyIsoCode,
-            'budget' => AmaizeBudgetHeadroom.budgetCost(bl.Budget_Amount__c),
-            'securedFunding' => AmaizeBudgetHeadroom.nz(bl.Secured_Funding__c),
-            'likelyFunding' => AmaizeBudgetHeadroom.nz(bl.Likely_Funding__c),
-            'pipelineFunding' => AmaizeBudgetHeadroom.nz(bl.Pipeline_Funding__c),
-            'securedHeadroom' => AmaizeBudgetHeadroom.nz(bl.Secured_Headroom__c),
-            'forecastHeadroom' => AmaizeBudgetHeadroom.nz(bl.Forecast_Headroom__c),
-            'allocationSource' => a.allocationSource,
-            'allocationCount' => (a.allocations == null ? 0 : a.allocations.totalCount)
-        };
-        return JSON.serialize(j);
+    private static String foundJson(HeadroomAggregate a) {
+        return JSON.serialize(new Map<String, Object>{
+            'category' => a.category, 'country' => a.country, 'fiscalYear' => a.fiscalYear,
+            'scenario' => a.scenarioLabel,
+            'budgetAmount' => a.budgetAmount, 'securedFunding' => a.securedFunding,
+            'likelyFunding' => a.likelyFunding, 'pipelineFunding' => a.pipelineFunding,
+            'forecastFunding' => a.forecastFunding, 'securedHeadroom' => a.securedHeadroom,
+            'forecastHeadroom' => a.forecastHeadroom, 'headroomStatus' => a.headroomStatus,
+            'budgetLinesIncluded' => a.budgetLinesIncluded
+        });
     }
 }

@@ -1,7 +1,10 @@
 /**
- * AmaizeAnalyzeHeadroomTest — the single-Budget-Line action: response composition for
- * each outcome (found / over-allocated / ambiguous / needs-info / not-found), currency
- * preservation (#preserve currencies), and the read-only guardrail (#20).
+ * AmaizeAnalyzeHeadroomTest — the governed Headroom aggregation action: category resolution,
+ * summing all qualifying Budget Lines (not one, not averaged), the eight required fields +
+ * line count, governed zero categories, not-configured, no-match, needs-info, and read-only.
+ *
+ * Budget Lines are created WITHOUT allocations, so the funding fields set here persist (the
+ * org rollup only fires when allocations are attached) and the formula fields compute from them.
  */
 @isTest
 private class AmaizeAnalyzeHeadroomTest {
@@ -9,19 +12,22 @@ private class AmaizeAnalyzeHeadroomTest {
     @TestSetup
     static void setup() {
         Budget_Scenario__c s = HeadroomTestData.makeCurrentScenario();
-        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program', 'N/A', 'N/A', 'N/A', 'N/A',
-            -1000000, 300000, 100000, 100000);                 // Headroom Available
-        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program', 'N/A', 'N/A', 'N/A', 'Salary',
-            -500000, 100000, 0, 0);
-        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Field Building', 'N/A', 'N/A', 'N/A', 'N/A',
-            -500000, 400000, 200000, 100000);                  // over-allocated (-200k)
+        // HR-001 Core Program (Kenya): two lines that must be SUMMED.
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Extension', 'N/A', 'N/A',
+            -1000000, 300000, 100000, 100000);   // secured HR 700k, forecast HR 500k
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Field Operations', 'N/A', 'N/A',
+            -500000, 100000, 0, 0);               // secured HR 400k, forecast HR 400k
+        // HR-002 Rural Retail (Farm Input Sales + Department = Rural Retail).
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Farm Input Sales - KE', 'N/A', 'Rural Retail', 'N/A', 'N/A',
+            -800000, 500000, 0, 0);
+        // A Farm Input Sales line under a DIFFERENT department (Trees) — must NOT be counted for Rural Retail.
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Farm Input Sales - KE', 'N/A', 'Trees', 'N/A', 'N/A',
+            -300000, 50000, 0, 0);
     }
 
-    private static AmaizeAnalyzeHeadroom.Request req(String country, String bu, Integer fy,
-            String sub, String dept, String ct, String cc) {
+    private static AmaizeAnalyzeHeadroom.Request req(String program, String country, Integer fy) {
         AmaizeAnalyzeHeadroom.Request r = new AmaizeAnalyzeHeadroom.Request();
-        r.country = country; r.businessUnit = bu; r.fiscalYear = fy;
-        r.subUnit = sub; r.department = dept; r.costType = ct; r.costCategory = cc;
+        r.program = program; r.country = country; r.fiscalYear = fy;
         return r;
     }
 
@@ -30,67 +36,71 @@ private class AmaizeAnalyzeHeadroomTest {
     }
 
     @isTest
-    static void foundSummaryReportsAllFundingTypes() {
-        AmaizeAnalyzeHeadroom.Result res = run(req('Kenya', 'Core Program', 2027, 'N/A', 'N/A', 'N/A', 'N/A'));
+    static void coreProgramSumsAllQualifyingLines() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Kenya', 2027));
         System.assertEquals(true, res.found);
         System.assertEquals('Headroom Available', res.signal);
-        System.assert(res.summary.contains('Secured funding'), res.summary);
-        System.assert(res.summary.contains('likely funding'), res.summary);
-        System.assert(res.summary.contains('pipeline funding'), res.summary);
-        System.assert(res.summary.contains('headroom'), res.summary);
-        System.assert(res.headroomJson.contains('"forecastHeadroom":500000'), res.headroomJson);
+        // Budget 1.0M + 0.5M = 1.5M; secured 0.3M + 0.1M = 0.4M; secured HR 0.7M + 0.4M = 1.1M.
+        System.assert(res.headroomJson.contains('"budgetAmount":1500000'), res.headroomJson);
+        System.assert(res.headroomJson.contains('"securedFunding":400000'), res.headroomJson);
+        System.assert(res.headroomJson.contains('"securedHeadroom":1100000'), res.headroomJson);
+        System.assert(res.headroomJson.contains('"budgetLinesIncluded":2'), res.headroomJson);
+        System.assert(res.summary.contains('Budget Lines Included: 2'), res.summary);
     }
 
     @isTest
-    static void overAllocatedSummaryExplainsNegativeHeadroom() {
-        AmaizeAnalyzeHeadroom.Result res = run(req('Kenya', 'Field Building', 2027, 'N/A', 'N/A', 'N/A', 'N/A'));
+    static void ruralRetailFiltersByDepartmentOnly() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Rural Retail', 'Kenya', 2027));
         System.assertEquals(true, res.found);
-        System.assert(res.summary.contains('over-allocated'), res.summary);
+        // Only the Rural Retail line (0.8M budget, 0.5M secured) — NOT the Trees line.
+        System.assert(res.headroomJson.contains('"budgetAmount":800000'), res.headroomJson);
+        System.assert(res.headroomJson.contains('"budgetLinesIncluded":1'), res.headroomJson);
     }
 
     @isTest
-    static void ambiguousAsksToChoose() {
-        AmaizeAnalyzeHeadroom.Result res = run(req('Kenya', 'Core Program', 2027, null, null, null, null));
+    static void unrestrictedIsGovernedZero() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Unrestricted', 'Kenya', 2027));
+        System.assertEquals(true, res.found);
+        System.assertEquals('Not Applicable', res.signal);
+        System.assert(res.summary.contains('Headroom Status: Not Applicable'), res.summary);
+    }
+
+    @isTest
+    static void workingCapitalIsGovernedZero() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Working Capital', 'Kenya', 2027));
+        System.assertEquals('Not Applicable', res.signal);
+    }
+
+    @isTest
+    static void miscellaneousIsNotConfigured() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Miscellaneous', 'Kenya', 2027));
         System.assertEquals(false, res.found);
-        System.assertEquals('AMBIGUOUS', res.signal);
-        System.assert(res.summary.contains('differ by'), res.summary);
+        System.assertEquals('NOT_CONFIGURED', res.signal);
+        System.assert(res.summary.contains('has not yet been configured'), res.summary);
     }
 
     @isTest
-    static void needsInfoAsksForFiscalYearAndSubUnit() {
-        AmaizeAnalyzeHeadroom.Result res = run(req('Kenya', 'Core Program', null, null, null, null, null));
+    static void noQualifyingLinesIsNotZero() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Systems Change', 'Kenya', 2027));  // none seeded
+        System.assertEquals(false, res.found);
+        System.assertEquals('NONE', res.signal);
+        System.assert(res.summary.contains('No qualifying Budget Line records were found'), res.summary);
+    }
+
+    @isTest
+    static void missingCountryNeedsInfo() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', null, 2027));
         System.assertEquals(false, res.found);
         System.assertEquals('NEEDS_INFO', res.signal);
-        System.assert(res.summary.contains('fiscal year'), res.summary);
-        System.assert(res.summary.containsIgnoreCase('N/A'), 'Should offer N/A for the sub-unit: ' + res.summary);
+        System.assert(res.summary.contains('country'), res.summary);
     }
 
     @isTest
-    static void notFoundIsHonest() {
-        AmaizeAnalyzeHeadroom.Result res = run(req('Tanzania', 'Core Program', 2027, 'N/A', 'N/A', 'N/A', 'N/A'));
-        System.assertEquals(false, res.found);
-        System.assertEquals('NOT_FOUND', res.signal);
-        System.assert(res.summary.containsIgnoreCase('couldn\'t find'), res.summary);
-    }
-
-    // Currency preservation — the ISO-aware formatter used by the summaries.
-    @isTest
-    static void moneyPreservesNonUsdCurrency() {
-        System.assertEquals('$1.2M', AmaizeFormat.money(1200000, 'USD'));
-        System.assertEquals('$1.2M', AmaizeFormat.money(1200000, null));
-        System.assertEquals('KES 1.2M', AmaizeFormat.money(1200000, 'KES'));
-        System.assertEquals('-EUR 150K', AmaizeFormat.money(-150000, 'EUR'));
-    }
-
-    // #20 — read-only guardrail: the action path performs NO DML.
-    @isTest
-    static void actionPerformsNoDml() {
+    static void performsNoDml() {
         Test.startTest();
-        Integer before = Limits.getDmlStatements();
-        run(req('Kenya', 'Core Program', 2027, 'N/A', 'N/A', 'N/A', 'N/A'));
-        run(req('Kenya', 'Core Program', 2027, null, null, null, null)); // ambiguous path
-        System.assertEquals(before, Limits.getDmlStatements(), 'Headroom analysis must never write data');
-        System.assertEquals(0, Limits.getDmlStatements(), 'No DML expected in the read-only action');
+        run(req('Core Program', 'Kenya', 2027));
+        run(req('Unrestricted', 'Kenya', 2027));
+        System.assertEquals(0, Limits.getDmlStatements(), 'Governed aggregation must never write data');
         Test.stopTest();
     }
 }

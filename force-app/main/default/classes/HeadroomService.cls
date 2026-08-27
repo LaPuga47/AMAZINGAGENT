@@ -90,6 +90,89 @@ public with sharing class HeadroomService {
         return result;
     }
 
+    /**
+     * Governed Headroom aggregation (HR-001..HR-007). Resolves the category to its Budget
+     * Line population, sums the eight governed financial fields across ALL qualifying lines
+     * in the current scenario, counts them, and derives the aggregate Headroom Status from
+     * the summed Secured Headroom (a status is derived, never summed). Country is the
+     * authoritative filter; fiscal year defaults to the current scenario when omitted.
+     * Never treats "no qualifying lines" as zero.
+     */
+    public HeadroomAggregate aggregate(String program, String country, String fiscalYear) {
+        HeadroomAggregate a = new HeadroomAggregate();
+        String cat = program == null ? '' : program.trim();
+        String ctry = country == null ? '' : country.trim();
+        if (cat == '') { a.missing.add('headroom category'); }
+        if (ctry == '') { a.missing.add('country'); }
+        if (!a.missing.isEmpty()) { a.state = HeadroomAggregate.State.NEEDS_INFO; return a; }
+
+        HeadroomCategoryResolver.Rule rule = HeadroomCategoryResolver.resolve(cat);
+        a.category = rule.label;
+        a.country = ctry;
+
+        // Governed zero categories (Unrestricted / Working Capital): return zeros, not a search.
+        if (rule.mode == HeadroomCategoryResolver.Mode.ZERO) {
+            a.state = HeadroomAggregate.State.ZERO;
+            a.headroomStatus = 'Not Applicable';
+            return a;
+        }
+        if (rule.mode == HeadroomCategoryResolver.Mode.NOT_CONFIGURED) {
+            a.state = HeadroomAggregate.State.NOT_CONFIGURED;
+            return a;
+        }
+
+        // Resolve the current scenario (its fiscal year defaults the filter; also reported).
+        Budget_Scenario__c scenario = currentScenario();
+        String fy = String.isNotBlank(fiscalYear) ? fiscalYear.trim()
+                    : (scenario != null ? scenario.Fiscal_Year__c : null);
+        a.fiscalYear = fy;
+        a.scenarioLabel = (scenario != null)
+            ? (scenario.Scenario_Type__c != null ? scenario.Scenario_Type__c + ' ' : '')
+                + (scenario.Fiscal_Year__c != null ? 'FY' + scenario.Fiscal_Year__c : '')
+            : null;
+
+        BudgetLineDimensions d = new BudgetLineDimensions();
+        d.country = ctry;
+        d.fiscalYear = fy;
+        d.businessUnit = rule.businessUnitBase;
+        d.department = rule.department;   // required Department filter for RRT/MKT/TRE; null otherwise
+        d = d.normalize();
+
+        AggregateResult ar = lines.aggregateScope(d);
+        Integer cnt = (ar == null) ? 0 : (Integer) ar.get('cnt');
+        if (cnt == 0) {
+            a.state = HeadroomAggregate.State.NONE;
+            return a;
+        }
+
+        // SUM the governed fields (Budget Amount presented as a positive cost).
+        a.budgetAmount = AmaizeBudgetHeadroom.budgetCost((Decimal) ar.get('bud'));
+        a.securedFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('sec'));
+        a.likelyFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('lik'));
+        a.pipelineFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('pipe'));
+        a.forecastFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('fcf'));
+        a.securedHeadroom = AmaizeBudgetHeadroom.nz((Decimal) ar.get('sh'));
+        a.forecastHeadroom = AmaizeBudgetHeadroom.nz((Decimal) ar.get('fh'));
+        a.budgetLinesIncluded = cnt;
+        a.currencyIsoCode = (String) ar.get('iso');
+        // Headroom Status derived from the summed Secured Headroom (governed threshold rule).
+        a.headroomStatus = AmaizeBudgetHeadroom.statusFor(a.securedHeadroom);
+        a.state = HeadroomAggregate.State.FOUND;
+        return a;
+    }
+
+    /** The current Budget Scenario (anchors the default fiscal year and the reported scenario). */
+    private Budget_Scenario__c currentScenario() {
+        List<Budget_Scenario__c> s = [
+            SELECT Id, Fiscal_Year__c, Scenario_Type__c
+            FROM Budget_Scenario__c
+            WHERE Is_Current_Scenario__c = true
+            WITH USER_MODE
+            LIMIT 1
+        ];
+        return s.isEmpty() ? null : s[0];
+    }
+
     /** Retrieve the allocations for ONE Budget Line, direct relationship taking priority. */
     private void attachAllocations(HeadroomAnalysis result, Budget_Line__c line) {
         List<Allocation__c> direct = allocations.byBudgetLineId(line.Id);
