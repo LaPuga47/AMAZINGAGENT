@@ -16,7 +16,9 @@ public with sharing class AllocationSelector implements IAllocationSelector {
     private static final String FIELDS =
         'Id, Name, Budget_Line__c, Allocation_Type__c, Allocation_Status__c, ' +
         'Funds_Allocated__c, Prob_Weighted_Allocation_Amount__c, Allocation_Match_Key__c, CurrencyIsoCode, ' +
+        'Restriction__c, Restriction__r.Name, ' +
         'Restriction__r.Restriction_Country__c, Restriction__r.Business_Unit__c, ' +
+        'Restriction__r.Gift_Commitment__c, Restriction__r.Gift_Commitment__r.Name, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Id, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Name, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Amount, ' +
@@ -24,6 +26,7 @@ public with sharing class AllocationSelector implements IAllocationSelector {
         'Restriction__r.Gift_Commitment__r.Opportunity.StageName, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.CloseDate, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Guardian__c, ' +
+        'Restriction__r.Gift_Commitment__r.Opportunity.AccountId, ' +
         'Restriction__r.Gift_Commitment__r.Opportunity.Account.Name';
 
     public List<Allocation__c> byBudgetLineId(Id budgetLineId) {

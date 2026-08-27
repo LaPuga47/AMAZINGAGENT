@@ -1,49 +1,37 @@
 /**
- * AmaizeFindCompetingGrants — the Competing Grants Analysis action.
+ * AmaizeFindCompetingGrants — governed Competing Grants Analysis action.
  *
- * Given a funding scope (country + business unit, optionally narrowed by fiscal year and
- * the cost dimensions), it reports the grant Opportunities competing for that scope, the
- * combined competing pipeline versus remaining headroom, closing scenarios, and a severity
- * classification — composed into a decision-ready Markdown summary the agent speaks
- * verbatim. Read-only. Scalar I/O per Agentforce platform rules.
+ * Resolves the SAME governed Budget Line population as Headroom Analysis (category + country
+ * + fiscal year), aggregates the governed Headroom fields across all qualifying lines, then
+ * reports the Opportunities competing for that population — by allocation EXPOSURE (not
+ * Opportunity Amount), split by type — with clickable Salesforce record links, competition
+ * severity, a closing scenario, and data-quality notes. Read-only. Scalar I/O.
  */
 public with sharing class AmaizeFindCompetingGrants {
 
     public class Request {
-        @InvocableVariable(label='Country' description='Country of the funding scope, e.g. Kenya' required=true)
+        @InvocableVariable(label='Program' description='Headroom category / program, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension.' required=true)
+        public String program;
+        @InvocableVariable(label='Country' description='Country of the Budget Lines, e.g. Kenya. Authoritative filter.' required=true)
         public String country;
-        @InvocableVariable(label='Business Unit' description='Program / business unit, e.g. Core Program' required=true)
-        public String businessUnit;
-        @InvocableVariable(label='Fiscal Year' description='Fiscal year, e.g. 2027' required=false)
+        @InvocableVariable(label='Fiscal Year' description='Fiscal year, e.g. 2027. Defaults to the current scenario when omitted.' required=false)
         public Integer fiscalYear;
-        @InvocableVariable(label='Sub-Unit' description='Sub-Unit to narrow the scope. Use N/A when not applicable.' required=false)
-        public String subUnit;
-        @InvocableVariable(label='Department' description='Department. Use N/A when not applicable.' required=false)
-        public String department;
-        @InvocableVariable(label='Cost Type' description='Cost Type. Use N/A when not applicable.' required=false)
-        public String costType;
-        @InvocableVariable(label='Cost Category' description='Cost Category. Use N/A when not applicable.' required=false)
-        public String costCategory;
     }
 
     public class Result {
-        @InvocableVariable(label='Summary' description='Decision-ready competing-grants analysis to show the user.')
+        @InvocableVariable(label='Summary' description='Decision-ready competing-grants analysis (governed headroom + competing opportunities with record links).')
         public String summary;
-        @InvocableVariable(label='Severity' description='No Material / Moderate / High Competition, or Critical / Over-allocated; NEEDS_INFO or NOT_FOUND otherwise.')
+        @InvocableVariable(label='Severity' description='No Material / Moderate / High Competition, Critical / Over-allocated, or NONE / ZERO / NOT_CONFIGURED / NEEDS_INFO.')
         public String severity;
-        @InvocableVariable(label='Combined Pipeline' description='Combined competing (Likely+Pipeline) funding for the scope.')
-        public Decimal combinedPipeline;
-        @InvocableVariable(label='Remaining Headroom' description='Remaining secured headroom for the scope.')
-        public Decimal remainingHeadroom;
         @InvocableVariable(label='Results JSON' description='Machine-readable competing-grants detail.')
         public String resultsJson;
-        @InvocableVariable(label='Found' description='True when the scope resolved to at least one Budget Line.')
+        @InvocableVariable(label='Found' description='True when the governed scope resolved to Budget Lines.')
         public Boolean found;
     }
 
     @InvocableMethod(
         label='Find Competing Grants'
-        description='Finds grant Opportunities competing for the same program funding scope, compares combined competing pipeline to remaining headroom, runs closing scenarios, and classifies the competition.')
+        description='Finds the grant Opportunities competing for a governed Headroom population (category + country + fiscal year), by allocation exposure across all qualifying Budget Lines, with headroom totals identical to Headroom Analysis and clickable record links.')
     public static List<Result> find(List<Request> requests) {
         List<Result> results = new List<Result>();
         CompetingGrantsService service = new CompetingGrantsService();
@@ -54,44 +42,38 @@ public with sharing class AmaizeFindCompetingGrants {
     }
 
     private static Result answerOne(Request req, CompetingGrantsService service) {
-        BudgetLineDimensions d = new BudgetLineDimensions();
-        d.country = req.country;
-        d.businessUnit = req.businessUnit;
-        d.fiscalYear = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear) : null;
-        d.subUnit = req.subUnit;
-        d.department = req.department;
-        d.costType = req.costType;
-        d.costCategory = req.costCategory;
-
-        CompetingGrantsResult a = service.analyze(d);
+        String fy = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear) : null;
+        CompetingGrantsResult a = service.analyze(req.program, req.country, fy);
         Result r = new Result();
+        r.severity = a.severity;
         switch on a.status {
             when FOUND {
                 r.found = true;
-                r.severity = a.severity;
-                r.combinedPipeline = a.combinedCompeting;
-                r.remainingHeadroom = a.securedHeadroom;
                 r.summary = compose(a);
-                r.resultsJson = JSON.serialize(new Map<String, Object>{
-                    'severity' => a.severity, 'combinedCompeting' => a.combinedCompeting,
-                    'securedHeadroom' => a.securedHeadroom, 'forecastHeadroom' => a.forecastHeadroom,
-                    'potentialExcess' => a.potentialExcess, 'grantCount' => a.grants.size()
-                });
+                r.resultsJson = json(a);
             }
-            when NEEDS_INFO {
-                r.found = false; r.severity = 'NEEDS_INFO';
-                r.summary = 'I can check that. I still need the '
-                    + HeadroomFormat.humanJoin(a.missingDimensions)
-                    + ' to identify the funding scope. If a dimension has no applicable value, specify N/A.';
-                r.resultsJson = '{"status":"NEEDS_INFO"}';
+            when ZERO {
+                r.found = false; r.severity = 'ZERO';
+                r.summary = a.category + ' has no governed Headroom capacity in this model (it is defined as zero), '
+                    + 'so a Budget-Line competition analysis does not apply.';
+                r.resultsJson = '{"status":"ZERO"}';
+            }
+            when NOT_CONFIGURED {
+                r.found = false; r.severity = 'NOT_CONFIGURED';
+                r.summary = 'The governed Headroom aggregation rule for "' + a.category
+                    + '" has not yet been configured, so reliable competing-grants analysis cannot be performed for it yet.';
+                r.resultsJson = '{"status":"NOT_CONFIGURED"}';
+            }
+            when NONE {
+                r.found = false; r.severity = 'NONE';
+                r.summary = 'No qualifying Budget Line records were found for the requested scope ('
+                    + a.category + ', ' + a.country + (a.fiscalYear != null ? ', FY' + a.fiscalYear : '') + ').';
+                r.resultsJson = '{"status":"NONE"}';
             }
             when else {
-                r.found = false; r.severity = 'NOT_FOUND';
-                r.summary = 'I couldn\'t find a Budget Line for '
-                    + HeadroomFormat.humanJoin(a.requested.suppliedPhrases())
-                    + ', so I can\'t assess competition for it. Please check those values, '
-                    + 'or ask Grants Finance whether this scope exists in the current scenario.';
-                r.resultsJson = '{"status":"NOT_FOUND"}';
+                r.found = false; r.severity = 'NEEDS_INFO';
+                r.summary = 'I can run that. I still need the ' + HeadroomFormat.humanJoin(a.missing) + '.';
+                r.resultsJson = '{"status":"NEEDS_INFO"}';
             }
         }
         return r;
@@ -99,97 +81,150 @@ public with sharing class AmaizeFindCompetingGrants {
 
     private static String compose(CompetingGrantsResult a) {
         String iso = a.currencyIsoCode;
-        String scope = a.businessUnit + ' in ' + a.country
-            + (a.fiscalYear != null ? ' for FY' + a.fiscalYear : '');
+        String scope = a.category + ' — ' + a.country + (a.fiscalYear != null ? ' — FY' + a.fiscalYear : '');
 
         List<CompetingGrant> competing = new List<CompetingGrant>();
         for (CompetingGrant g : a.grants) { if (g.isCompetingPipeline()) { competing.add(g); } }
 
-        // ---- Summary ----
-        String head;
-        if (competing.isEmpty()) {
-            head = '**Competing Grants Summary**\nNo pipeline grants are currently competing for '
-                + scope + '. Remaining secured headroom is ' + AmaizeFormat.money(a.securedHeadroom, iso) + '.';
+        // Summary
+        String summ;
+        if (a.noAllocations) {
+            summ = '**Competing Grants Summary**\nI found the governed ' + scope + ' Budget Line population ('
+                + a.budgetLineCount + ' lines), but no Funding Allocations are currently linked to those Budget Lines.';
+        } else if (competing.isEmpty()) {
+            summ = '**Competing Grants Summary**\nNo pipeline grants are currently competing for ' + scope
+                + '. Remaining secured headroom is ' + AmaizeFormat.money(a.securedHeadroom, iso) + '.';
         } else {
-            head = '**Competing Grants Summary**\n' + competing.size() + ' pipeline '
-                + (competing.size() == 1 ? 'opportunity is' : 'opportunities are') + ' targeting '
-                + scope + '. Together they represent ' + AmaizeFormat.money(a.combinedCompeting, iso)
-                + ' of competing funding against ' + AmaizeFormat.money(a.securedHeadroom, iso)
-                + ' of remaining secured headroom. '
+            summ = '**Competing Grants Summary**\n' + competing.size() + ' pipeline '
+                + (competing.size() == 1 ? 'opportunity is' : 'opportunities are') + ' mapped to the ' + scope
+                + ' headroom population. Combined mapped pipeline exposure is '
+                + AmaizeFormat.money(a.combinedCompeting, iso) + ' against '
+                + AmaizeFormat.money(a.securedHeadroom, iso) + ' of governed secured headroom'
                 + (a.potentialExcess > 0
-                    ? 'If all close at their proposed amounts, the scope would exceed available headroom by '
+                    ? '; if all became secured at their allocated amounts they would exceed it by '
                         + AmaizeFormat.money(a.potentialExcess, iso) + '.'
-                    : 'Current headroom could accommodate them.');
+                    : '.');
         }
 
-        // ---- Program Headroom ----
-        String hr = '\n\n**Program Headroom** — ' + scope
-            + (a.lineCount > 1 ? ' (' + a.lineCount + ' budget lines)' : '')
-            + '\nBudget ' + AmaizeFormat.money(a.budgetCost, iso)
-            + ' · Secured ' + AmaizeFormat.money(a.securedFunding, iso)
-            + ' · Likely ' + AmaizeFormat.money(a.likelyFunding, iso)
-            + ' · Pipeline ' + AmaizeFormat.money(a.pipelineFunding, iso)
-            + '\nRemaining **secured** headroom ' + AmaizeFormat.money(a.securedHeadroom, iso)
-            + '; **forecast** headroom (after likely + pipeline) ' + AmaizeFormat.money(a.forecastHeadroom, iso) + '.';
+        // Headroom position (governed — identical to Headroom Analysis)
+        String hp = '\n\n**Headroom Position** — ' + scope
+            + (a.scenarioLabel != null ? ' (' + a.scenarioLabel + ')' : '')
+            + '\n- Budget Amount: ' + AmaizeFormat.money(a.budgetAmount, iso)
+            + '\n- Secured Funding: ' + AmaizeFormat.money(a.securedFunding, iso)
+            + '\n- Likely Funding: ' + AmaizeFormat.money(a.likelyFunding, iso)
+            + '\n- Pipeline Funding: ' + AmaizeFormat.money(a.pipelineFunding, iso)
+            + '\n- Forecast Funding: ' + AmaizeFormat.money(a.forecastFunding, iso)
+            + '\n- Secured Headroom: ' + AmaizeFormat.money(a.securedHeadroom, iso)
+            + '\n- Forecast Headroom: ' + AmaizeFormat.money(a.forecastHeadroom, iso)
+            + '\n- Headroom Status: ' + a.headroomStatus
+            + '\n- Budget Lines Included: ' + a.budgetLineCount;
 
-        // ---- Competing Opportunities table ----
-        String table = '';
+        // Competing opportunities (exposure, not opportunity amount) with record links
+        String co = '';
         if (!competing.isEmpty()) {
-            table = '\n\n**Competing Opportunities**\n'
-                + '| Opportunity | Donor | Amount | Stage | Prob | Close | Owner |\n'
-                + '|---|---|---|---|---|---|---|\n';
+            List<String> blocks = new List<String>();
             for (CompetingGrant g : competing) {
-                table += '| ' + nz(g.opportunityName) + ' | ' + nz(g.donor) + ' | '
-                    + AmaizeFormat.money(g.allocatedAmount, iso) + ' | ' + nz(g.stage) + ' | '
-                    + (g.probability == null ? '—' : String.valueOf(Integer.valueOf(g.probability)) + '%') + ' | '
-                    + (g.closeDate == null ? '—' : g.closeDate.year() + '-' + String.valueOf(g.closeDate.month()).leftPad(2,'0')) + ' | '
-                    + nz(g.owner) + ' |\n';
+                blocks.add(grantBlock(g, iso));
             }
+            co = '\n\n**Competing Opportunities**\n' + String.join(blocks, '\n');
         }
 
-        // ---- Scenario Impact (cumulative, most advanced first) ----
+        // Scenario impact (cumulative, most advanced first)
         String scen = '';
         if (!competing.isEmpty()) {
             scen = '\n\n**Scenario Impact** (cumulative, most advanced first)';
             Decimal running = a.securedHeadroom;
             for (CompetingGrant g : competing) {
-                running -= g.allocatedAmount;
-                scen += '\nIf ' + shortName(g.opportunityName) + ' closes → remaining '
+                running -= (g.likelyExposure + g.pipelineExposure);
+                scen += '\n- If ' + shortName(g.opportunityName) + ' becomes secured → remaining '
                     + AmaizeFormat.money(running, iso) + (running < 0 ? ' _(over-allocated)_' : '');
             }
-            scen += '\nProbability-weighted competing pipeline ≈ ' + AmaizeFormat.money(a.probWeightedCompeting, iso)
-                + ' → ~' + AmaizeFormat.money(a.securedHeadroom - a.probWeightedCompeting, iso) + ' left.';
         }
 
-        // ---- Severity + risks + coordination ----
-        String verdict = '\n\n**Competition severity: ' + a.severity + '.**';
-        String risks = '';
+        // Data quality
+        String dq = '';
         List<String> notes = new List<String>();
-        for (CompetingGrant g : a.grants) {
-            if (g.isCompetingPipeline() && g.onlyUnconfirmed) {
-                notes.add(shortName(g.opportunityName) + ' has no confirmed/approved allocation yet, so its scope is unconfirmed');
-            }
+        if (a.allocationsMissingGiftCommitment > 0) {
+            notes.add(a.allocationsMissingGiftCommitment + ' allocation'
+                + (a.allocationsMissingGiftCommitment == 1 ? '' : 's') + ' have no linked Gift Commitment');
         }
-        if (a.forecastHeadroom < 0) {
-            notes.add('secured + likely + pipeline funding already exceeds the budget for this scope');
-        }
-        if (!notes.isEmpty()) { risks = '\n\n**Risks / Considerations** — ' + HeadroomFormat.humanJoin(notes) + '.'; }
+        if (!notes.isEmpty()) { dq = '\n\n**Data Quality** — ' + HeadroomFormat.humanJoin(notes) + '.'; }
 
-        String coord = '';
-        if (a.severity.startsWith('High') || a.severity.startsWith('Critical')) {
-            coord = '\n\n**Suggested Coordination** — Consider aligning with Grants Finance and the '
-                + 'relevant Relationship Managers before advancing these proposals at their current '
-                + 'amounts, as together they approach or exceed remaining program headroom.';
+        // Next step
+        String next = '';
+        if (a.severity != null && (a.severity.startsWith('High') || a.severity.startsWith('Critical'))) {
+            next = '\n\n**Recommended Next Step** — Combined pipeline exposure approaches or exceeds governed '
+                + 'secured headroom; review proposal sizing and allocation flexibility with Grants Finance and the '
+                + 'opportunity owners before these advance further.';
         }
 
-        return head + hr + table + scen + verdict + risks + coord;
+        return summ + hp + co + scen + dq + '\n\n**Competition severity: ' + a.severity + '.**' + next;
     }
 
-    private static String nz(String s) { return String.isBlank(s) ? '—' : s; }
+    /** One competing opportunity block: exposure split + record links. */
+    private static String grantBlock(CompetingGrant g, String iso) {
+        String oppLink = AmaizeLink.md(g.opportunityName, 'Opportunity', g.opportunityId);
+        String s = '- ' + oppLink
+            + (g.donorName != null ? ' — ' + AmaizeLink.md(g.donorName, 'Account', g.accountId) : '');
+        s += '\n  - Exposure to this scope: ' + AmaizeFormat.money(g.allocatedAmount, iso)
+            + ' (Secured ' + AmaizeFormat.money(g.securedExposure, iso)
+            + ' / Likely ' + AmaizeFormat.money(g.likelyExposure, iso)
+            + ' / Pipeline ' + AmaizeFormat.money(g.pipelineExposure, iso) + ')';
+        if (g.opportunityAmount != null) {
+            s += '\n  - Total Opportunity Amount: ' + AmaizeFormat.money(g.opportunityAmount, iso)
+                + ' _(fundraising context — not the headroom exposure)_';
+        }
+        s += '\n  - Stage: ' + nz(g.stage)
+            + (g.probability != null ? ' · ' + String.valueOf(Integer.valueOf(g.probability)) + '%' : '')
+            + (g.closeDate != null ? ' · close ' + g.closeDate.year() + '-' + String.valueOf(g.closeDate.month()).leftPad(2,'0') : '')
+            + (String.isNotBlank(g.owner) ? ' · owner ' + g.owner : '')
+            + ' · ' + g.allocationCount + ' allocation' + (g.allocationCount == 1 ? '' : 's')
+            + ' across ' + g.budgetLineIds.size() + ' budget line' + (g.budgetLineIds.size() == 1 ? '' : 's');
+        // Distinct restriction + gift commitment links (deduped)
+        Map<Id, String> restr = new Map<Id, String>();
+        Map<Id, String> gc = new Map<Id, String>();
+        for (Allocation__c al : g.allocations) {
+            if (al.Restriction__c != null && al.Restriction__r != null) {
+                restr.put(al.Restriction__c, AmaizeLink.md(al.Restriction__r.Name, 'Restriction__c', al.Restriction__c));
+            }
+            if (al.Restriction__r != null && al.Restriction__r.Gift_Commitment__c != null) {
+                gc.put(al.Restriction__r.Gift_Commitment__c,
+                    AmaizeLink.md(al.Restriction__r.Gift_Commitment__r.Name, 'GiftCommitment', al.Restriction__r.Gift_Commitment__c));
+            }
+        }
+        if (!restr.isEmpty()) { s += '\n  - Restrictions: ' + String.join(new List<String>(restr.values()), ', '); }
+        s += '\n  - Gift Commitment: ' + (gc.isEmpty() ? '_not linked_' : String.join(new List<String>(gc.values()), ', '));
+        return s;
+    }
 
-    /** Funder-style short name: the part before the first dash, else the whole name. */
+    private static String nz(String v) { return String.isBlank(v) ? '—' : v; }
+
     private static String shortName(String name) {
         if (String.isBlank(name)) { return 'this opportunity'; }
         return name.split('[–-]', 2)[0].trim();
+    }
+
+    private static String json(CompetingGrantsResult a) {
+        List<Map<String, Object>> opps = new List<Map<String, Object>>();
+        for (CompetingGrant g : a.grants) {
+            opps.add(new Map<String, Object>{
+                'opportunityId' => g.opportunityId, 'opportunityName' => g.opportunityName,
+                'opportunityUrl' => AmaizeLink.recordUrl('Opportunity', g.opportunityId),
+                'donorName' => g.donorName, 'opportunityAmount' => g.opportunityAmount,
+                'totalExposure' => g.allocatedAmount, 'securedExposure' => g.securedExposure,
+                'likelyExposure' => g.likelyExposure, 'pipelineExposure' => g.pipelineExposure,
+                'allocationCount' => g.allocationCount, 'budgetLineCount' => g.budgetLineIds.size(),
+                'stage' => g.stage, 'probability' => g.probability
+            });
+        }
+        return JSON.serialize(new Map<String, Object>{
+            'category' => a.category, 'country' => a.country, 'fiscalYear' => a.fiscalYear,
+            'budgetLineCount' => a.budgetLineCount, 'budgetAmount' => a.budgetAmount,
+            'securedFunding' => a.securedFunding, 'likelyFunding' => a.likelyFunding,
+            'pipelineFunding' => a.pipelineFunding, 'forecastFunding' => a.forecastFunding,
+            'securedHeadroom' => a.securedHeadroom, 'forecastHeadroom' => a.forecastHeadroom,
+            'headroomStatus' => a.headroomStatus, 'combinedCompeting' => a.combinedCompeting,
+            'potentialExcess' => a.potentialExcess, 'severity' => a.severity, 'opportunities' => opps
+        });
     }
 }

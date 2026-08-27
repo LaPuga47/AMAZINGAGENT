@@ -94,6 +94,29 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
      * business unit is matched base<->suffix tolerant; Department and any further cost
      * dimensions narrow only when supplied. Returns a single AggregateResult row.
      */
+    /**
+     * The COMPLETE governed Budget Line population for a category scope (all qualifying
+     * records, not one), so competing-grants analysis retrieves allocations across the same
+     * population Headroom Analysis aggregates. Same filters as aggregateScope.
+     */
+    public List<Budget_Line__c> findByGovernedScope(BudgetLineDimensions d) {
+        if (d == null) { return new List<Budget_Line__c>(); }
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (d.fiscalYear != null)   { clauses.add('Fiscal_Year__c = :fy');    binds.put('fy', d.fiscalYear); }
+        if (d.country != null)      { clauses.add('Country__c = :country');    binds.put('country', d.country); }
+        if (d.businessUnit != null) { clauses.add(businessUnitClause(d.businessUnit, binds)); }
+        if (d.subUnit != null)      { clauses.add('Sub__c = :sub');            binds.put('sub', d.subUnit); }
+        if (d.department != null)   { clauses.add('Department__c = :dept');    binds.put('dept', d.department); }
+        if (d.costType != null)     { clauses.add('Cost_Type__c = :ctype');    binds.put('ctype', d.costType); }
+        if (d.costCategory != null) { clauses.add('Cost_Category__c = :ccat'); binds.put('ccat', d.costCategory); }
+        binds.put('lim', 5000);
+        String query =
+            'SELECT ' + FIELDS + ' FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ') +
+            ' LIMIT :lim';
+        return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+    }
+
     public AggregateResult aggregateScope(BudgetLineDimensions d) {
         List<String> clauses = new List<String>{ CURRENT_SCENARIO };
         Map<String, Object> binds = new Map<String, Object>();

@@ -212,6 +212,41 @@ public class HeadroomTestData {
         return allocs;
     }
 
+    /**
+     * One Opportunity allocated across SEVERAL Budget Lines (one allocation per line, same
+     * type/amount), for testing that competing-grants sums a grant's exposure once by
+     * Opportunity across the whole population.
+     */
+    public static void makeOppAllocations(String desiredType, List<Id> budgetLineIds, Decimal amountEach,
+            String country, String businessUnit) {
+        Account donor = makeDonorAccount('HR Multi Donor');
+        Opportunity opp = new Opportunity(
+            Name = 'HR MULTI OPP', AccountId = donor.Id, Country_Tag__c = country,
+            Theme_Tag__c = 'Agroforestry/Tree', StageName = 'Negotiation',
+            CloseDate = Date.newInstance(2027, 6, 1), Guardian__c = 'Test RM');
+        insert opp;
+        opp.Probability = probabilityFor(desiredType);
+        update opp;
+        GiftCommitment gc = new GiftCommitment(
+            Name = 'HR MULTI GC', DonorId = donor.Id, OpportunityId = opp.Id, Status = 'Active');
+        insert gc;
+        Restriction__c restr = new Restriction__c(
+            Gift_Commitment__c = gc.Id, Restriction_Country__c = country, Business_Unit__c = businessUnit,
+            Sub_Unit__c = 'N/A', Cost_Type__c = 'N/A', Department_Name__c = 'N/A',
+            Cost_Category__c = 'N/A', Line_Item__c = 'N/A',
+            Incremental_Funds__c = 'No', Is_this_a_grant_to_a_sub_grantee__c = 'No');
+        insert restr;
+        Fund__c fund = new Fund__c(Name = FY);
+        insert fund;
+        List<Allocation__c> allocs = new List<Allocation__c>();
+        for (Id blId : budgetLineIds) {
+            allocs.add(new Allocation__c(
+                Restriction__c = restr.Id, Fund__c = fund.Id,
+                Funds_Allocated__c = amountEach, Budget_Line__c = blId));
+        }
+        insert allocs;
+    }
+
     private static Integer donorCounter = 0;
 
     /** A donor Account that satisfies the org's Account validation rules. */

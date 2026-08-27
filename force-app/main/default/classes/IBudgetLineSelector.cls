@@ -18,4 +18,7 @@ public interface IBudgetLineSelector {
 
     /** Aggregate the governed financial fields (SUM) + line count across a category population. */
     AggregateResult aggregateScope(BudgetLineDimensions dimensions);
+
+    /** The complete governed Budget Line population (all qualifying records) for a category scope. */
+    List<Budget_Line__c> findByGovernedScope(BudgetLineDimensions dimensions);
 }
