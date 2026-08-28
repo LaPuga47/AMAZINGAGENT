@@ -24,8 +24,10 @@ public with sharing class AmaizeAnalyzeHeadroom {
     }
 
     public class Result {
-        @InvocableVariable(label='Summary' description='Governed Headroom aggregation to show the user (all eight financial fields + line count + interpretation).')
+        @InvocableVariable(label='Summary' description='The DEFAULT conversational answer to show the user: a concise 2-4 sentence business answer (available Headroom / funding position) plus a contextual follow-up. Present this by default; do NOT show the full field-by-field breakdown unless the user asks.')
         public String summary;
+        @InvocableVariable(label='Detail' description='The full governed breakdown — all eight financial fields, Headroom Status, and Budget Lines Included. Show this ONLY when the user asks for the numbers, a breakdown, how it was calculated, secured vs forecast, pipeline/likely detail, or the Budget Lines.')
+        public String detail;
         @InvocableVariable(label='Signal' description='Headroom Status when found (Headroom Available / Some Headroom Available / Headroom Unavailable), or Not Applicable / NONE / NOT_CONFIGURED / NEEDS_INFO.')
         public String signal;
         @InvocableVariable(label='Headroom JSON' description='Machine-readable aggregated Headroom detail.')
@@ -55,13 +57,15 @@ public with sharing class AmaizeAnalyzeHeadroom {
             when FOUND {
                 r.found = true;
                 r.signal = a.headroomStatus;
-                r.summary = foundSummary(a);
+                r.summary = foundConversational(a);   // default: concise business answer
+                r.detail = foundDetail(a);            // full breakdown, on demand only
                 r.headroomJson = foundJson(a);
             }
             when ZERO {
                 r.found = true;
                 r.signal = 'Not Applicable';
-                r.summary = zeroSummary(a);
+                r.summary = zeroConversational(a);
+                r.detail = zeroDetail(a);
                 r.headroomJson = '{"category":"' + a.category + '","status":"Not Applicable","budgetLinesIncluded":0}';
             }
             when NOT_CONFIGURED {
@@ -70,6 +74,7 @@ public with sharing class AmaizeAnalyzeHeadroom {
                 r.summary = 'The Headroom aggregation rule for "' + a.category
                     + '" has not yet been configured, so I can\'t compute it. '
                     + 'Please ask Grants Finance to configure a governed Salesforce mapping for that category.';
+                r.detail = r.summary;
                 r.headroomJson = '{"status":"NOT_CONFIGURED"}';
             }
             when NONE {
@@ -77,6 +82,7 @@ public with sharing class AmaizeAnalyzeHeadroom {
                 r.signal = 'NONE';
                 r.summary = 'No qualifying Budget Line records were found for the requested scope ('
                     + a.category + ', ' + a.country + (a.fiscalYear != null ? ', FY' + a.fiscalYear : '') + ').';
+                r.detail = r.summary;
                 r.headroomJson = '{"status":"NONE","budgetLinesIncluded":0}';
             }
             when else { // NEEDS_INFO
@@ -84,13 +90,103 @@ public with sharing class AmaizeAnalyzeHeadroom {
                 r.signal = 'NEEDS_INFO';
                 r.summary = 'I can run that Headroom aggregation. I still need the '
                     + HeadroomFormat.humanJoin(a.missing) + '.';
+                r.detail = r.summary;
                 r.headroomJson = '{"status":"NEEDS_INFO"}';
             }
         }
         return r;
     }
 
-    private static String foundSummary(HeadroomAggregate a) {
+    /**
+     * The DEFAULT conversational answer — a concise business reply that leads with the
+     * fundraising position and surfaces only the numbers that answer the question. Full
+     * financial intelligence stays underneath (see foundDetail / headroomJson); this is the
+     * simple answer on top. Every figure is drawn verbatim from the governed aggregate.
+     */
+    private static String foundConversational(HeadroomAggregate a) {
+        String iso = a.currencyIsoCode;
+        String name = naturalName(a);
+        String fyText = (a.fiscalYear != null) ? 'FY' + a.fiscalYear : 'the current scenario';
+        Decimal reducers = nz(a.likelyFunding) + nz(a.pipelineFunding);
+
+        String body;
+        if (a.forecastHeadroom < 0) {
+            body = name + ' does not currently show available Headroom for ' + fyText
+                + '. The program is approximately ' + AmaizeFormat.money(-a.forecastHeadroom, iso)
+                + ' beyond its governed funding capacity under the current forecast.';
+        } else if (a.forecastHeadroom == 0) {
+            body = name + ' is currently fully funded for ' + fyText
+                + ', with no additional governed Headroom available under the current forecast.';
+        } else if (materialReducers(reducers, a.securedHeadroom) && a.securedHeadroom > a.forecastHeadroom) {
+            // Secured and forecast headroom differ materially — both numbers are useful.
+            body = 'There appears to be room for additional fundraising for ' + name + ' in ' + fyText
+                + ', but it is tighter once likely and pipeline funding are considered. It has about '
+                + AmaizeFormat.money(a.securedHeadroom, iso) + ' of Secured Headroom, which falls to roughly '
+                + AmaizeFormat.money(a.forecastHeadroom, iso) + ' on a forecast basis.';
+        } else {
+            body = 'There appears to be room for additional fundraising for ' + name + ' in ' + fyText
+                + ', with approximately ' + AmaizeFormat.money(a.forecastHeadroom, iso) + ' of available Headroom. '
+                + fundingSentence(a, iso);
+        }
+
+        String note = scenarioMismatchNote(a);
+        return body + (note != null ? '\n\n' + note : '') + '\n\n' + followUpFor(a, reducers);
+    }
+
+    /** "Around $27K is currently secured, with no likely or pipeline funding mapped." */
+    private static String fundingSentence(HeadroomAggregate a, String iso) {
+        Decimal likely = nz(a.likelyFunding), pipeline = nz(a.pipelineFunding);
+        String s = 'Around ' + AmaizeFormat.money(a.securedFunding, iso) + ' is currently secured';
+        if (likely == 0 && pipeline == 0) {
+            return s + ', with no likely or pipeline funding mapped.';
+        } else if (likely == 0 && pipeline != 0) {
+            return s + ', with about ' + AmaizeFormat.money(pipeline, iso) + ' in pipeline funding mapped.';
+        } else if (likely != 0 && pipeline == 0) {
+            return s + ', with about ' + AmaizeFormat.money(likely, iso) + ' in likely funding mapped.';
+        }
+        return s + ', with ' + AmaizeFormat.money(likely, iso) + ' likely and '
+            + AmaizeFormat.money(pipeline, iso) + ' pipeline funding mapped.';
+    }
+
+    /** Contextual next step, chosen from the funding position — never the same generic line. */
+    private static String followUpFor(HeadroomAggregate a, Decimal reducers) {
+        if (a.forecastHeadroom <= 0) {
+            return 'Would you like me to show which grants and allocations are consuming the current capacity?';
+        }
+        if (materialReducers(reducers, a.securedHeadroom) && a.securedHeadroom > a.forecastHeadroom) {
+            return 'Would you like me to show which pipeline Opportunities are consuming the remaining Headroom?';
+        }
+        return 'Would you like me to show the grants already funding ' + a.category + ' in ' + a.country
+            + ', or the Opportunities currently in the pipeline?';
+    }
+
+    /** Secured vs forecast headroom differ by a mention-worthy amount (i.e. likely+pipeline is material). */
+    private static Boolean materialReducers(Decimal reducers, Decimal securedHeadroom) {
+        Decimal r = Math.abs(reducers);
+        return r >= 50000 && r >= 0.10 * Math.abs(securedHeadroom == 0 ? r : securedHeadroom);
+    }
+
+    private static String naturalName(HeadroomAggregate a) {
+        // "Kenya Trees" — the country plus the canonical category, never internal Business Units.
+        return a.country + ' ' + a.category;
+    }
+
+    private static String scenarioMismatchNote(HeadroomAggregate a) {
+        if (a.scenarioLabel != null && a.fiscalYear != null && !a.scenarioLabel.contains(a.fiscalYear)) {
+            return '_Note: these FY' + a.fiscalYear + ' Budget Lines currently sit under a scenario named "'
+                + a.scenarioLabel + '." You may want to confirm this is the intended planning scenario._';
+        }
+        return null;
+    }
+
+    private static String zeroConversational(HeadroomAggregate a) {
+        return naturalName(a) + ' is defined as zero under the governed Headroom model, so there is no '
+            + 'Headroom to raise against for ' + (a.fiscalYear != null ? 'FY' + a.fiscalYear : 'the current scenario') + '.';
+    }
+
+    private static Decimal nz(Decimal d) { return d == null ? 0 : d; }
+
+    private static String foundDetail(HeadroomAggregate a) {
         String iso = a.currencyIsoCode;
         String header = '**' + a.category + ' — ' + a.country
             + (a.fiscalYear != null ? ' — FY' + a.fiscalYear : '')
@@ -125,7 +221,7 @@ public with sharing class AmaizeAnalyzeHeadroom {
         return header + figures + '\n\n' + interp;
     }
 
-    private static String zeroSummary(HeadroomAggregate a) {
+    private static String zeroDetail(HeadroomAggregate a) {
         return '**' + a.category + ' — ' + a.country + '**\n\n'
             + 'For the governed Headroom use case, ' + a.category + ' is defined as zero:\n'
             + '- Budget Amount: ' + AmaizeFormat.money(0, null) + '\n'

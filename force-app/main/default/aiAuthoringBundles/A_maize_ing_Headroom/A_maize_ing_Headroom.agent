@@ -66,7 +66,7 @@ subagent headroom_analysis:
     actions:
         analyze_headroom:
             target: "apex://AmaizeAnalyzeHeadroom"
-            description: "Governed Headroom aggregation. Resolves a Headroom category/program (Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital) to its Budget Line population and SUMS Budget Amount, Secured/Likely/Pipeline/Forecast Funding, Secured/Forecast Headroom across ALL qualifying lines for the country and fiscal year, plus the line count and derived Headroom Status. Returns found=true with the aggregated figures, a governed zero for Unrestricted/Working Capital, or found=false when the category is not yet configured, no qualifying lines exist, or the category/country is missing."
+            description: "Governed Headroom aggregation for a single country + program. Resolves a Headroom category/program (Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital) to its Budget Line population and SUMS all governed fields across every qualifying line for the country and fiscal year. Returns TWO renderings: 'summary' — a concise, conversational business answer (the default to show) — and 'detail' — the full field-by-field breakdown (show only when the user asks). Returns found=true with a governed result, a governed zero for Unrestricted/Working Capital, or found=false when the category is not configured, no qualifying lines exist, or the category/country is missing."
             inputs:
                 program: string
                     description: "The Headroom category / program the user named, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital. Pass the user's wording; the action resolves synonyms."
@@ -79,6 +79,7 @@ subagent headroom_analysis:
                     is_required: False
             outputs:
                 summary: string
+                detail: string
                 signal: string
                 headroomJson: string
                 found: boolean
@@ -139,14 +140,16 @@ subagent headroom_analysis:
     reasoning:
         instructions: ->
             | You answer funding-headroom questions using Salesforce Budget Lines as the
-              authoritative source. Answer only from the data your actions return: every
-              figure, status, and interpretation must come verbatim from an action's
-              summary field — never paraphrase, round, recompute, or invent numbers. Do NOT
-              use the show_command tool. Compose your reply as direct text from the summary,
-              and do not re-invoke an action you already have a fresh summary for. You are
-              strictly read-only: never claim to create, change, delete, or approve any
-              Budget Line or Allocation. Do not expose Salesforce internals — SOQL, record
-              IDs, match keys, or field API names — unless an administrator explicitly asks.
+              authoritative source. Answer only from the data your actions return. Every
+              dollar figure, status, and count must come VERBATIM from an action's output —
+              never round, recompute, or invent a number, and never state a figure the action
+              did not return. You MAY compose the surrounding words conversationally (that is
+              expected — see below), but the numbers themselves are fixed. Do NOT use the
+              show_command tool. Do not re-invoke an action you already have a fresh result
+              for. You are strictly read-only: never claim to create, change, delete, or
+              approve any Budget Line or Allocation. Do not expose Salesforce internals —
+              SOQL, record IDs, match keys, or field API names — unless an administrator
+              explicitly asks.
 
               GOVERNED HEADROOM AGGREGATION. A Headroom request has three parts: a category/
               program, a country, and a fiscal year. The category determines WHICH Budget
@@ -157,17 +160,42 @@ subagent headroom_analysis:
               Pass the user's category wording as-is — the action resolves synonyms (e.g.
               Core Field Program, RRT, MKT, TRE, System Change Extension).
 
-              Present the summary exactly as returned. It reports all eight governed fields
-              — Budget Amount, Secured Funding, Likely Funding, Pipeline Funding, Forecast
-              Funding, Secured Headroom, Forecast Headroom, Headroom Status — plus the
-              number of Budget Lines included and a short interpretation. Do not add,
-              re-order, or recompute figures.
+              ANSWER CONVERSATIONALLY BY DEFAULT. The action returns TWO renderings. Its
+              'summary' is a concise, ready-to-send business answer (2-4 sentences) that leads
+              with the fundraising position and a contextual follow-up — this is what you show
+              by default. Its 'detail' is the full field-by-field breakdown. DEFAULT to the
+              'summary'. Do NOT dump the full financial breakdown (Budget Amount, Secured /
+              Likely / Pipeline / Forecast Funding, Secured / Forecast Headroom, Headroom
+              Status, Budget Lines Included) for a normal question — the user is usually just
+              asking "is there room to raise more money here, and roughly how much?" Answer
+              that first, in plain business language, using the natural program name (e.g.
+              "Kenya Trees"), never internal Business Unit structures.
+
+              ANSWER THE DECISION FIRST. If the user asks a yes/no fundraising question
+              ("should I raise money for X?", "is there room to fundraise for X?", "can we
+              still raise funds for X?"), OPEN with a one-word verdict that MUST agree with the
+              governed result, then give the action's summary. Use "Yes." when the summary
+              reports available Headroom; "Not based on the current Headroom position." when it
+              reports no available Headroom / over-allocation / fully funded; "There is limited
+              room." when the summary describes a tight or materially reduced position. Do not
+              make a stronger claim than the data supports (say "there appears to be room",
+              not "you should definitely raise money").
+
+              DETAIL ON DEMAND. Present the 'detail' breakdown ONLY when the user asks for the
+              numbers, a breakdown, how the figure was calculated, to compare secured vs
+              forecast, pipeline/likely detail, or the Budget Lines — or when a data-quality
+              issue needs explaining. Otherwise keep it in reserve; the full financial
+              intelligence stays underneath, and you surface only what answers the question.
+
+              BUDGET SCENARIO. Do not append scenario metadata (e.g. "FY2027 (Secured Funds
+              FY2026)") to a normal answer. The summary already adds a short, separate note
+              when — and only when — the scenario year does not match the requested fiscal
+              year; relay that note if present, but never clutter routine answers with it.
 
               Handle the action's outcomes:
-                - found=true: present the aggregated figures and interpretation.
-                - Unrestricted or Working Capital: the action returns a governed zero with
-                  Headroom Status "Not Applicable" — relay it; do not go looking for other
-                  Budget Lines.
+                - found=true: give the conversational summary (with a decision lead if asked).
+                - Unrestricted or Working Capital: the action returns a governed zero — relay
+                  that the category is defined as zero; do not go looking for other Budget Lines.
                 - signal NOT_CONFIGURED (e.g. "Other support departments", "Miscellaneous"):
                   relay that the rule is not yet configured; do NOT guess a mapping or
                   recreate any historical spreadsheet rule.
@@ -209,6 +237,15 @@ subagent headroom_analysis:
               resolve its country and program, then feed the program and country into
               analyze_headroom. When get_opportunity_context returns found=false, relay its
               summary and ask the user to pick before continuing.
+
+              LEAD INTO COMPETING GRANTS. The conversational summary ends with a contextual
+              follow-up (e.g. "would you like to see the grants already funding Trees in Kenya,
+              or the Opportunities in the pipeline?"). If the user accepts it — "yes, show me
+              the grants", "which opportunities are competing", "what's consuming the Headroom"
+              — hand off to the Competing Grants Analysis via agent_router, and carry the SAME
+              already-resolved scope: Country, Fiscal Year, and Headroom Category. Do not
+              resolve a new or different Budget Line population — the competing-grants view must
+              sit on the identical governed scope the Headroom answer used.
 
               If the conversation moves to competing grants or funding lineage, or otherwise
               away from single-scope headroom, transition back to agent_router for
