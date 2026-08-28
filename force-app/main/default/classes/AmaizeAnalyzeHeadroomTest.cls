@@ -45,7 +45,9 @@ private class AmaizeAnalyzeHeadroomTest {
         System.assert(res.headroomJson.contains('"securedFunding":400000'), res.headroomJson);
         System.assert(res.headroomJson.contains('"securedHeadroom":1100000'), res.headroomJson);
         System.assert(res.headroomJson.contains('"budgetLinesIncluded":2'), res.headroomJson);
-        System.assert(res.summary.contains('Budget Lines Included: 2'), res.summary);
+        // The full field-by-field breakdown lives in detail, not the default conversational summary.
+        System.assert(res.detail.contains('Budget Lines Included: 2'), res.detail);
+        System.assert(!res.summary.contains('Budget Lines Included'), 'summary must be conversational: ' + res.summary);
     }
 
     @isTest
@@ -62,7 +64,8 @@ private class AmaizeAnalyzeHeadroomTest {
         AmaizeAnalyzeHeadroom.Result res = run(req('Unrestricted', 'Kenya', 2027));
         System.assertEquals(true, res.found);
         System.assertEquals('Not Applicable', res.signal);
-        System.assert(res.summary.contains('Headroom Status: Not Applicable'), res.summary);
+        System.assert(res.detail.contains('Headroom Status: Not Applicable'), res.detail);
+        System.assert(res.summary.contains('defined as zero'), res.summary);
     }
 
     @isTest
@@ -93,6 +96,73 @@ private class AmaizeAnalyzeHeadroomTest {
         System.assertEquals(false, res.found);
         System.assertEquals('NEEDS_INFO', res.signal);
         System.assert(res.summary.contains('country'), res.summary);
+    }
+
+    @isTest
+    static void positiveEqualHeadroomIsConciseAndSingleNumber() {
+        // Rural Retail: secured HR = forecast HR = 300K (no likely/pipeline) -> concise, one number.
+        AmaizeAnalyzeHeadroom.Result res = run(req('Rural Retail', 'Kenya', 2027));
+        System.assertEquals(true, res.found);
+        System.assert(res.summary.contains('room for additional fundraising'), res.summary);
+        System.assert(res.summary.contains('available Headroom'), res.summary);
+        System.assert(res.summary.contains('currently secured'), res.summary);
+        System.assert(res.summary.contains('no likely or pipeline funding mapped'), res.summary);
+        // Equal secured/forecast -> do NOT expose both similar numbers.
+        System.assert(!res.summary.contains('falls to'), 'no secured-vs-forecast split when equal: ' + res.summary);
+        System.assert(res.summary.contains('grants already funding'), 'contextual follow-up: ' + res.summary);
+    }
+
+    @isTest
+    static void materiallyDifferentSecuredVsForecastShowsBoth() {
+        // Core Program: secured HR 1.1M vs forecast HR 0.9M (200K likely+pipeline) -> both surfaced.
+        AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Kenya', 2027));
+        System.assert(res.summary.contains('tighter'), res.summary);
+        System.assert(res.summary.contains('Secured Headroom'), res.summary);
+        System.assert(res.summary.contains('falls to'), res.summary);
+        System.assert(res.summary.contains('pipeline Opportunities'), 'tight-case follow-up: ' + res.summary);
+    }
+
+    @isTest
+    static void negativeHeadroomSaysNoAvailableHeadroom() {
+        Budget_Scenario__c s = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1];
+        // Rwanda Trees over-allocated: budget 500K, secured 1.0M -> forecast HR -500K.
+        HeadroomTestData.makeLine(s.Id, 'Rwanda', 'Farm Input Sales - RW', 'N/A', 'Trees', 'N/A', 'N/A',
+            -500000, 1000000, 0, 0);
+        AmaizeAnalyzeHeadroom.Result res = run(req('Trees', 'Rwanda', 2027));
+        System.assertEquals(true, res.found);
+        System.assert(res.summary.contains('does not currently show available Headroom'), res.summary);
+        System.assert(res.summary.contains('beyond its governed funding capacity'), res.summary);
+        System.assert(!res.summary.contains('room for additional fundraising'), res.summary);
+        System.assert(res.summary.contains('consuming the current capacity'), 'over-allocated follow-up: ' + res.summary);
+    }
+
+    @isTest
+    static void zeroHeadroomSaysFullyFunded() {
+        Budget_Scenario__c s = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1];
+        // Burundi Core Program fully funded: budget 500K, secured 500K -> forecast HR 0.
+        HeadroomTestData.makeLine(s.Id, 'Burundi', 'Core Program - BI', 'N/A', 'Extension', 'N/A', 'N/A',
+            -500000, 500000, 0, 0);
+        AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Burundi', 2027));
+        System.assert(res.summary.contains('fully funded'), res.summary);
+        System.assert(!res.summary.contains('room for additional fundraising'), res.summary);
+    }
+
+    @isTest
+    static void detailCarriesFullBreakdownOnDemand() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Kenya', 2027));
+        for (String f : new List<String>{ 'Budget Amount', 'Secured Funding', 'Likely Funding',
+                'Pipeline Funding', 'Forecast Funding', 'Secured Headroom', 'Forecast Headroom',
+                'Headroom Status', 'Budget Lines Included' }) {
+            System.assert(res.detail.contains(f), 'detail missing ' + f + ': ' + res.detail);
+        }
+    }
+
+    @isTest
+    static void summaryUsesNaturalNameNotBusinessUnit() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Rural Retail', 'Kenya', 2027));
+        System.assert(res.summary.contains('Kenya Rural Retail'), res.summary);
+        System.assert(!res.summary.contains('Farm Input Sales'), 'no internal business unit: ' + res.summary);
+        System.assert(!res.summary.contains(' - KE'), 'no suffixed unit: ' + res.summary);
     }
 
     @isTest

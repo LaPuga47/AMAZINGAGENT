@@ -49,6 +49,34 @@ Likely / Pipeline / Forecast Funding, Secured / Forecast Headroom, Headroom Stat
 **number of Budget Lines included** and a short interpretation. Headroom Status is *derived*
 from the summed Secured Headroom (a status is never summed).
 
+### Conversational single-program answers
+
+For a simple question like *"Should I raise money for Kenya Trees in 2027?"* the action returns
+**two renderings** and the agent shows the conversational one by default — **full financial
+intelligence underneath, a simple business answer on top**:
+- **`summary`** (default): a 2–4 sentence business answer that leads with the fundraising
+  position and ends with a contextual follow-up, e.g. *"There appears to be room for additional
+  fundraising for Kenya Trees in FY2027, with approximately $473K of available Headroom. Around
+  $27K is currently secured, with no likely or pipeline funding mapped."* The agent may open a
+  yes/no question with a verdict (**Yes.** / **Not based on the current Headroom position.** /
+  **There is limited room.**) that must agree with the governed result.
+- **`detail`** (on demand): the full field-by-field breakdown — shown only when the user asks
+  for the numbers, a breakdown, how it was calculated, secured-vs-forecast, pipeline/likely
+  detail, or the Budget Lines.
+
+Presentation rules (no change to the governed calculation):
+- **Secured vs Forecast Headroom** are shown together only when they differ materially (i.e.
+  likely + pipeline funding is material); otherwise a single *available Headroom* figure.
+- **Funding categories** that are zero aren't listed — *"…with no likely or pipeline funding
+  mapped"* instead of four `$0` lines.
+- **Negative** → *"does not currently show available Headroom … beyond its governed funding
+  capacity"*; **zero** → *"fully funded … no additional governed Headroom"*; never labelled a
+  funding gap or available Headroom.
+- **Natural names** (*Kenya Trees*), never internal Business Units.
+- **Budget Scenario** metadata is kept internal; a short note appears only on a year mismatch.
+- Accepting the follow-up (*"show me the grants"*) hands off to **Competing Grants Analysis**
+  on the **same** resolved Country + Fiscal Year + Headroom Category — never a new population.
+
 ### Multi-country comparison
 
 `compare_headroom` (`AmaizeCompareHeadroom`) answers "what's the funding gap in **one program**
