@@ -95,6 +95,26 @@ shown positive. A country with no qualifying lines reads **"No qualifying Budget
 found"**, never `$0`. With more than eight countries it shows the **eight largest gaps** and
 says so. Full single-country detail is one drill-down away via `analyze_headroom`.
 
+### Concise competing-grants view
+
+`find_competing_grants` (`AmaizeFindCompetingGrants`) answers *"do we have competing grants for
+Kenya Trees in 2027?"* with a short fundraising view by default, and the full analysis on
+demand — same two-rendering pattern as `analyze_headroom`:
+- **`summary`** (default): the grants already contributing **secured** funding, the **pipeline /
+  likely** Opportunities that could consume the rest (each as *mapped exposure | stage |
+  probability* with a clickable Opportunity + primary Restriction link), and a one-line Headroom
+  conclusion.
+- **`detail`** (on demand): Risk & Confidence, Why They Compete, the full Headroom breakdown,
+  What-Can-Fit, Minimum Adjustment, coverage, timing, Data Quality.
+
+**Competition is classified correctly**: **0** relevant pipeline/likely Opportunities → *"no
+competing grants"*; **1** → *"one Opportunity … not yet a competing-grants situation"* (a single
+Opportunity is never called "competing"); **2+** → competing, with combined mapped exposure vs
+available Headroom. The default view omits total Opportunity Amount and allocation coverage (the
+relevant figure is each grant's **mapped exposure to this scope**); those surface on drill-down,
+or automatically when analysis confidence is not High. Clickable **Opportunity** and
+**Restriction** links are always shown; Gift Commitment / Allocation links are drill-down only.
+
 ### Allocation matching (priority order)
 
 1. **Direct** `Allocation__c.Budget_Line__c` lookup.
