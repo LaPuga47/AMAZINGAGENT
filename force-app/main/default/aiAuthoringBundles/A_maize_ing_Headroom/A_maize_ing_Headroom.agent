@@ -84,16 +84,22 @@ subagent headroom_analysis:
                 found: boolean
         rank_headroom:
             target: "apex://AmaizeRankHeadroom"
-            description: "Ranks current-scenario Budget Lines by forecast headroom for portfolio questions — which have the most headroom / largest funding gap, or which are over-allocated. Each Budget Line is listed separately with its own dimensions; they are never merged."
+            description: "Ranks governed Country + Program Headroom groups (AGGREGATED across all qualifying Budget Lines per governed category — never individual Budget Lines) for portfolio questions like 'which programs and countries have the largest funding gap in FY2029?'. Returns a concise top-8-by-default executive list; the underlying Budget Lines are summed first, then the aggregated groups are ranked."
             inputs:
-                statusFilter: string
-                    description: "most headroom / funding gap (room to raise), over-allocated (over-funded), or all."
-                    is_required: True
+                metric: string
+                    description: "What to rank by: largest funding gap / most headroom (default, forecast headroom), over-allocated (most over-funded), or secured headroom."
+                    is_required: False
                 country: string
                     description: "Optional country to narrow the ranking."
                     is_required: False
                 fiscalYear: integer
-                    description: "Optional fiscal year to narrow the ranking."
+                    description: "Fiscal year, e.g. 2029. Defaults to the current scenario when omitted."
+                    is_required: False
+                category: string
+                    description: "Optional governed Headroom category to limit to, e.g. Core Program, Trees."
+                    is_required: False
+                topN: integer
+                    description: "How many program groups to return; default 8. Pass the user's requested limit (e.g. top 3) when they give one."
                     is_required: False
             outputs:
                 summary: string
@@ -157,9 +163,15 @@ subagent headroom_analysis:
               one scope at a time and, for comparisons, run each group separately and present
               them side by side. Do not require the user to name a Budget Scenario.
 
-              For a portfolio question (which programs have the most headroom / the largest
-              funding gap, or which Budget Lines are over-allocated), call rank_headroom with
-              the appropriate statusFilter, plus country/fiscalYear if given.
+              For a portfolio question (which programs/countries have the most headroom or the
+              largest funding gap, where the biggest funding needs are, which are over-allocated),
+              call rank_headroom with the metric (largest funding gap / most headroom by default,
+              or over-allocated), plus country/fiscalYear/category if given and topN if the user
+              asks for a specific number. It returns an AGGREGATED Country + Program ranking (top
+              8 by default) — present that concise list as written. Do NOT list individual Budget
+              Lines, cost categories, or per-row status; those come only from a drill-down. If the
+              user then asks "why is <country> <program> so high?", call analyze_headroom for that
+              exact category + country + fiscal year to show the full governed breakdown.
 
               If the user references a named grant, call get_opportunity_context first to
               resolve its country and program, then feed the program and country into
@@ -175,9 +187,11 @@ subagent headroom_analysis:
                 with country=...
                 with fiscalYear=...
             rank_headroom: @actions.rank_headroom
-                with statusFilter=...
+                with metric=...
                 with country=...
                 with fiscalYear=...
+                with category=...
+                with topN=...
             get_opportunity_context: @actions.get_opportunity_context
                 with opportunityName=...
             go_to_agent_router: @utils.transition to @subagent.agent_router

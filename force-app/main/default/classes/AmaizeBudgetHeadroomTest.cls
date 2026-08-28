@@ -14,7 +14,7 @@ private class AmaizeBudgetHeadroomTest {
     @isTest
     static void apexMirrorsOrgFormulasExactly() {
         Budget_Scenario__c scenario = new Budget_Scenario__c(
-            Scenario_Type__c = 'Final Budget',
+            Scenario_Type__c = 'Forecast Scenario',
             Effective_Date__c = Date.newInstance(2027, 1, 1),
             External_Key__c = 'AMAIZE-DRIFT-GUARD-SCENARIO',
             Is_Current_Scenario__c = false,

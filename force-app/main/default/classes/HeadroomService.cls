@@ -161,6 +161,88 @@ public with sharing class HeadroomService {
         return a;
     }
 
+    /**
+     * Portfolio ranking at the GOVERNED PROGRAM level (not individual Budget Lines). Rolls the
+     * current-scenario Budget Lines up into (Country + governed Headroom Category + Fiscal Year)
+     * groups — reusing the same category rules and stored fields as single-scope analysis, so a
+     * ranked value equals a direct headroom query for that scope — sums the eight governed
+     * fields per group, and ranks by the requested metric. Returns the top N (default 8).
+     *
+     * metric: "over"/"tight"/"allocated" -> most over-allocated first (forecast headroom asc);
+     * "secured" -> most secured headroom first; anything else (largest funding gap / most
+     * headroom / greatest need) -> most forecast headroom first.
+     */
+    public List<HeadroomAggregate> rankPortfolioByCategory(String metric, String country,
+            String fiscalYear, String categoryFilter, Integer topN) {
+        String fy = String.isNotBlank(fiscalYear) ? fiscalYear.trim() : null;
+        if (fy == null) {
+            Budget_Scenario__c sc = currentScenario();
+            fy = (sc != null) ? sc.Fiscal_Year__c : null;
+        }
+        String wantCat = String.isBlank(categoryFilter) ? null : canonicalCategory(categoryFilter);
+
+        Map<String, HeadroomAggregate> byScope = new Map<String, HeadroomAggregate>();
+        for (AggregateResult ar : lines.aggregatePortfolio(country, fy)) {
+            String cat = HeadroomCategoryResolver.categoryForBudgetLine(
+                (String) ar.get('bu'), (String) ar.get('dept'));
+            if (cat == null) { continue; }                       // not a governed category (or zero category)
+            if (wantCat != null && !cat.equalsIgnoreCase(wantCat)) { continue; }
+            String c = (String) ar.get('c');
+            String gfy = (String) ar.get('fy');
+            String key = cat + '||' + c + '||' + gfy;
+            HeadroomAggregate a = byScope.get(key);
+            if (a == null) {
+                a = new HeadroomAggregate();
+                a.state = HeadroomAggregate.State.FOUND;
+                a.category = cat; a.country = c; a.fiscalYear = gfy;
+                byScope.put(key, a);
+            }
+            a.budgetAmount += AmaizeBudgetHeadroom.budgetCost((Decimal) ar.get('bud'));
+            a.securedFunding += AmaizeBudgetHeadroom.nz((Decimal) ar.get('sec'));
+            a.likelyFunding += AmaizeBudgetHeadroom.nz((Decimal) ar.get('lik'));
+            a.pipelineFunding += AmaizeBudgetHeadroom.nz((Decimal) ar.get('pipe'));
+            a.forecastFunding += AmaizeBudgetHeadroom.nz((Decimal) ar.get('fcf'));
+            a.securedHeadroom += AmaizeBudgetHeadroom.nz((Decimal) ar.get('sh'));
+            a.forecastHeadroom += AmaizeBudgetHeadroom.nz((Decimal) ar.get('fh'));
+            a.budgetLinesIncluded += (Integer) ar.get('cnt');
+            if (a.currencyIsoCode == null) { a.currencyIsoCode = (String) ar.get('iso'); }
+        }
+        List<HeadroomAggregate> out = new List<HeadroomAggregate>();
+        for (HeadroomAggregate a : byScope.values()) {
+            a.headroomStatus = AmaizeBudgetHeadroom.statusFor(a.securedHeadroom);
+            out.add(a);
+        }
+        out.sort(new ByHeadroomMetric(metric));
+        Integer cap = (topN == null || topN <= 0) ? 8 : topN;
+        if (out.size() > cap) {
+            List<HeadroomAggregate> top = new List<HeadroomAggregate>();
+            for (Integer i = 0; i < cap; i++) { top.add(out[i]); }
+            return top;
+        }
+        return out;
+    }
+
+    /** Resolve a user's category wording to its canonical governed label. */
+    private String canonicalCategory(String categoryFilter) {
+        HeadroomCategoryResolver.Rule rule = HeadroomCategoryResolver.resolve(categoryFilter);
+        return (rule == null) ? categoryFilter : rule.label;
+    }
+
+    /** Rank governed program groups by the requested headroom metric. */
+    private class ByHeadroomMetric implements Comparator<HeadroomAggregate> {
+        private final String mode;
+        ByHeadroomMetric(String metric) { this.mode = (metric == null) ? '' : metric.toLowerCase(); }
+        public Integer compare(HeadroomAggregate a, HeadroomAggregate b) {
+            Boolean overAlloc = mode.contains('over') || mode.contains('tight') || mode.contains('alloc');
+            Boolean secured = mode.contains('secured');
+            Decimal va = secured ? a.securedHeadroom : a.forecastHeadroom;
+            Decimal vb = secured ? b.securedHeadroom : b.forecastHeadroom;
+            if (va == vb) { return 0; }
+            if (overAlloc) { return (va < vb) ? -1 : 1; }   // most negative (over-allocated) first
+            return (va > vb) ? -1 : 1;                        // most headroom / biggest gap first
+        }
+    }
+
     /** The current Budget Scenario (anchors the default fiscal year and the reported scenario). */
     private Budget_Scenario__c currentScenario() {
         List<Budget_Scenario__c> s = [
