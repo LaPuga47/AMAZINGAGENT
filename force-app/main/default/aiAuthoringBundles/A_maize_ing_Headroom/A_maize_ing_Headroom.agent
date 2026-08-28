@@ -22,36 +22,54 @@ start_agent agent_router:
 
     reasoning:
         instructions: ->
-            | Classify the user's message and conversation history into exactly one of:
-                - A competing-grants OR funding-relationship question — whether multiple
-                  grants/opportunities are competing for the same program, whether a program
-                  is at risk of being overfunded/over-allocated, what happens to headroom if
-                  one or more named opportunities close, combined/competing pipeline against
-                  remaining headroom, which opportunities overlap for the same scope, OR any
-                  funding-lineage/relationship question such as what funds a Budget Line,
-                  which opportunities / restrictions / gift commitments / donors are linked to
-                  a Budget Line, which Budget Lines a grant or restriction funds, where a
-                  grant's funding is allocated, funding sources or funding destination,
-                  "where does this funding come from / go", OR a portfolio-level competition
-                  question such as where the biggest competing-grant risks are, which countries
-                  or programs have the tightest headroom or the most competition, or the top
-                  headroom collision risks — hand off to competing_grants.
-                - A single-scope funding-headroom question — anything about headroom,
-                  funding gap, room to raise, available funding capacity, additional
-                  funding needed, over-allocation of one scope, secured headroom, forecast
-                  headroom, or funding availability, whether for a single Budget Line
-                  (country + business unit, optionally sub-unit / department / cost type /
-                  cost category + fiscal year), a portfolio-wide/ranked-need question, or a
-                  question that references a named grant — hand off to headroom_analysis.
-                  Route here even when some dimensions are missing: that subagent asks for
-                  the missing information itself rather than guessing.
+            | Identify the user's PRIMARY intent first, then classify into exactly one of the
+              subagents below. The key distinction:
+                - "Is there fundraising CAPACITY for this program?" -> headroom_analysis.
+                - "Which GRANTS may consume that capacity?" -> competing_grants.
+              A question about whether to raise money, or how much room is left, is a CAPACITY
+              question and goes to headroom_analysis — even if pipeline opportunities happen to
+              exist. Only route to competing_grants when the user is actually asking about the
+              grants/opportunities/allocations themselves.
+
+              Classify into exactly one of:
+                - A FUNDRAISING-CAPACITY / headroom question — whether additional fundraising
+                  capacity exists, how much room is left to raise, the funding gap, available or
+                  secured or forecast headroom, additional funding needed, or over-allocation of
+                  one scope. This INCLUDES decision-framed questions like "should I raise money
+                  for Kenya Trees in 2027?", "can we still fundraise for Rwanda Core Program?",
+                  "is there room to raise more for Burundi Rural Retail?", "does Kenya Trees
+                  still need funding?", "how much more can we raise for Malawi Core Program?",
+                  "what is the funding gap for Kenya Trees?", and "do we have available headroom
+                  for Rwanda Trees?" — hand off to headroom_analysis. It also covers a single
+                  Budget Line scope (country + business unit, optionally sub-unit / department /
+                  cost type / cost category + fiscal year), a portfolio-wide/ranked-need
+                  question, and a question that references a named grant. Route here even when
+                  some dimensions are missing: that subagent asks for what it needs.
+                - A COMPETING-GRANTS OR funding-relationship question — the user is explicitly
+                  or contextually asking about the grants/opportunities themselves: whether
+                  multiple grants/opportunities are competing for the same program, competing or
+                  pipeline opportunities, which grants are consuming or targeting the headroom,
+                  what grants could fill a remaining gap, whether multiple grants can fit, what
+                  happens to headroom if one or more named opportunities close, combined pipeline
+                  against remaining headroom, the restrictions or funding allocations behind the
+                  competing funding, which donors are pursuing the same program, OR any
+                  funding-lineage question (what funds a Budget Line; which opportunities /
+                  restrictions / gift commitments / donors are linked to it; which Budget Lines a
+                  grant or restriction funds; where a grant's funding is allocated; funding
+                  sources / destination), OR a portfolio-level competition question (where the
+                  biggest competing-grant risks are, which countries/programs have the tightest
+                  headroom or most competition, top headroom collision risks) — hand off to
+                  competing_grants.
                 - A message that is genuinely unclear or empty of any headroom intent
                   (not merely missing a dimension) — hand off to ambiguous_question.
                 - Anything not about grant funding headroom (general knowledge,
                   greetings aside) — hand off to off_topic.
-              When the user asks about MORE THAN ONE grant competing for the same funding,
-              or about overfunding/over-allocation risk across opportunities, prefer
-              competing_grants over headroom_analysis. If it's unclear, make your best guess.
+              Do NOT route a capacity/"should I raise money" question to competing_grants merely
+              because pipeline opportunities exist — that is a headroom_analysis question, and
+              headroom_analysis offers a follow-up into competing grants when the user wants it.
+              Prefer competing_grants only when the user explicitly asks about competing grants,
+              pipeline opportunities, allocations, restrictions, donors, or overfunding risk
+              across opportunities. If it's genuinely unclear, make your best guess.
         actions:
             go_to_competing_grants: @utils.transition to @subagent.competing_grants
             go_to_headroom_analysis: @utils.transition to @subagent.headroom_analysis

@@ -1,0 +1,42 @@
+{
+  "required" : [ ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "category" : {
+      "title" : "Category",
+      "description" : "Optional Headroom category to limit to, e.g. Core Program, Rural Retail, Trees.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "country" : {
+      "title" : "Country",
+      "description" : "Optional country to limit to, e.g. Kenya.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Optional fiscal year, e.g. 2027.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "metric" : {
+      "title" : "Metric",
+      "description" : "How to rank: collision risk (default), tightest headroom, or most competition.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "topN" : {
+      "title" : "Top N",
+      "description" : "How many scopes to return (default 10).",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

@@ -165,10 +165,14 @@ Thin invocable actions over a selector → service → DTO stack (all `with shar
   schemas) + `bots/A_maize_ing_Headroom/v<N>.botVersion-meta.xml`. Each activation is a new
   version `v<N>`; the current live version is **v4**, with subagents
   `agent_router → { competing_grants, headroom_analysis, off_topic, ambiguous_question }`.
-- The router sends competing-grants / overfunding / "if these close" questions to
-  **Competing Grants Analysis**, and single-scope headroom / funding-gap / over-allocation /
-  secured-/forecast-headroom questions to **Headroom Analysis**; off-topic and ambiguous
-  requests fall through to their own topics.
+- The router classifies on **primary intent**: *"is there fundraising capacity?"* →
+  **Headroom Analysis** (this includes decision-framed questions like *"should I raise money
+  for Kenya Trees in 2027?"*, funding-gap, room-to-raise, and over-allocation of one scope —
+  even when pipeline opportunities exist); *"which grants may consume that capacity?"* →
+  **Competing Grants Analysis** (competing/pipeline opportunities, allocations, restrictions,
+  donors, "if these close", overfunding risk, funding lineage, portfolio collision risk).
+  Headroom Analysis offers a follow-up handoff into competing grants on the same resolved
+  scope. Off-topic and ambiguous requests fall through to their own topics.
 
 ### Changing the agent — use `sf agent publish` (not a hand-built deploy)
 
