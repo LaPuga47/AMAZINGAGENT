@@ -167,7 +167,7 @@ public class AmaizeTestData {
         //   Kenya  / Field Building    -> Some Headroom Available  ($100K, positive but < $250K)
         // ---------------------------------------------------------------------------------
         Budget_Scenario__c scenario = new Budget_Scenario__c(
-            Scenario_Type__c = 'Final Budget',
+            Scenario_Type__c = 'Forecast Scenario',
             Effective_Date__c = Date.newInstance(2027, 1, 1),
             External_Key__c = 'AMAIZE-DEMO-SCENARIO-2027',
             Is_Current_Scenario__c = true,

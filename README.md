@@ -49,6 +49,24 @@ Likely / Pipeline / Forecast Funding, Secured / Forecast Headroom, Headroom Stat
 **number of Budget Lines included** and a short interpretation. Headroom Status is *derived*
 from the summed Secured Headroom (a status is never summed).
 
+### Multi-country comparison
+
+`compare_headroom` (`AmaizeCompareHeadroom`) answers "what's the funding gap in **one program**
+across **several countries** in FY2027?" without repeating a full financial block per country.
+It resolves **each country independently through the same `HeadroomService.aggregate`** the
+single-country query uses — so a compared figure always matches a direct query — then renders
+one concise block:
+- a lead interpretation stating the metric (**Forecast Headroom**) once,
+- **one compact line per country**: `Country: Funding Gap $X | Secured $Y | Pipeline $Z`, and
+- a group summary naming the largest gap.
+
+Sign interpretation follows the org convention (see [Headroom calculation](#headroom-calculation-source-of-truth)):
+**positive Forecast Headroom → `Funding Gap $X`** (the unfunded need / headroom available to
+raise against); **negative → `Over-allocated $X`**; zero → *Fully funded*. Magnitudes are always
+shown positive. A country with no qualifying lines reads **"No qualifying Budget Line records
+found"**, never `$0`. With more than eight countries it shows the **eight largest gaps** and
+says so. Full single-country detail is one drill-down away via `analyze_headroom`.
+
 ### Allocation matching (priority order)
 
 1. **Direct** `Allocation__c.Budget_Line__c` lookup.
@@ -78,9 +96,10 @@ Negative headroom is valid and is explained as **over-allocation**, not an error
 Thin invocable actions over a selector → service → DTO stack (all `with sharing`,
 `USER_MODE`, no DML in the read path):
 
-- **Actions:** `AmaizeAnalyzeHeadroom` (governed category aggregation), `AmaizeRankHeadroom`
-  (portfolio), `AmaizeFindCompetingGrants` + `AmaizeGetFundingContext` (competing grants &
-  funding lineage). Category rules live in `HeadroomCategoryResolver`; aggregation in
+- **Actions:** `AmaizeAnalyzeHeadroom` (governed category aggregation), `AmaizeCompareHeadroom`
+  (concise multi-country comparison for one program), `AmaizeRankHeadroom` (portfolio),
+  `AmaizeFindCompetingGrants` + `AmaizeGetFundingContext` (competing grants & funding lineage).
+  Category rules live in `HeadroomCategoryResolver`; aggregation in
   `HeadroomService.aggregate` + `BudgetLineSelector.aggregateScope`.
 - **Service/DTOs:** `HeadroomService`, `HeadroomAnalysis`, `BudgetLineDimensions`,
   `AllocationBreakdown`, `HeadroomKeyBuilder`, `HeadroomFormat`, `AmaizeFormat`.

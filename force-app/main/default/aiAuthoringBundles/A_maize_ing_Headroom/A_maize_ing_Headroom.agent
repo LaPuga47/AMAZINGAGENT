@@ -61,7 +61,7 @@ start_agent agent_router:
 
 subagent headroom_analysis:
     label: "Headroom Analysis"
-    description: "Answers funding-headroom / funding-gap questions by resolving a Headroom category/program to its governed Budget Line population and aggregating the financial fields across all qualifying Budget Lines for a country and fiscal year. Also ranks Budget Lines for portfolio questions. Uses only the data returned by its actions."
+    description: "Answers funding-headroom / funding-gap questions by resolving a Headroom category/program to its governed Budget Line population and aggregating the financial fields across all qualifying Budget Lines for a country and fiscal year. Compares one program across several countries concisely, and ranks programs for portfolio questions. Uses only the data returned by its actions."
 
     actions:
         analyze_headroom:
@@ -84,16 +84,22 @@ subagent headroom_analysis:
                 found: boolean
         rank_headroom:
             target: "apex://AmaizeRankHeadroom"
-            description: "Ranks current-scenario Budget Lines by forecast headroom for portfolio questions — which have the most headroom / largest funding gap, or which are over-allocated. Each Budget Line is listed separately with its own dimensions; they are never merged."
+            description: "Ranks governed Country + Program Headroom groups (AGGREGATED across all qualifying Budget Lines per governed category — never individual Budget Lines) for portfolio questions like 'which programs and countries have the largest funding gap in FY2029?'. Returns a concise top-8-by-default executive list; the underlying Budget Lines are summed first, then the aggregated groups are ranked."
             inputs:
-                statusFilter: string
-                    description: "most headroom / funding gap (room to raise), over-allocated (over-funded), or all."
-                    is_required: True
+                metric: string
+                    description: "What to rank by: largest funding gap / most headroom (default, forecast headroom), over-allocated (most over-funded), or secured headroom."
+                    is_required: False
                 country: string
                     description: "Optional country to narrow the ranking."
                     is_required: False
                 fiscalYear: integer
-                    description: "Optional fiscal year to narrow the ranking."
+                    description: "Fiscal year, e.g. 2029. Defaults to the current scenario when omitted."
+                    is_required: False
+                category: string
+                    description: "Optional governed Headroom category to limit to, e.g. Core Program, Trees."
+                    is_required: False
+                topN: integer
+                    description: "How many program groups to return; default 8. Pass the user's requested limit (e.g. top 3) when they give one."
                     is_required: False
             outputs:
                 summary: string
@@ -112,6 +118,23 @@ subagent headroom_analysis:
                 program: string
                 year: integer
                 found: boolean
+        compare_headroom:
+            target: "apex://AmaizeCompareHeadroom"
+            description: "Concise multi-country Headroom comparison. Resolves ONE governed program/category across SEVERAL countries for a fiscal year and returns a single compact comparison — a lead interpretation, one compact line per country (Funding Gap or Available Headroom, with Secured and Pipeline), and which country has the largest gap — instead of a full financial block per country. Each country is resolved through the same governed engine as a single-country query, so the figures match. Use this whenever the user asks for headroom or funding gap for one program across two or more countries."
+            inputs:
+                program: string
+                    description: "The Headroom category / program, e.g. Core Program, Rural Retail, Trees. Pass the user's wording; the action resolves synonyms."
+                    is_required: True
+                countries: string
+                    description: "All the countries to compare, comma-separated, e.g. 'Malawi, Kenya, Rwanda, Burundi'. Pass every country the user named in a single call."
+                    is_required: True
+                fiscalYear: integer
+                    description: "Fiscal year, e.g. 2027. Defaults to the current scenario when omitted."
+                    is_required: False
+            outputs:
+                summary: string
+                matchCount: integer
+                resultsJson: string
 
     reasoning:
         instructions: ->
@@ -152,14 +175,35 @@ subagent headroom_analysis:
                   requested scope." Never treat no-match as a financial value of zero.
                 - signal NEEDS_INFO: ask for the missing category and/or country.
 
-              SAFETY. Never guess a category mapping. Never mix countries, fiscal years, or
-              materially different Budget Scenarios unless the user explicitly asks — analyze
-              one scope at a time and, for comparisons, run each group separately and present
-              them side by side. Do not require the user to name a Budget Scenario.
+              MULTI-COUNTRY COMPARISON. When the user asks for headroom or funding gap for
+              ONE program across TWO OR MORE countries (e.g. "the funding gap in Core Program
+              in 2027 across Malawi, Kenya, Rwanda, and Burundi"), call compare_headroom ONCE
+              with the program, all the named countries in the countries input, and the fiscal
+              year. Do NOT call analyze_headroom once per country and repeat the full financial
+              block — that is too verbose. Present compare_headroom's summary exactly as
+              returned: it leads with the overall interpretation and metric (Forecast Headroom),
+              gives one compact line per country, and names the largest gap. A positive Forecast
+              Headroom is shown as a Funding Gap (the unfunded need, and the headroom available
+              to raise against) and a negative one as Over-allocated — do not re-interpret the
+              signs. A country with no qualifying lines is shown as "No qualifying Budget Line
+              records found" — never as $0. If the
+              user then wants the full breakdown for ONE of the countries, call analyze_headroom
+              for that single country and present the complete governed detail.
 
-              For a portfolio question (which programs have the most headroom / the largest
-              funding gap, or which Budget Lines are over-allocated), call rank_headroom with
-              the appropriate statusFilter, plus country/fiscalYear if given.
+              SAFETY. Never guess a category mapping. Never mix categories, fiscal years, or
+              materially different Budget Scenarios unless the user explicitly asks. For a
+              comparison across several countries in the SAME program and fiscal year, use
+              compare_headroom (one call). Do not require the user to name a Budget Scenario.
+
+              For a portfolio question (which programs/countries have the most headroom or the
+              largest funding gap, where the biggest funding needs are, which are over-allocated),
+              call rank_headroom with the metric (largest funding gap / most headroom by default,
+              or over-allocated), plus country/fiscalYear/category if given and topN if the user
+              asks for a specific number. It returns an AGGREGATED Country + Program ranking (top
+              8 by default) — present that concise list as written. Do NOT list individual Budget
+              Lines, cost categories, or per-row status; those come only from a drill-down. If the
+              user then asks "why is <country> <program> so high?", call analyze_headroom for that
+              exact category + country + fiscal year to show the full governed breakdown.
 
               If the user references a named grant, call get_opportunity_context first to
               resolve its country and program, then feed the program and country into
@@ -175,8 +219,14 @@ subagent headroom_analysis:
                 with country=...
                 with fiscalYear=...
             rank_headroom: @actions.rank_headroom
-                with statusFilter=...
+                with metric=...
                 with country=...
+                with fiscalYear=...
+                with category=...
+                with topN=...
+            compare_headroom: @actions.compare_headroom
+                with program=...
+                with countries=...
                 with fiscalYear=...
             get_opportunity_context: @actions.get_opportunity_context
                 with opportunityName=...
