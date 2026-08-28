@@ -24,7 +24,7 @@ private class AmaizeFindCompetingGrantsTest {
     }
 
     @isTest
-    static void composesGovernedResponseWithExposureAndLinks() {
+    static void twoOrMorePipelineIsConciseAndCompeting() {
         Id lineId = [SELECT Id FROM Budget_Line__c WHERE BusinessUnit__c = 'Core Program - KE' LIMIT 1].Id;
         HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
             new HeadroomTestData.AllocSpec('Pipeline', 1200000),
@@ -36,17 +36,61 @@ private class AmaizeFindCompetingGrantsTest {
         Test.stopTest();
 
         System.assertEquals(true, res.found);
-        System.assert(res.summary.contains('**Competing Grants Summary**'), res.summary);
-        System.assert(res.summary.contains('**Headroom Position**'), res.summary);
-        System.assert(res.summary.contains('Budget Lines Included:'), res.summary);
-        System.assert(res.summary.contains('Exposure to this scope'), res.summary);
-        // Clickable record link (Markdown + Lightning URL) is present.
-        System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'Expected an Opportunity record link: ' + res.summary);
-        // Exposure is allocation-based (not Opportunity Amount), and Phase-2 analysis is present.
+        // Concise default: 2+ pipeline opportunities => a competing situation.
+        System.assert(res.summary.startsWith('Yes.'), res.summary);
+        System.assert(res.summary.contains('pipeline Opportunities could consume the remaining Headroom'), res.summary);
+        System.assert(res.summary.contains('Together the 2 pipeline Opportunities'), res.summary);
+        // Clickable Opportunity link in the concise view.
+        System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'Expected an Opportunity link: ' + res.summary);
+        // The verbose analysis is NOT in the default summary...
+        System.assert(!res.summary.contains('**Risk & Confidence**'), 'summary must be concise: ' + res.summary);
+        System.assert(!res.summary.contains('**Headroom Position**'), 'no full breakdown by default: ' + res.summary);
+        System.assert(!res.summary.contains('Budget Lines Included:'), res.summary);
+        // ...it lives in detail, on demand.
+        System.assert(res.detail.contains('**Risk & Confidence**'), res.detail);
+        System.assert(res.detail.contains('**Headroom Position**'), res.detail);
+        System.assert(res.detail.contains('Budget Lines Included:'), res.detail);
+        System.assert(res.detail.contains('**Why They Compete**'), res.detail);
         System.assert(res.resultsJson.contains('"exposureToCurrentScope"'), res.resultsJson);
         System.assert(res.resultsJson.contains('"analysisConfidence"'), res.resultsJson);
-        System.assert(res.summary.contains('**Risk & Confidence**'), res.summary);
-        System.assert(res.summary.contains('**Why They Compete**'), res.summary);
+    }
+
+    @isTest
+    static void onePipelineIsNotCompeting() {
+        Id lineId = [SELECT Id FROM Budget_Line__c WHERE BusinessUnit__c = 'Core Program - KE' LIMIT 1].Id;
+        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
+            new HeadroomTestData.AllocSpec('Pipeline', 900000)
+        }, lineId, 'Kenya', 'Core Program - KE');
+
+        Test.startTest();
+        AmaizeFindCompetingGrants.Result res = run(req('Core Program', 'Kenya', 2027));
+        Test.stopTest();
+
+        System.assertEquals(true, res.found);
+        // A SINGLE opportunity is NOT "competing".
+        System.assert(res.summary.contains('one pipeline Opportunity'), res.summary);
+        System.assert(res.summary.contains('not yet a competing-grants situation'), res.summary);
+        System.assert(!res.summary.contains('competing for'), 'single opp must not be called competing: ' + res.summary);
+        System.assert(!res.summary.contains('Together the'), res.summary);
+        System.assert(res.summary.contains('/lightning/r/Opportunity/'), res.summary);
+    }
+
+    @isTest
+    static void securedOnlyMeansNoCompetition() {
+        Id lineId = [SELECT Id FROM Budget_Line__c WHERE BusinessUnit__c = 'Core Program - KE' LIMIT 1].Id;
+        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
+            new HeadroomTestData.AllocSpec('Secured', 500000)
+        }, lineId, 'Kenya', 'Core Program - KE');
+
+        Test.startTest();
+        AmaizeFindCompetingGrants.Result res = run(req('Core Program', 'Kenya', 2027));
+        Test.stopTest();
+
+        System.assertEquals(true, res.found);
+        // Secured contributor but no pipeline/likely => no competition.
+        System.assert(res.summary.startsWith('No.'), res.summary);
+        System.assert(res.summary.contains('did not find any pipeline or likely Opportunities'), res.summary);
+        System.assert(res.summary.contains('currently secured'), res.summary);
     }
 
     @isTest

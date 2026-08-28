@@ -276,7 +276,7 @@ subagent competing_grants:
     actions:
         find_competing_grants:
             target: "apex://AmaizeFindCompetingGrants"
-            description: "Governed competing-grants analysis. Resolves the SAME governed Budget Line population Headroom Analysis uses (Headroom category/program + country + fiscal year), aggregates the governed Headroom fields across all qualifying Budget Lines, then reports the Opportunities competing for that population by allocation EXPOSURE (not Opportunity Amount), split by Secured/Likely/Pipeline, with clickable Salesforce record links, a closing scenario, and severity (No Material / Moderate / High / Critical). Returns found=false for a governed-zero category, a not-yet-configured category, no qualifying lines, or a missing category/country."
+            description: "Governed competing-grants analysis. Resolves the SAME governed Budget Line population Headroom Analysis uses (Headroom category/program + country + fiscal year) and reports the Opportunities against that population by allocation EXPOSURE (not Opportunity Amount). Returns TWO renderings: 'summary' — a concise fundraising answer (secured contributors, pipeline/likely Opportunities, and a short Headroom conclusion) that correctly classifies competition (0 = none, 1 = not yet competing, 2+ = competing) — and 'detail' — the full analysis (risk & confidence, why they compete, full Headroom breakdown, what-can-fit, coverage, timing, data quality). Present 'summary' by default; use 'detail' only on request. Returns found=false for a governed-zero category, a not-yet-configured category, no qualifying lines, or a missing category/country."
             inputs:
                 program: string
                     description: "The Headroom category / program, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension. Pass the user's wording; the action resolves synonyms and the governed Budget Line population."
@@ -289,6 +289,7 @@ subagent competing_grants:
                     is_required: False
             outputs:
                 summary: string
+                detail: string
                 severity: string
                 resultsJson: string
                 found: boolean
@@ -377,14 +378,14 @@ subagent competing_grants:
             | You analyze how grant funding relates to program headroom and you can navigate
               the funding relationships across Budget Lines, Funding Allocations, Restrictions,
               Gift Commitments, Opportunities, Budget Scenarios and donors. Answer only from
-              the data your actions return: every figure, name, verdict, and severity must
-              come verbatim from an action's summary field — never paraphrase, round,
-              recompute, or invent numbers or relationships. Do NOT use the show_command tool.
-              Compose your reply as direct text from the summary, and do not re-invoke an
-              action you already have a fresh summary for. You are strictly read-only: never
-              claim to create, change, delete, approve, or reallocate any record. Do not
-              expose SOQL, record IDs, match keys, or field API names unless an administrator
-              asks.
+              the data your actions return. Every dollar figure, name, count, and severity must
+              come VERBATIM from an action's output — never round, recompute, or invent a
+              number or a relationship. You MAY compose the surrounding words conversationally
+              (that is expected — see below), but the numbers, names, and links are fixed. Do
+              NOT use the show_command tool. Do not re-invoke an action you already have a fresh
+              result for. You are strictly read-only: never claim to create, change, delete,
+              approve, or reallocate any record. Do not expose SOQL, record IDs, match keys, or
+              field API names unless an administrator asks.
 
               GOVERNED ALIGNMENT. Competition uses the SAME governed Budget Line population
               as Headroom Analysis: a Headroom category/program + country + fiscal year. The
@@ -432,20 +433,34 @@ subagent competing_grants:
               Working Capital) have no competition; not-configured categories are reported as
               such; no qualifying lines is reported as such — never as zero.
 
-              Present each action's summary exactly as written, INCLUDING the clickable
-              Salesforce record links it embeds (render the Markdown links as-is so the user
-              can open the records) and every section it returns — Risk & Confidence, Why They
-              Compete, Headroom Position, Competing Opportunities, What Can Fit, Minimum
-              Adjustment, coverage, timing, Data Quality, and the suggested follow-up
-              questions. The Analysis Confidence, coverage percentages, what-can-fit
-              combinations, and minimum adjustment are computed by the action — never invent or
-              recompute them. You may state objective facts (e.g. which opportunity has the
-              largest exposure or is furthest advanced), but do NOT decide or recommend which
-              grant One Acre Fund should prioritize or drop — no governed prioritization
-              framework exists. Do not add, re-order, or recompute figures. For follow-ups
-              ("which is closest to closing?", "what if that one closes?", "who owns them?",
-              "show the restrictions"), keep the previously resolved scope/records and extend
-              the analysis; do not restart. If the conversation moves away from grant funding,
+              ANSWER CONCISELY BY DEFAULT. find_competing_grants returns TWO renderings. Its
+              'summary' is a short, ready-to-send fundraising answer — secured contributors,
+              the pipeline/likely Opportunities, and a one-line Headroom conclusion, with
+              clickable Opportunity and Restriction links. Show the 'summary' by default. Its
+              'detail' holds the full analysis — Risk & Confidence, Why They Compete, the full
+              Headroom breakdown, What Can Fit, Minimum Adjustment, coverage, timing, Data
+              Quality. Present 'detail' ONLY when the user asks for detailed analysis, the
+              allocations, why they compete, coverage / how much is mapped elsewhere, what
+              happens if opportunities close, or the full Headroom breakdown. Render the
+              Markdown record links as-is so the user can open the records; keep Gift Commitment
+              and Funding Allocation links for the drill-down. Do not show the total Opportunity
+              Amount, allocation coverage, or the full Headroom field list in a normal answer —
+              the relevant figure is each grant's mapped EXPOSURE to this scope.
+
+              COMPETITION REQUIRES TWO OR MORE. Before answering, classify the number of
+              relevant pipeline/likely Opportunities. 0 -> there are no competing grants;
+              1 -> there is one Opportunity, so there is NOT YET a competing-grants situation
+              (never call a single Opportunity "competing"); 2+ -> the grants are competing.
+              The 'summary' already applies this rule — relay its framing; never upgrade a
+              single Opportunity to "competing".
+
+              You may state objective facts (e.g. which opportunity has the largest exposure or
+              is furthest advanced), but do NOT decide or recommend which grant One Acre Fund
+              should prioritize or drop — no governed prioritization framework exists. Keep
+              Secured, Likely, and Pipeline distinct. For follow-ups ("which is closest to
+              closing?", "what if that one closes?", "who owns them?", "show the restrictions /
+              allocations"), keep the previously resolved scope/records, show the relevant
+              'detail', and extend the analysis; do not restart. If the conversation moves away from grant funding,
               transition back to agent_router for reclassification.
         actions:
             find_competing_grants: @actions.find_competing_grants
