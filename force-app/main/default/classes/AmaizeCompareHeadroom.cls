@@ -80,8 +80,8 @@ public with sharing class AmaizeCompareHeadroom {
 
     private static String compose(Request req, List<HeadroomAggregate> groups, String fy) {
         String category = groups[0].category;
-        String fyText = (fy != null) ? 'FY' + fy
-            : (groups[0].fiscalYear != null ? 'FY' + groups[0].fiscalYear : 'the current scenario');
+        String fyText = (fy != null) ? fy
+            : (groups[0].fiscalYear != null ? groups[0].fiscalYear : 'the current scenario');
         String iso = firstCurrency(groups);
 
         // Rank by biggest funding gap first (most negative forecast headroom); cap at 8.
@@ -104,13 +104,13 @@ public with sharing class AmaizeCompareHeadroom {
         }
         String lead;
         if (found == 0) {
-            lead = 'For ' + fyText + ' ' + category + ', no qualifying Budget Lines were found for the requested countries.';
+            lead = 'For ' + category + ' in ' + fyText + ', no qualifying Budget Lines were found for the requested countries.';
         } else if (gaps > 0 && capacity == 0) {
-            lead = 'For ' + fyText + ' ' + category + ', all ' + found + ' countries currently show a funding gap (based on Forecast Headroom).';
+            lead = 'For ' + category + ' in ' + fyText + ', all ' + found + ' countries currently show a funding gap (based on Forecast Headroom).';
         } else if (capacity > 0 && gaps == 0) {
-            lead = 'For ' + fyText + ' ' + category + ', all ' + found + ' countries are currently over-allocated (based on Forecast Headroom).';
+            lead = 'For ' + category + ' in ' + fyText + ', all ' + found + ' countries are currently over-allocated (based on Forecast Headroom).';
         } else {
-            lead = 'For ' + fyText + ' ' + category + ', the countries show a mix of funding gaps and over-allocation (based on Forecast Headroom).';
+            lead = 'For ' + category + ' in ' + fyText + ', the countries show a mix of funding gaps and over-allocation (based on Forecast Headroom).';
         }
 
         // One compact line per country.
@@ -138,7 +138,7 @@ public with sharing class AmaizeCompareHeadroom {
             return a.country + ': No qualifying Budget Line records found.';
         }
         if (a.state == HeadroomAggregate.State.ZERO) {
-            return a.country + ': Not applicable (governed zero category).';
+            return a.country + ': Not applicable (zero-Headroom category).';
         }
         if (a.state != HeadroomAggregate.State.FOUND) {
             return a.country + ': unavailable.';
@@ -183,7 +183,7 @@ public with sharing class AmaizeCompareHeadroom {
         for (HeadroomAggregate a : groups) {
             if (a.state == HeadroomAggregate.State.FOUND && a.scenarioLabel != null
                     && fy != null && !a.scenarioLabel.contains(fy)) {
-                return '_Note: figures are for FY' + fy + ' Budget Lines under the current "'
+                return '_Note: figures are for ' + fy + ' Budget Lines under the current "'
                     + a.scenarioLabel + '" scenario._';
             }
         }

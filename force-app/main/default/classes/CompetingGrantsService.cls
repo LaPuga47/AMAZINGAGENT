@@ -203,7 +203,7 @@ public with sharing class CompetingGrantsService {
                 comp[0].likelyExposure + comp[0].pipelineExposure, hr));
             if (comp.size() >= 2) {
                 r.whatCanFit.add(new CompetingGrantsResult.FitScenario(
-                    'Top two by exposure',
+                    'Top two by funding',
                     (comp[0].likelyExposure + comp[0].pipelineExposure)
                         + (comp[1].likelyExposure + comp[1].pipelineExposure), hr));
             }
@@ -218,7 +218,7 @@ public with sharing class CompetingGrantsService {
     private void computeConfidence(CompetingGrantsResult r) {
         if (r.noAllocations) {
             r.analysisConfidence = 'Low';
-            r.confidenceReasons.add('No Funding Allocations are linked to the governed Budget Lines, so competition cannot be assessed.');
+            r.confidenceReasons.add('No funding is recorded against the Budget Lines, so competition cannot be assessed.');
             return;
         }
         String level = 'High';
@@ -239,16 +239,16 @@ public with sharing class CompetingGrantsService {
             if (ratio > 0.5) {
                 level = 'Low';
                 r.confidenceReasons.add(AmaizeFormat.money(totalUnmapped, r.currencyIsoCode)
-                    + ' of competing opportunity value is not mapped through Funding Allocations, so exposure cannot be fully determined.');
+                    + ' of competing opportunity value is not recorded against Budget Lines, so its funding cannot be fully determined.');
             } else if (ratio > 0.15) {
                 level = 'Medium';
                 r.confidenceReasons.add(AmaizeFormat.money(totalUnmapped, r.currencyIsoCode)
-                    + ' of competing opportunity value is not yet mapped through Funding Allocations.');
+                    + ' of competing opportunity value is not yet recorded against Budget Lines.');
             }
         }
         if (anyMissingAmount && level == 'High') {
             level = 'Medium';
-            r.confidenceReasons.add('Some competing opportunities have no amount, so mapped coverage cannot be computed for them.');
+            r.confidenceReasons.add('Some competing opportunities have no amount, so coverage cannot be computed for them.');
         }
         r.analysisConfidence = level;
     }

@@ -1,0 +1,121 @@
+/**
+ * AmaizeGetAllocationsTest — Funding Allocation drill-down for a governed Headroom scope:
+ * groups allocations by Opportunity, splits Secured vs Likely/Pipeline, reconciles per-opp
+ * totals to the shown allocations, filters by type, pages beyond 15, and emits clickable
+ * record links. Reuses the same governed retrieval as competing-grants analysis. Read-only.
+ */
+@isTest
+private class AmaizeGetAllocationsTest {
+
+    @TestSetup
+    static void setup() {
+        Budget_Scenario__c s = HeadroomTestData.makeCurrentScenario();
+        // Two Core Program - KE lines: the governed Kenya Core Program FY2027 population.
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Extension', 'N/A', 'N/A',
+            -1000000, 300000, 0, 0);
+        HeadroomTestData.makeLine(s.Id, 'Kenya', 'Core Program - KE', 'N/A', 'Field Operations', 'N/A', 'N/A',
+            -500000, 100000, 0, 0);
+    }
+
+    private static List<Id> coreLineIds() {
+        List<Id> ids = new List<Id>();
+        for (Budget_Line__c bl : [SELECT Id FROM Budget_Line__c WHERE BusinessUnit__c = 'Core Program - KE']) {
+            ids.add(bl.Id);
+        }
+        return ids;
+    }
+
+    private static AmaizeGetAllocations.Request req(String program, String country, Integer fy) {
+        AmaizeGetAllocations.Request r = new AmaizeGetAllocations.Request();
+        r.program = program; r.country = country; r.fiscalYear = fy;
+        return r;
+    }
+    private static AmaizeGetAllocations.Result run(AmaizeGetAllocations.Request r) {
+        return AmaizeGetAllocations.get(new List<AmaizeGetAllocations.Request>{ r })[0];
+    }
+
+    @isTest
+    static void groupsSecuredAndPipelineByOpportunityWithLinks() {
+        List<Id> lines = coreLineIds();
+        HeadroomTestData.makeOppAllocations('Secured', lines, 12000, 'Kenya', 'Core Program - KE');   // 1 opp, 2 x 12K
+        HeadroomTestData.makeOppAllocations('Pipeline', lines, 20000, 'Kenya', 'Core Program - KE');  // 1 opp, 2 x 20K
+
+        Test.startTest();
+        AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
+        Test.stopTest();
+
+        System.assertEquals(true, res.found);
+        System.assertEquals(4, res.matchCount, res.summary);
+        System.assert(res.summary.contains('4 Funding Allocation records across 2 Opportunities'), res.summary);
+        // Both sections present and separated.
+        System.assert(res.summary.contains('**SECURED**'), res.summary);
+        System.assert(res.summary.contains('**LIKELY / PIPELINE**'), res.summary);
+        // No implementation terminology.
+        System.assert(!res.summary.contains('mapped') && !res.summary.contains('exposure') && !res.summary.contains('FY'),
+            'no mapped/exposure/FY: ' + res.summary);
+        // Clickable links for allocation, opportunity, restriction, budget line.
+        System.assert(res.summary.contains('/lightning/r/Allocation__c/'), res.summary);
+        System.assert(res.summary.contains('/lightning/r/Opportunity/'), res.summary);
+        System.assert(res.summary.contains('/lightning/r/Restriction__c/'), res.summary);
+        System.assert(res.summary.contains('/lightning/r/Budget_Line__c/'), res.summary);
+        System.assert(res.summary.contains('Budget Line:'), res.summary);
+    }
+
+    @isTest
+    static void filtersByAllocationType() {
+        List<Id> lines = coreLineIds();
+        HeadroomTestData.makeOppAllocations('Secured', lines, 12000, 'Kenya', 'Core Program - KE');
+        HeadroomTestData.makeOppAllocations('Pipeline', lines, 20000, 'Kenya', 'Core Program - KE');
+
+        Test.startTest();
+        AmaizeGetAllocations.Request r = req('Core Program', 'Kenya', 2027);
+        r.allocationType = 'Pipeline';
+        AmaizeGetAllocations.Result res = run(r);
+        Test.stopTest();
+
+        System.assertEquals(2, res.matchCount, res.summary);
+        System.assert(!res.summary.contains('**SECURED**'), 'type filter excludes secured: ' + res.summary);
+        System.assert(res.summary.contains('**LIKELY / PIPELINE**'), res.summary);
+    }
+
+    @isTest
+    static void pagesBeyondFifteen() {
+        Id line = coreLineIds()[0];
+        List<HeadroomTestData.AllocSpec> specs = new List<HeadroomTestData.AllocSpec>();
+        for (Integer i = 0; i < 16; i++) { specs.add(new HeadroomTestData.AllocSpec('Pipeline', 5000)); }
+        HeadroomTestData.makeAllocations(specs, line, 'Kenya', 'Core Program - KE');   // 16 opps x 1 alloc
+
+        Test.startTest();
+        AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
+        Test.stopTest();
+
+        System.assertEquals(16, res.matchCount, 'All 16 counted');
+        System.assert(res.summary.contains('Showing allocations 1–15 of 16'), 'must page, not truncate silently: ' + res.summary);
+    }
+
+    @isTest
+    static void noAllocationsIsReportedNotFabricated() {
+        // Lines exist (from setup) but no allocations were created.
+        AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
+        System.assertEquals(true, res.found);
+        System.assertEquals(0, res.matchCount);
+        System.assert(res.summary.contains('no Funding Allocation records match'), res.summary);
+    }
+
+    @isTest
+    static void noQualifyingLines() {
+        AmaizeGetAllocations.Result res = run(req('Trees', 'Kenya', 2027));   // no Trees lines seeded
+        System.assertEquals(false, res.found);
+        System.assert(res.summary.contains('No qualifying Budget Line records'), res.summary);
+    }
+
+    @isTest
+    static void performsNoDml() {
+        List<Id> lines = coreLineIds();
+        HeadroomTestData.makeOppAllocations('Secured', lines, 12000, 'Kenya', 'Core Program - KE');
+        Test.startTest();
+        run(req('Core Program', 'Kenya', 2027));
+        System.assertEquals(0, Limits.getDmlStatements(), 'Allocation drill-down must never write data');
+        Test.stopTest();
+    }
+}

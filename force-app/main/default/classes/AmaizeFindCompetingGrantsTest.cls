@@ -38,8 +38,11 @@ private class AmaizeFindCompetingGrantsTest {
         System.assertEquals(true, res.found);
         // Concise default: 2+ pipeline opportunities => a competing situation.
         System.assert(res.summary.startsWith('Yes.'), res.summary);
-        System.assert(res.summary.contains('pipeline Opportunities could consume the remaining Headroom'), res.summary);
-        System.assert(res.summary.contains('Together the 2 pipeline Opportunities'), res.summary);
+        System.assert(res.summary.contains('Two Opportunities may use the remaining'), res.summary);
+        System.assert(res.summary.contains('Potential funding:'), res.summary);
+        System.assert(res.summary.contains('Together, they represent'), res.summary);
+        // No implementation terminology in the concise view.
+        System.assert(!res.summary.contains('mapped') && !res.summary.contains('FY'), 'no FY/mapped: ' + res.summary);
         // Clickable Opportunity link in the concise view.
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'Expected an Opportunity link: ' + res.summary);
         // The verbose analysis is NOT in the default summary...
@@ -68,7 +71,7 @@ private class AmaizeFindCompetingGrantsTest {
 
         System.assertEquals(true, res.found);
         // A SINGLE opportunity is NOT "competing".
-        System.assert(res.summary.contains('one pipeline Opportunity'), res.summary);
+        System.assert(res.summary.contains('one Opportunity that may use'), res.summary);
         System.assert(res.summary.contains('not yet a competing-grants situation'), res.summary);
         System.assert(!res.summary.contains('competing for'), 'single opp must not be called competing: ' + res.summary);
         System.assert(!res.summary.contains('Together the'), res.summary);
@@ -89,7 +92,7 @@ private class AmaizeFindCompetingGrantsTest {
         System.assertEquals(true, res.found);
         // Secured contributor but no pipeline/likely => no competition.
         System.assert(res.summary.startsWith('No.'), res.summary);
-        System.assert(res.summary.contains('did not find any pipeline or likely Opportunities'), res.summary);
+        System.assert(res.summary.contains('did not find any Opportunities that may use'), res.summary);
         System.assert(res.summary.contains('currently secured'), res.summary);
     }
 
@@ -98,7 +101,7 @@ private class AmaizeFindCompetingGrantsTest {
         AmaizeFindCompetingGrants.Result res = run(req('Unrestricted', 'Kenya', 2027));
         System.assertEquals(false, res.found);
         System.assertEquals('ZERO', res.severity);
-        System.assert(res.summary.containsIgnoreCase('no governed headroom capacity'), res.summary);
+        System.assert(res.summary.containsIgnoreCase('no Headroom capacity'), res.summary);
     }
 
     @isTest
@@ -119,7 +122,7 @@ private class AmaizeFindCompetingGrantsTest {
     static void budgetLinesButNoAllocations() {
         AmaizeFindCompetingGrants.Result res = run(req('Core Program', 'Kenya', 2027));  // lines exist, no allocations
         System.assertEquals(true, res.found);
-        System.assert(res.summary.contains('no Funding Allocations are currently linked'), res.summary);
+        System.assert(res.summary.contains('no funding is recorded against them'), res.summary);
     }
 
     @isTest

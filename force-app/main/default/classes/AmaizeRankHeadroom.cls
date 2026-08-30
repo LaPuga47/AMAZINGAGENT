@@ -67,19 +67,19 @@ public with sharing class AmaizeRankHeadroom {
             (req.metric.toLowerCase().contains('over') || req.metric.toLowerCase().contains('alloc')
              || req.metric.toLowerCase().contains('tight'));
         Boolean secured = req.metric != null && req.metric.toLowerCase().contains('secured');
-        String fyText = (req.fiscalYear != null) ? 'FY' + req.fiscalYear
-            : (groups.isEmpty() || groups[0].fiscalYear == null ? 'the current scenario' : 'FY' + groups[0].fiscalYear);
+        String fyText = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear)
+            : (groups.isEmpty() || groups[0].fiscalYear == null ? 'the current scenario' : groups[0].fiscalYear);
         String catText = String.isNotBlank(req.category) ? ' ' + req.category : '';
         String countryText = String.isNotBlank(req.country) ? ' in ' + req.country : '';
 
         if (groups.isEmpty()) {
-            return 'No governed Headroom program groups were found for ' + fyText + countryText + catText + '.';
+            return 'No Headroom program groups were found for ' + fyText + countryText + catText + '.';
         }
 
         String measure = secured ? 'Secured Headroom' : 'Forecast Headroom';
         String lead = overAlloc
-            ? 'For ' + fyText + ', these' + catText + ' programs' + countryText + ' are the most over-allocated (by ' + measure + '):'
-            : 'For ' + fyText + ', these' + catText + ' programs' + countryText + ' have the greatest funding need based on ' + measure + ':';
+            ? 'In ' + fyText + ', these' + catText + ' programs' + countryText + ' are the most over-allocated (by ' + measure + '):'
+            : 'In ' + fyText + ', these' + catText + ' programs' + countryText + ' have the greatest funding need based on ' + measure + ':';
 
         List<String> lines = new List<String>();
         Integer i = 1;
@@ -90,7 +90,7 @@ public with sharing class AmaizeRankHeadroom {
             lines.add(i + '. ' + a.country + ' - ' + a.category + ': ' + val);
             i++;
         }
-        String tail = '\n\nThese are the ' + groups.size() + ' largest governed ' + fyText
+        String tail = '\n\nThese are the ' + groups.size() + ' largest ' + fyText
             + ' program-level ' + (overAlloc ? 'over-allocations' : 'funding gaps')
             + '. Ask "why is <country> <program> so high?" for the breakdown, or name one for its full headroom.';
         return lead + '\n' + String.join(lines, '\n') + tail;
