@@ -54,4 +54,24 @@
             <expectedValue>competing_grants</expectedValue>
         </scorer>
     </testCase>
+    <testCase>
+        <number>6</number>
+        <inputs>
+            <utterance>Should I raise money for Kenya Trees in 2027?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>headroom_analysis,competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+    <testCase>
+        <number>7</number>
+        <inputs>
+            <utterance>Show me the competing grants</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>headroom_analysis,competing_grants</expectedValue>
+        </scorer>
+    </testCase>
 </AiTestingDefinition>
