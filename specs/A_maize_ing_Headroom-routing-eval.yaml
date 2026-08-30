@@ -1,0 +1,30 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Routing_Eval
+description: "Router: capacity -> Headroom Analysis; competing -> Competing Grants."
+testCases:
+  - inputs:
+      - utterance: "Should I raise money for Kenya Trees in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "What is the funding gap for Kenya Trees in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Can I raise more for Rwanda Core Program?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Are there competing grants for Kenya Trees in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
+  - inputs:
+      - utterance: "Which Opportunities are targeting Kenya Trees in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
