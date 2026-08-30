@@ -28,3 +28,9 @@ testCases:
     scorers:
       - name: topic_sequence_match
         expected: competing_grants
+  - inputs:
+      - utterance: "Should I raise money for Kenya Trees in 2027?"
+      - utterance: "Show me the competing grants"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis,competing_grants
