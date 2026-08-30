@@ -8,7 +8,7 @@ recomputes, or invents numbers.
 
 ## Headroom Analysis architecture
 
-The current agent version (**v6**) routes questions to three read-only sub-agents —
+The current agent version (**v18**) routes questions to three read-only sub-agents —
 **Headroom Analysis** (single-scope headroom), **Competing Grants Analysis** (competition +
 funding lineage), and the router's off-topic/ambiguous fallbacks. All are **Budget-Line-first**:
 the Budget Line is the authoritative source; allocations and lineage hang off it.
@@ -183,7 +183,7 @@ Thin invocable actions over a selector → service → DTO stack (all `with shar
 - **Compiled/deployed (generated — do not hand-edit):**
   `genAiPlannerBundles/A_maize_ing_Headroom_v<N>/` (planner bundle, agent graph, per-action
   schemas) + `bots/A_maize_ing_Headroom/v<N>.botVersion-meta.xml`. Each activation is a new
-  version `v<N>`; the current live version is **v4**, with subagents
+  version `v<N>`; the current live version is **v18**, with subagents
   `agent_router → { competing_grants, headroom_analysis, off_topic, ambiguous_question }`.
 - The router classifies on **primary intent**: *"is there fundraising capacity?"* →
   **Headroom Analysis** (this includes decision-framed questions like *"should I raise money
