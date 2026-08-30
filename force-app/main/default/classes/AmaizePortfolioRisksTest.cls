@@ -45,7 +45,7 @@ private class AmaizePortfolioRisksTest {
         r.metric = 'collision'; r.country = 'Nigeria'; r.fiscalYear = 2027;
         AmaizePortfolioRisks.Result res = AmaizePortfolioRisks.rank(new List<AmaizePortfolioRisks.Request>{ r })[0];
         System.assertEquals(0, res.matchCount);
-        System.assert(res.summary.contains('No governed Headroom scopes'), res.summary);
+        System.assert(res.summary.contains('No Headroom scopes'), res.summary);
     }
 
     @isTest

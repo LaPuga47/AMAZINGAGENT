@@ -48,8 +48,8 @@ public with sharing class AmaizeOpportunityCompetition {
             when NO_ALLOCATIONS {
                 r.found = false;
                 r.summary = AmaizeLink.md(a.opportunityName, 'Opportunity', a.opportunityId)
-                    + ' has no Funding Allocations tied to a governed Budget Line, so it is not currently '
-                    + 'competing for any governed Headroom population. Its opportunity amount is fundraising '
+                    + ' has no funding recorded against a Budget Line, so it is not currently '
+                    + 'competing for any program Headroom. Its opportunity amount is fundraising '
                     + 'context only until it is allocated.';
                 r.resultsJson = '{"status":"NO_ALLOCATIONS"}';
             }
@@ -74,9 +74,9 @@ public with sharing class AmaizeOpportunityCompetition {
             + (a.donorName != null ? ' — ' + AmaizeLink.md(a.donorName, 'Account', a.accountId) : '')
             + (a.opportunityAmount != null ? ' · opportunity amount ' + AmaizeFormat.money(a.opportunityAmount, iso) : '')
             + (a.stage != null ? ' · stage ' + a.stage : '')
-            + '\n\nThis grant\'s funding touches ' + a.scopesTouched + ' governed Headroom scope'
+            + '\n\nThis grant\'s funding touches ' + a.scopesTouched + ' Headroom scope'
             + (a.scopesTouched == 1 ? '' : 's')
-            + (a.capped ? ' (showing the ' + a.scopes.size() + ' largest by this grant\'s exposure)' : '')
+            + (a.capped ? ' (showing the ' + a.scopes.size() + ' largest by this grant\'s contribution)' : '')
             + '. Each is analyzed separately below.';
 
         List<String> blocks = new List<String>();
@@ -89,8 +89,8 @@ public with sharing class AmaizeOpportunityCompetition {
     private static String scopeBlock(OpportunityCompetition a, OpportunityCompetition.ScopeCompetition sc, String iso) {
         CompetingGrantsResult c = sc.competition;
         String title = '**' + sc.category + ' · ' + sc.country
-            + (sc.fiscalYear != null ? ' · FY' + sc.fiscalYear : '') + '** — ' + c.severity;
-        String body = '\n- This grant\'s exposure here: ' + AmaizeFormat.money(sc.focusExposure, iso)
+            + (sc.fiscalYear != null ? ' · ' + sc.fiscalYear : '') + '** — ' + c.severity;
+        String body = '\n- This grant\'s contribution here: ' + AmaizeFormat.money(sc.focusExposure, iso)
             + '\n- Secured headroom: ' + AmaizeFormat.money(c.securedHeadroom, iso)
             + ' · total competing (Likely+Pipeline): ' + AmaizeFormat.money(c.combinedCompeting, iso)
             + (c.minimumAdjustmentRequired > 0

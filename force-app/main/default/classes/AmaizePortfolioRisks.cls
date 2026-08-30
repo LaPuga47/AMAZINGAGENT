@@ -60,15 +60,15 @@ public with sharing class AmaizePortfolioRisks {
         String scopeFilter = '';
         if (String.isNotBlank(req.category)) { scopeFilter += ' · ' + req.category; }
         if (String.isNotBlank(req.country)) { scopeFilter += ' · ' + req.country; }
-        if (req.fiscalYear != null) { scopeFilter += ' · FY' + req.fiscalYear; }
+        if (req.fiscalYear != null) { scopeFilter += ' · ' + req.fiscalYear; }
 
         if (ranked.isEmpty()) {
-            return 'No governed Headroom scopes were found for the current scenario' + scopeFilter + '.';
+            return 'No Headroom scopes were found for the current scenario' + scopeFilter + '.';
         }
 
         String header = '**Portfolio Competing-Grant Risk — ranked by ' + metricLabel + scopeFilter + '**'
-            + '\n_Each row is a governed scope (category · country · fiscal year); competing exposure is '
-            + 'Likely + Pipeline allocation against secured headroom._';
+            + '\n_Each row is a program scope (category · country · year); competing funding is '
+            + 'Likely + Pipeline against secured headroom._';
 
         List<String> rows = new List<String>();
         for (PortfolioScopeRisk s : ranked) {
@@ -77,7 +77,7 @@ public with sharing class AmaizePortfolioRisks {
                 ? AmaizeFormat.money(s.minimumAdjustmentRequired, iso) + ' over headroom'
                 : AmaizeFormat.money(s.securedHeadroom - s.combinedCompeting, iso) + ' spare';
             rows.add('- **' + s.category + ' · ' + s.country
-                + (s.fiscalYear != null ? ' · FY' + s.fiscalYear : '') + '** — '
+                + (s.fiscalYear != null ? ' · ' + s.fiscalYear : '') + '** — '
                 + s.severity + '. Competing ' + AmaizeFormat.money(s.combinedCompeting, iso)
                 + ' vs secured headroom ' + AmaizeFormat.money(s.securedHeadroom, iso)
                 + ' (' + risk + '); ' + s.budgetLineCount + ' budget line'
@@ -86,7 +86,7 @@ public with sharing class AmaizePortfolioRisks {
 
         String footer = '\n\nName any scope — e.g. "competing grants for '
             + ranked[0].category + ' ' + ranked[0].country
-            + (ranked[0].fiscalYear != null ? ' FY' + ranked[0].fiscalYear : '')
+            + (ranked[0].fiscalYear != null ? ' ' + ranked[0].fiscalYear : '')
             + '" — for the full breakdown with opportunities and record links.';
 
         return header + '\n\n' + String.join(rows, '\n') + footer;

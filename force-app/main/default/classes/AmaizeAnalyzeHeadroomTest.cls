@@ -106,7 +106,7 @@ private class AmaizeAnalyzeHeadroomTest {
         System.assert(res.summary.contains('room for additional fundraising'), res.summary);
         System.assert(res.summary.contains('available Headroom'), res.summary);
         System.assert(res.summary.contains('currently secured'), res.summary);
-        System.assert(res.summary.contains('no likely or pipeline funding mapped'), res.summary);
+        System.assert(res.summary.contains('no likely or pipeline funding'), res.summary);
         // Equal secured/forecast -> do NOT expose both similar numbers.
         System.assert(!res.summary.contains('falls to'), 'no secured-vs-forecast split when equal: ' + res.summary);
         System.assert(res.summary.contains('grants already funding'), 'contextual follow-up: ' + res.summary);
@@ -131,7 +131,7 @@ private class AmaizeAnalyzeHeadroomTest {
         AmaizeAnalyzeHeadroom.Result res = run(req('Trees', 'Rwanda', 2027));
         System.assertEquals(true, res.found);
         System.assert(res.summary.contains('does not currently show available Headroom'), res.summary);
-        System.assert(res.summary.contains('beyond its governed funding capacity'), res.summary);
+        System.assert(res.summary.contains('beyond its funding capacity'), res.summary);
         System.assert(!res.summary.contains('room for additional fundraising'), res.summary);
         System.assert(res.summary.contains('consuming the current capacity'), 'over-allocated follow-up: ' + res.summary);
     }

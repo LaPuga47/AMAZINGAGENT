@@ -36,7 +36,7 @@ private class AmaizeGetFundingContextTest {
         System.assertEquals(true, res.found);
         System.assert(res.summary.contains('**Funding Context'), res.summary);
         System.assert(res.summary.contains('**Funding Summary**'), res.summary);
-        System.assert(res.summary.contains('**Linked Funding**'), res.summary);
+        System.assert(res.summary.contains('**Funding Detail**'), res.summary);
         System.assert(res.summary.contains('**Competing Grants Insight**'), res.summary);
     }
 

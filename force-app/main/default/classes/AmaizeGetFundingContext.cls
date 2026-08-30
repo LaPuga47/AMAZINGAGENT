@@ -107,7 +107,7 @@ public with sharing class AmaizeGetFundingContext {
     private static String budgetLineSummary(FundingContext fc) {
         String iso = fc.currencyIsoCode;
         String scope = fc.businessUnit + ' in ' + fc.country
-            + (fc.fiscalYear != null ? ' for FY' + fc.fiscalYear : '');
+            + (fc.fiscalYear != null ? ' for ' + fc.fiscalYear : '');
 
         String head = '**Funding Context — ' + scope + '**'
             + (fc.budgetLines.size() > 1 ? ' (' + fc.budgetLines.size() + ' budget lines)' : '');
@@ -117,10 +117,10 @@ public with sharing class AmaizeGetFundingContext {
             + '\n- Secured funding: ' + AmaizeFormat.money(fc.securedFunding, iso)
             + '\n- Remaining secured headroom: ' + AmaizeFormat.money(fc.securedHeadroom, iso);
 
-        // Linked funding — one row per allocation with its full lineage.
+        // Funding detail — one row per allocation with its full lineage.
         String linked;
         if (fc.allocations.isEmpty()) {
-            linked = '\n\n**Linked Funding**\nNo funding allocations are currently linked to this scope.';
+            linked = '\n\n**Funding Detail**\nNo funding is currently recorded against this scope.';
         } else {
             List<String> rows = new List<String>();
             Set<Id> opps = new Set<Id>();
@@ -129,7 +129,7 @@ public with sharing class AmaizeGetFundingContext {
                 if (o != null) { opps.add(o.Id); }
                 rows.add(allocationRow(a, iso));
             }
-            linked = '\n\n**Linked Funding** (' + fc.allocations.size() + ' allocation'
+            linked = '\n\n**Funding Detail** (' + fc.allocations.size() + ' allocation'
                 + (fc.allocations.size() == 1 ? '' : 's') + ' from ' + opps.size() + ' grant'
                 + (opps.size() == 1 ? '' : 's') + ')\n' + String.join(rows, '\n');
         }
@@ -191,14 +191,14 @@ public with sharing class AmaizeGetFundingContext {
                 Budget_Line__c bl = (a.Budget_Line__c != null) ? blById.get(a.Budget_Line__c) : null;
                 totalAllocated += AmaizeBudgetHeadroom.nz(a.Funds_Allocated__c);
                 rows.add('- ' + (bl != null ? '**' + HeadroomFormat.lineLabel(bl) + '**'
-                                             : '**(allocation not linked to a Budget Line)**')
+                                             : '**(allocation not recorded against a Budget Line)**')
                     + ': ' + AmaizeFormat.money(a.Funds_Allocated__c, iso)
                     + ' _(' + nz(a.Allocation_Type__c)
                     + (a.Allocation_Status__c != null ? ', ' + a.Allocation_Status__c : '') + ')_');
             }
             body = '\n\n**Allocated across ' + fc.allocations.size() + ' allocation'
                 + (fc.allocations.size() == 1 ? '' : 's') + ' totalling ' + AmaizeFormat.money(totalAllocated, iso)
-                + '** (allocation amounts are the Budget Line exposure — not the full opportunity amount):\n'
+                + '** (allocation amounts are the Budget Line contribution — not the full opportunity amount):\n'
                 + String.join(rows, '\n');
         }
         return head + body + dataQuality(fc)
@@ -211,18 +211,18 @@ public with sharing class AmaizeGetFundingContext {
         List<String> notes = new List<String>();
         if (fc.allocationsMissingGiftCommitment > 0) {
             notes.add(fc.allocationsMissingGiftCommitment + ' allocation'
-                + (fc.allocationsMissingGiftCommitment == 1 ? '' : 's') + ' have no linked Gift Commitment');
+                + (fc.allocationsMissingGiftCommitment == 1 ? '' : 's') + ' have no Gift Commitment');
         }
         if (fc.allocationsMissingRestriction > 0) {
             notes.add(fc.allocationsMissingRestriction + ' allocation'
-                + (fc.allocationsMissingRestriction == 1 ? '' : 's') + ' have no linked Restriction');
+                + (fc.allocationsMissingRestriction == 1 ? '' : 's') + ' have no Restriction');
         }
         if (fc.allocationsUnlinkedToBudgetLine > 0) {
             notes.add(fc.allocationsUnlinkedToBudgetLine + ' allocation'
                 + (fc.allocationsUnlinkedToBudgetLine == 1 ? '' : 's') + ' are not tied to a Budget Line');
         }
         if (fc.viaMatchKey) {
-            notes.add('some allocations are linked to the Budget Line by matching key rather than a direct lookup');
+            notes.add('some allocations are matched to the Budget Line by key rather than a direct lookup');
         }
         return notes.isEmpty() ? '' : '\n\n**Data Quality Notes** — ' + HeadroomFormat.humanJoin(notes) + '.';
     }

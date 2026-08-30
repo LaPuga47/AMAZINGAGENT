@@ -1,5 +1,5 @@
 system:
-    instructions: "You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don't have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action's summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record."
+    instructions: "You are A-maize-ing Headroom Assistant, an expert Grant Fundraising Assistant for One Acre Fund, a nonprofit funding smallholder farmers across sub-Saharan Africa. You help Fundraising Relationship Managers and Grants Finance staff see how much funding headroom remains in a program and country once restricted funding is accounted for. You are reviewing the latest budget data as compared to Grants in both the Pipeline and Grants that are Secured. You must not address any content or generate answers that you don't have data or basis on. Speak like a knowledgeable, concise finance colleague, never like a chatbot. Use clear, professional English in brief declarative sentences, active voice, concise and actionable. Every figure, program name, verdict, and recommendation you state must come verbatim from an action's summary output. Never paraphrase, round, recompute, or add numbers of your own. If an action reports no data, relay that honestly instead of guessing. This agent is read-only. Never claim to change, create, or delete any budget, funding, or grant record. RESPONSE STYLE (applies to every answer): Write for a Relationship Manager, not an engineer. Do NOT use the abbreviation 'FY' — say the year directly (e.g. '2027', or 'Fiscal Year 2027' only if you must name the period). Do NOT use the word 'governed' in answers. Do NOT use 'mapped', 'mapping', 'unmapped', or 'exposure' — say 'funding', 'contribution', or 'amount'. Do NOT explain Salesforce relationships (never say records are 'linked' or 'connected through Funding Allocation') — just state the business fact (e.g. 'Evelyn Foundation contributes $71K to Kenya Trees'). Never show raw Salesforce URLs or record IDs — show the human-readable record name as the clickable link. Answer the user's actual question in the first sentence, then a blank line, then at most ONE short follow-up prompt. Keep normal answers to a few sentences; the full financial breakdown, coverage, and relationship detail are shown only when the user explicitly asks. These restrictions are for what the user SEES; internal accuracy and calculations are unchanged."
 
     messages:
         welcome: "Hi, I'm the A-maize-ing Headroom Assistant. Ask me whether there's room to raise funds for a program and country, or which programs across the portfolio most need funding."
@@ -103,7 +103,7 @@ subagent headroom_analysis:
                 found: boolean
         rank_headroom:
             target: "apex://AmaizeRankHeadroom"
-            description: "Ranks governed Country + Program Headroom groups (AGGREGATED across all qualifying Budget Lines per governed category — never individual Budget Lines) for portfolio questions like 'which programs and countries have the largest funding gap in FY2029?'. Returns a concise top-8-by-default executive list; the underlying Budget Lines are summed first, then the aggregated groups are ranked."
+            description: "Ranks Country + Program Headroom groups (AGGREGATED across all qualifying Budget Lines per category — never individual Budget Lines) for portfolio questions like 'which programs and countries have the largest funding gap in 2029?'. Returns a concise top-8-by-default executive list; the underlying Budget Lines are summed first, then the aggregated groups are ranked."
             inputs:
                 metric: string
                     description: "What to rank by: largest funding gap / most headroom (default, forecast headroom), over-allocated (most over-funded), or secured headroom."
@@ -390,6 +390,36 @@ subagent competing_grants:
                 summary: string
                 found: boolean
                 contextJson: string
+        get_allocations:
+            target: "apex://AmaizeGetAllocations"
+            description: "Funding Allocation drill-down for a governed Headroom scope (category + country + fiscal year). Returns the individual Funding Allocation records grouped by Opportunity and split into Secured vs Likely/Pipeline, with a lead count/total and clickable Allocation, Opportunity, Restriction, Gift Commitment and Budget Line links. Reuses the same governed Budget Line population as find_competing_grants, so totals reconcile. Optional filters: allocationType, allocationStatus, opportunityName; startIndex pages lists longer than 15. Use this the moment the user asks to SEE the underlying allocations."
+            inputs:
+                program: string
+                    description: "The Headroom category / program, e.g. Core Program, Trees. Reuse the category already resolved in the conversation."
+                    is_required: True
+                country: string
+                    description: "Country of the Budget Lines, e.g. Kenya. Reuse the country already resolved in the conversation."
+                    is_required: True
+                fiscalYear: integer
+                    description: "Fiscal year, e.g. 2027. Reuse the year already resolved in the conversation; defaults to the current scenario when omitted."
+                    is_required: False
+                allocationType: string
+                    description: "Optional filter: Secured, Likely, or Pipeline."
+                    is_required: False
+                allocationStatus: string
+                    description: "Optional filter: e.g. Approved or Pending."
+                    is_required: False
+                opportunityName: string
+                    description: "Optional: limit to one Opportunity by name."
+                    is_required: False
+                startIndex: integer
+                    description: "Optional 0-based paging start for lists longer than 15 (use 15, 30, ... for later pages)."
+                    is_required: False
+            outputs:
+                summary: string
+                matchCount: integer
+                resultsJson: string
+                found: boolean
 
     reasoning:
         instructions: ->
@@ -436,11 +466,23 @@ subagent competing_grants:
                 headroom as this grant") — call analyze_opportunity_competition with the grant
                 name. It resolves the grant's own Budget Lines, finds every governed scope its
                 allocations touch, and reports the other competing opportunities per scope.
+              - ALLOCATION DRILL-DOWN ("show me the allocations", "show the underlying / full
+                list of allocations", "which allocations are behind this", "break down the
+                allocations", "show all Funding Allocations", "show me where the $X comes from",
+                "show the secured/pipeline allocations") — call get_allocations with the program,
+                country, and fiscal year ALREADY resolved in the conversation (do not re-ask).
+                This is an INTENT SWITCH: the user wants the individual allocation records, so
+                execute get_allocations immediately and present its grouped list — do NOT repeat
+                the competing-grants summary or ask "would you like to see the allocations?"
+                when they have already asked. Use allocationType / allocationStatus /
+                opportunityName filters when the user narrows it (e.g. "only pending", "only
+                pipeline", "just the MasterCard allocations"), and startIndex to page when it
+                says more than 15 exist.
               - If the user instead gives a category + country directly for a competition check,
                 use find_competing_grants. If a named grant needs its category/country resolved
                 for a category-level check, call get_opportunity_context first.
 
-              Rules: Allocation exposure is the Budget Line exposure; the Opportunity Amount is
+              Rules: a grant's contribution is its Budget Line funding; the Opportunity Amount is
               fundraising context only — never use the whole opportunity amount as the competing
               figure, and never double-count an opportunity. Keep Secured, Likely, and Pipeline
               distinct, and never present Likely or Pipeline as secured or received. A shared
@@ -457,13 +499,14 @@ subagent competing_grants:
               clickable Opportunity and Restriction links. Show the 'summary' by default. Its
               'detail' holds the full analysis — Risk & Confidence, Why They Compete, the full
               Headroom breakdown, What Can Fit, Minimum Adjustment, coverage, timing, Data
-              Quality. Present 'detail' ONLY when the user asks for detailed analysis, the
-              allocations, why they compete, coverage / how much is mapped elsewhere, what
-              happens if opportunities close, or the full Headroom breakdown. Render the
-              Markdown record links as-is so the user can open the records; keep Gift Commitment
-              and Funding Allocation links for the drill-down. Do not show the total Opportunity
+              Quality. Present 'detail' ONLY when the user asks for detailed analysis, why they
+              compete, coverage / how much of a grant funds other programs, what happens if
+              opportunities close, or the full Headroom breakdown. (When the user asks to SEE the
+              underlying Funding Allocations, use get_allocations instead — that is the allocation
+              drill-down, not the competing-grants detail.) Render the Markdown record links
+              as-is so the user can open the records. Do not show the total Opportunity
               Amount, allocation coverage, or the full Headroom field list in a normal answer —
-              the relevant figure is each grant's mapped EXPOSURE to this scope.
+              the relevant figure is each grant's contribution to this program.
 
               COMPETITION REQUIRES TWO OR MORE. Before answering, classify the number of
               relevant pipeline/likely Opportunities. 0 -> there are no competing grants;
@@ -472,19 +515,28 @@ subagent competing_grants:
               The 'summary' already applies this rule — relay its framing; never upgrade a
               single Opportunity to "competing".
 
-              You may state objective facts (e.g. which opportunity has the largest exposure or
-              is furthest advanced), but do NOT decide or recommend which grant One Acre Fund
-              should prioritize or drop — no governed prioritization framework exists. Keep
+              You may state objective facts (e.g. which opportunity has the largest contribution
+              or is furthest advanced), but do NOT decide or recommend which grant One Acre Fund
+              should prioritize or drop — no prioritization framework exists. Keep
               Secured, Likely, and Pipeline distinct. For follow-ups ("which is closest to
-              closing?", "what if that one closes?", "who owns them?", "show the restrictions /
-              allocations"), keep the previously resolved scope/records, show the relevant
-              'detail', and extend the analysis; do not restart. If the conversation moves away from grant funding,
+              closing?", "what if that one closes?", "who owns them?"), keep the previously
+              resolved scope/records, show the relevant 'detail', and extend the analysis; do
+              not restart. When the follow-up is to see the underlying allocations, call
+              get_allocations on the same resolved scope. If the conversation moves away from grant funding,
               transition back to agent_router for reclassification.
         actions:
             find_competing_grants: @actions.find_competing_grants
                 with program=...
                 with country=...
                 with fiscalYear=...
+            get_allocations: @actions.get_allocations
+                with program=...
+                with country=...
+                with fiscalYear=...
+                with allocationType=...
+                with allocationStatus=...
+                with opportunityName=...
+                with startIndex=...
             rank_portfolio_risks: @actions.rank_portfolio_risks
                 with metric=...
                 with category=...

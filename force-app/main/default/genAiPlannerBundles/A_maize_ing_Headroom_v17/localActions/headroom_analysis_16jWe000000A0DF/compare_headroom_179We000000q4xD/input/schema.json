@@ -1,0 +1,28 @@
+{
+  "required" : [ "program", "countries" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "countries" : {
+      "title" : "Countries",
+      "description" : "All the countries to compare, comma-separated, e.g. 'Malawi, Kenya, Rwanda, Burundi'. Pass every country the user named in a single call.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Fiscal year, e.g. 2027. Defaults to the current scenario when omitted.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "program" : {
+      "title" : "Program",
+      "description" : "The Headroom category / program, e.g. Core Program, Rural Retail, Trees. Pass the user's wording; the action resolves synonyms.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

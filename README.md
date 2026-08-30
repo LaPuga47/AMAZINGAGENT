@@ -101,19 +101,39 @@ says so. Full single-country detail is one drill-down away via `analyze_headroom
 Kenya Trees in 2027?"* with a short fundraising view by default, and the full analysis on
 demand — same two-rendering pattern as `analyze_headroom`:
 - **`summary`** (default): the grants already contributing **secured** funding, the **pipeline /
-  likely** Opportunities that could consume the rest (each as *mapped exposure | stage |
-  probability* with a clickable Opportunity + primary Restriction link), and a one-line Headroom
-  conclusion.
+  likely** Opportunities that could use the rest (each as *contribution | probability | stage*
+  with a clickable Opportunity + Restriction link), and a one-line Headroom conclusion.
 - **`detail`** (on demand): Risk & Confidence, Why They Compete, the full Headroom breakdown,
   What-Can-Fit, Minimum Adjustment, coverage, timing, Data Quality.
 
 **Competition is classified correctly**: **0** relevant pipeline/likely Opportunities → *"no
 competing grants"*; **1** → *"one Opportunity … not yet a competing-grants situation"* (a single
-Opportunity is never called "competing"); **2+** → competing, with combined mapped exposure vs
+Opportunity is never called "competing"); **2+** → competing, with combined contribution vs
 available Headroom. The default view omits total Opportunity Amount and allocation coverage (the
-relevant figure is each grant's **mapped exposure to this scope**); those surface on drill-down,
+relevant figure is each grant's **contribution to this program**); those surface on drill-down,
 or automatically when analysis confidence is not High. Clickable **Opportunity** and
 **Restriction** links are always shown; Gift Commitment / Allocation links are drill-down only.
+
+All user-facing responses follow a shared **response style**: the year is written directly (no
+"FY"), no implementation terms ("governed" / "mapped" / "linked" / "exposure") reach the user,
+record links show the human-readable name, and the answer precedes a single follow-up prompt.
+The internal calculations, field names, and precision are unchanged.
+
+### Allocation drill-down
+
+`get_allocations` (`AmaizeGetAllocations`) answers *"show me the full list of allocations behind
+Kenya Trees FY2027"* — an explicit **intent switch**: it retrieves and displays the individual
+Funding Allocation records instead of re-offering them. It **reuses `CompetingGrantsService.analyze`**
+(the same governed Budget Line population and allocations as the competing-grants view, so totals
+reconcile) and renders:
+- a lead count/total (*"N Funding Allocation records across M Opportunities, with $X mapped…"*),
+- **grouped by Opportunity**, split into **SECURED** vs **LIKELY / PIPELINE** sections, with a
+  per-Opportunity exposure total that reconciles to its shown allocations,
+- per allocation: *[FA name] — $amt | Type | Status*, with clickable **Allocation, Opportunity,
+  Restriction, Gift Commitment (or "Not linked"), and Budget Line** links (all URLs built
+  server-side; the LLM never constructs them),
+- optional `allocationType` / `allocationStatus` / `opportunityName` filters, and `startIndex`
+  paging that shows the first 15 and says how many remain (never silent truncation).
 
 ### Allocation matching (priority order)
 

@@ -113,7 +113,7 @@ private class CompetingGrantsOpportunityTest {
         System.assertEquals(true, res.found);
         System.assert(res.summary.contains('Competition for'), res.summary);
         System.assert(res.summary.contains('Core Program · Kenya'), res.summary);
-        System.assert(res.summary.contains('exposure here'), res.summary);
+        System.assert(res.summary.contains('contribution here'), res.summary);
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'record link present: ' + res.summary);
     }
 }
