@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BotVersion xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>v19</fullName>
+    <articleAnswersGPTEnabled>false</articleAnswersGPTEnabled>
+    <botDialogs>
+        <botSteps>
+            <botMessages>
+                <message>Hi, I&apos;m the A-maize-ing Headroom Assistant. Ask me whether there&apos;s room to raise funds for a program and country, or which programs across the portfolio most need funding.</message>
+                <messageIdentifier>50c1c0de-4b00-423e-b5ab-99683444f168</messageIdentifier>
+            </botMessages>
+            <stepIdentifier>84223f23-90c9-4112-90f0-6c7b98e4703b</stepIdentifier>
+            <type>Message</type>
+        </botSteps>
+        <botSteps>
+            <stepIdentifier>7a2787bb-ecf5-4a30-8323-d90892d45086</stepIdentifier>
+            <type>Wait</type>
+        </botSteps>
+        <developerName>Welcome</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Welcome</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
+    <botDialogs>
+        <botSteps>
+            <botMessages>
+                <message>Sorry, I couldn&apos;t complete that headroom check. Please try rephrasing your question with a country and program.</message>
+                <messageIdentifier>a466b4fa-1e8a-4457-bf7c-24c8be5b404f</messageIdentifier>
+            </botMessages>
+            <stepIdentifier>e857daab-fd13-4698-8011-6c03a6dbd793</stepIdentifier>
+            <type>Message</type>
+        </botSteps>
+        <botSteps>
+            <stepIdentifier>baef553d-de5e-4c21-a165-8a76150e9e61</stepIdentifier>
+            <type>Wait</type>
+        </botSteps>
+        <developerName>Rich_Content_Error_Handling</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Error Handler</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
+    <botDialogs>
+        <developerName>Transfer_To_Agent</developerName>
+        <isPlaceholderDialog>false</isPlaceholderDialog>
+        <label>Transfer To Agent</label>
+        <showInFooterMenu>false</showInFooterMenu>
+    </botDialogs>
+    <citationsEnabled>false</citationsEnabled>
+    <conversationDefinitionPlanners>
+        <genAiPlannerName>A_maize_ing_Headroom_v19</genAiPlannerName>
+    </conversationDefinitionPlanners>
+    <conversationSystemDialogs>
+        <dialog>Rich_Content_Error_Handling</dialog>
+        <type>ErrorHandling</type>
+    </conversationSystemDialogs>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The agent instructions</description>
+        <developerName>AgentScriptInternal_agent_instructions</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Agent Instructions</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <conversationVariables>
+        <dataType>Text</dataType>
+        <description>The next topic to be visited</description>
+        <developerName>AgentScriptInternal_next_topic</developerName>
+        <includeInPrompt>false</includeInPrompt>
+        <label>Next Topic</label>
+        <visibility>Internal</visibility>
+    </conversationVariables>
+    <copilotPrimaryLanguage>en_US</copilotPrimaryLanguage>
+    <defaultStdObjForContactIdFltrEnabled>false</defaultStdObjForContactIdFltrEnabled>
+    <entryDialog>Welcome</entryDialog>
+    <intentDisambiguationEnabled>false</intentDisambiguationEnabled>
+    <intentV3Enabled>false</intentV3Enabled>
+    <isScriptCompatibleAgent>true</isScriptCompatibleAgent>
+    <knowledgeActionEnabled>false</knowledgeActionEnabled>
+    <knowledgeFallbackEnabled>false</knowledgeFallbackEnabled>
+    <smallTalkEnabled>false</smallTalkEnabled>
+    <staticPromptsEnabled>false</staticPromptsEnabled>
+    <stopRecPrompts>false</stopRecPrompts>
+    <stopWelcomePrompts>false</stopWelcomePrompts>
+    <surfacesEnabled>false</surfacesEnabled>
+    <toneType>Casual</toneType>
+</BotVersion>

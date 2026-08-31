@@ -94,7 +94,7 @@ public with sharing class AmaizeOpportunityCompetition {
             + '\n- Secured headroom: ' + AmaizeFormat.money(c.securedHeadroom, iso)
             + ' · total competing (Likely+Pipeline): ' + AmaizeFormat.money(c.combinedCompeting, iso)
             + (c.minimumAdjustmentRequired > 0
-                ? ' · **' + AmaizeFormat.money(c.minimumAdjustmentRequired, iso) + ' over headroom if all close**' : '');
+                ? ' · **' + AmaizeFormat.money(c.minimumAdjustmentRequired, iso) + ' overfunded if all close**' : '');
 
         // Other competing opportunities (exclude the focus grant), most advanced first.
         List<String> others = new List<String>();

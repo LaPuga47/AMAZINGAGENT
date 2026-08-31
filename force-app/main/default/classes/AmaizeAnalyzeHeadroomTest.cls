@@ -130,8 +130,8 @@ private class AmaizeAnalyzeHeadroomTest {
             -500000, 1000000, 0, 0);
         AmaizeAnalyzeHeadroom.Result res = run(req('Trees', 'Rwanda', 2027));
         System.assertEquals(true, res.found);
-        System.assert(res.summary.contains('does not currently show available Headroom'), res.summary);
-        System.assert(res.summary.contains('beyond its funding capacity'), res.summary);
+        System.assert(res.summary.contains('is currently overfunded by'), res.summary);
+        System.assert(res.summary.contains('funding exceeds its available capacity'), res.summary);
         System.assert(!res.summary.contains('room for additional fundraising'), res.summary);
         System.assert(res.summary.contains('consuming the current capacity'), 'over-allocated follow-up: ' + res.summary);
     }

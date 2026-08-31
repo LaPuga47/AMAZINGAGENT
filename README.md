@@ -85,13 +85,13 @@ It resolves **each country independently through the same `HeadroomService.aggre
 single-country query uses — so a compared figure always matches a direct query — then renders
 one concise block:
 - a lead interpretation stating the metric (**Forecast Headroom**) once,
-- **one compact line per country**: `Country: Funding Gap $X | Secured $Y | Pipeline $Z`, and
-- a group summary naming the largest gap.
+- **one compact line per country**: `Country: Available Headroom $X | Secured $Y | Pipeline $Z`, and
+- a group summary naming the country with the most available Headroom.
 
-Sign interpretation follows the org convention (see [Headroom calculation](#headroom-calculation-source-of-truth)):
-**positive Forecast Headroom → `Funding Gap $X`** (the unfunded need / headroom available to
-raise against); **negative → `Over-allocated $X`**; zero → *Fully funded*. Magnitudes are always
-shown positive. A country with no qualifying lines reads **"No qualifying Budget Line records
+Sign interpretation (see [Headroom calculation](#headroom-calculation-source-of-truth)):
+**positive Forecast Headroom → `Available Headroom $X`** (room to raise more); **negative →
+`Overfunded $X`** (funding exceeds capacity); zero → *Fully funded*. Magnitudes are always
+shown positive, and negative Headroom is never called a funding gap or available Headroom. A country with no qualifying lines reads **"No qualifying Budget Line records
 found"**, never `$0`. With more than eight countries it shows the **eight largest gaps** and
 says so. Full single-country detail is one drill-down away via `analyze_headroom`.
 
