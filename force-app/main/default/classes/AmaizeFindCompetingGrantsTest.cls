@@ -39,7 +39,7 @@ private class AmaizeFindCompetingGrantsTest {
         // Concise default: 2+ pipeline opportunities => a competing situation.
         System.assert(res.summary.startsWith('Yes.'), res.summary);
         System.assert(res.summary.contains('Two Opportunities may use the remaining'), res.summary);
-        System.assert(res.summary.contains('Potential funding:'), res.summary);
+        System.assert(res.summary.contains('**Potential Funding**'), res.summary);
         System.assert(res.summary.contains('Together, they represent'), res.summary);
         // No implementation terminology in the concise view.
         System.assert(!res.summary.contains('mapped') && !res.summary.contains('FY'), 'no FY/mapped: ' + res.summary);

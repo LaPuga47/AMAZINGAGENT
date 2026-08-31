@@ -74,7 +74,7 @@ public with sharing class AmaizePortfolioRisks {
         for (PortfolioScopeRisk s : ranked) {
             String iso = s.currencyIsoCode;
             String risk = s.minimumAdjustmentRequired > 0
-                ? AmaizeFormat.money(s.minimumAdjustmentRequired, iso) + ' over headroom'
+                ? AmaizeFormat.money(s.minimumAdjustmentRequired, iso) + ' overfunded'
                 : AmaizeFormat.money(s.securedHeadroom - s.combinedCompeting, iso) + ' spare';
             rows.add('- **' + s.category + ' · ' + s.country
                 + (s.fiscalYear != null ? ' · ' + s.fiscalYear : '') + '** — '

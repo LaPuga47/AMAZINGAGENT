@@ -111,9 +111,8 @@ public with sharing class AmaizeAnalyzeHeadroom {
 
         String body;
         if (a.forecastHeadroom < 0) {
-            body = name + ' does not currently show available Headroom in ' + fyText
-                + '. The program is approximately ' + AmaizeFormat.money(-a.forecastHeadroom, iso)
-                + ' beyond its funding capacity under the current forecast.';
+            body = name + ' is currently overfunded by approximately ' + AmaizeFormat.money(-a.forecastHeadroom, iso)
+                + ' in ' + fyText + ' — funding exceeds its available capacity under the current forecast.';
         } else if (a.forecastHeadroom == 0) {
             body = name + ' is currently fully funded in ' + fyText
                 + ', with no additional Headroom available under the current forecast.';
@@ -206,7 +205,7 @@ public with sharing class AmaizeAnalyzeHeadroom {
         // Concise interpretation, grounded in the summed governed figures.
         String interp;
         if (a.securedHeadroom < 0) {
-            interp = 'This program is over-allocated on secured funding by '
+            interp = 'This program is overfunded on secured funding by '
                 + AmaizeFormat.money(-a.securedHeadroom, iso) + ' across ' + a.budgetLinesIncluded
                 + ' budget line' + (a.budgetLinesIncluded == 1 ? '' : 's') + '.';
         } else if (a.headroomStatus == 'Headroom Available') {

@@ -106,11 +106,11 @@ public with sharing class AmaizeCompareHeadroom {
         if (found == 0) {
             lead = 'For ' + category + ' in ' + fyText + ', no qualifying Budget Lines were found for the requested countries.';
         } else if (gaps > 0 && capacity == 0) {
-            lead = 'For ' + category + ' in ' + fyText + ', all ' + found + ' countries currently show a funding gap (based on Forecast Headroom).';
+            lead = 'For ' + category + ' in ' + fyText + ', all ' + found + ' countries currently show available Headroom (based on Forecast Headroom).';
         } else if (capacity > 0 && gaps == 0) {
-            lead = 'For ' + category + ' in ' + fyText + ', all ' + found + ' countries are currently over-allocated (based on Forecast Headroom).';
+            lead = 'For ' + category + ' in ' + fyText + ', all ' + found + ' countries are currently overfunded (based on Forecast Headroom).';
         } else {
-            lead = 'For ' + category + ' in ' + fyText + ', the countries show a mix of funding gaps and over-allocation (based on Forecast Headroom).';
+            lead = 'For ' + category + ' in ' + fyText + ', the countries show a mix of available Headroom and overfunding (based on Forecast Headroom).';
         }
 
         // One compact line per country.
@@ -127,7 +127,7 @@ public with sharing class AmaizeCompareHeadroom {
 
         String out = lead + '\n\n' + String.join(lines, '\n');
         if (summaryLine != null) { out += '\n\n' + summaryLine; }
-        if (capped) { out += '\n\n_(Showing the 8 largest funding gaps of ' + groups.size() + ' countries.)_'; }
+        if (capped) { out += '\n\n_(Showing the 8 countries with the most available Headroom of ' + groups.size() + '.)_'; }
         if (note != null) { out += '\n\n' + note; }
         out += '\n\nWould you like the detailed breakdown for any one country?';
         return out;
@@ -148,11 +148,11 @@ public with sharing class AmaizeCompareHeadroom {
         // negative = funded beyond budget = Over-allocated; zero = fully funded.
         String pos;
         if (a.forecastHeadroom > 0) {
-            pos = 'Funding Gap ' + AmaizeFormat.money(a.forecastHeadroom, iso);
+            pos = 'Available Headroom ' + AmaizeFormat.money(a.forecastHeadroom, iso);
         } else if (a.forecastHeadroom < 0) {
-            pos = 'Over-allocated ' + AmaizeFormat.money(-a.forecastHeadroom, iso);
+            pos = 'Overfunded ' + AmaizeFormat.money(-a.forecastHeadroom, iso);
         } else {
-            pos = 'Fully funded (no gap)';
+            pos = 'Fully funded';
         }
         return a.country + ': ' + pos
             + ' | Secured ' + AmaizeFormat.money(a.securedFunding, iso)
@@ -171,10 +171,10 @@ public with sharing class AmaizeCompareHeadroom {
         if (biggestGap == null) { return null; }
         List<String> parts = new List<String>();
         if (biggestGap.forecastHeadroom > 0) {
-            parts.add(biggestGap.country + ' has the largest funding gap');
+            parts.add(biggestGap.country + ' has the most available Headroom');
         }
         if (mostCapacity.forecastHeadroom < 0 && mostCapacity != biggestGap) {
-            parts.add(mostCapacity.country + ' is the most over-allocated');
+            parts.add(mostCapacity.country + ' is the most overfunded');
         }
         return parts.isEmpty() ? null : capitalize(String.join(parts, ', ')) + '.';
     }

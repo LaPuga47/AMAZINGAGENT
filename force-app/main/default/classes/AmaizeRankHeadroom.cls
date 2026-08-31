@@ -78,7 +78,7 @@ public with sharing class AmaizeRankHeadroom {
 
         String measure = secured ? 'Secured Headroom' : 'Forecast Headroom';
         String lead = overAlloc
-            ? 'In ' + fyText + ', these' + catText + ' programs' + countryText + ' are the most over-allocated (by ' + measure + '):'
+            ? 'In ' + fyText + ', these' + catText + ' programs' + countryText + ' are the most overfunded (by ' + measure + '):'
             : 'In ' + fyText + ', these' + catText + ' programs' + countryText + ' have the greatest funding need based on ' + measure + ':';
 
         List<String> lines = new List<String>();
@@ -86,12 +86,12 @@ public with sharing class AmaizeRankHeadroom {
         for (HeadroomAggregate a : groups) {
             String iso = a.currencyIsoCode;
             Decimal v = secured ? a.securedHeadroom : a.forecastHeadroom;
-            String val = overAlloc ? AmaizeFormat.money(-v, iso) + ' over-allocated' : AmaizeFormat.money(v, iso);
+            String val = overAlloc ? AmaizeFormat.money(-v, iso) + ' overfunded' : AmaizeFormat.money(v, iso);
             lines.add(i + '. ' + a.country + ' - ' + a.category + ': ' + val);
             i++;
         }
         String tail = '\n\nThese are the ' + groups.size() + ' largest ' + fyText
-            + ' program-level ' + (overAlloc ? 'over-allocations' : 'funding gaps')
+            + ' program-level ' + (overAlloc ? 'overfunding' : 'funding gaps')
             + '. Ask "why is <country> <program> so high?" for the breakdown, or name one for its full headroom.';
         return lead + '\n' + String.join(lines, '\n') + tail;
     }

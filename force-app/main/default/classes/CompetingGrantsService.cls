@@ -371,9 +371,9 @@ public with sharing class CompetingGrantsService {
      * when it consumes over half; else No Material.
      */
     public static String severityFor(Decimal securedHeadroom, Decimal combinedCompeting, Decimal probWeightedCompeting) {
-        if (securedHeadroom < 0) { return 'Critical / Over-allocated'; }
+        if (securedHeadroom < 0) { return 'Critical / Overfunded'; }
         if (combinedCompeting <= 0) { return 'No Material Competition'; }
-        if (probWeightedCompeting > securedHeadroom) { return 'Critical / Over-allocated'; }
+        if (probWeightedCompeting > securedHeadroom) { return 'Critical / Overfunded'; }
         if (combinedCompeting > securedHeadroom) { return 'High Competition'; }
         if (combinedCompeting > securedHeadroom / 2) { return 'Moderate Competition'; }
         return 'No Material Competition';

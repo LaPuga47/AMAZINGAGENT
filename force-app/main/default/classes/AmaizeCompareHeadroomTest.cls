@@ -34,14 +34,14 @@ private class AmaizeCompareHeadroomTest {
     static void comparesFourCountriesConcisely() {
         AmaizeCompareHeadroom.Result res = run(req('Core Program', 'Malawi, Kenya, Rwanda, Burundi', 2027));
         System.assertEquals(4, res.matchCount, res.summary);
-        // Gaps rendered as positive magnitude (no negative sign on the money value).
-        System.assert(res.summary.contains('Malawi: Funding Gap $1.64M'), res.summary);
-        System.assert(!res.summary.contains('Funding Gap -') && !res.summary.contains('Over-allocated -'),
+        // Positive headroom rendered as available Headroom, positive magnitude.
+        System.assert(res.summary.contains('Malawi: Available Headroom $1.64M'), res.summary);
+        System.assert(!res.summary.contains('Available Headroom -') && !res.summary.contains('Overfunded -'),
             'magnitudes must be positive: ' + res.summary);
-        // Burundi is funded beyond budget -> over-allocated, not a gap.
-        System.assert(res.summary.contains('Burundi: Over-allocated'), res.summary);
-        // Group summary names the largest gap.
-        System.assert(res.summary.contains('Kenya has the largest funding gap'), res.summary);
+        // Burundi is funded beyond budget -> overfunded, not available Headroom.
+        System.assert(res.summary.contains('Burundi: Overfunded'), res.summary);
+        // Group summary names the country with the most available Headroom.
+        System.assert(res.summary.contains('Kenya has the most available Headroom'), res.summary);
         // Concise: the Headroom Status block text is NOT repeated per country.
         System.assert(!res.summary.containsIgnoreCase('Headroom Status'), 'no repeated status blocks: ' + res.summary);
         // States metric once.
@@ -52,7 +52,7 @@ private class AmaizeCompareHeadroomTest {
     static void emptyCountrySaysNoQualifyingRecords() {
         AmaizeCompareHeadroom.Result res = run(req('Core Program', 'Malawi, Uganda', 2027));
         System.assert(res.summary.contains('Uganda: No qualifying Budget Line records found'), res.summary);
-        System.assert(!res.summary.contains('Uganda: Funding Gap'), 'empty country is not rendered as $0 gap: ' + res.summary);
+        System.assert(!res.summary.contains('Uganda: Available Headroom'), 'empty country is not rendered as $0 gap: ' + res.summary);
     }
 
     @isTest
@@ -70,7 +70,7 @@ private class AmaizeCompareHeadroomTest {
         Test.stopTest();
         // The compared Kenya gap must equal the direct query's forecast headroom (positive = gap).
         System.assert(direct.forecastHeadroom > 0, 'Kenya is a funding gap: ' + direct.forecastHeadroom);
-        String expected = 'Kenya: Funding Gap ' + AmaizeFormat.money(direct.forecastHeadroom, direct.currencyIsoCode);
+        String expected = 'Kenya: Available Headroom ' + AmaizeFormat.money(direct.forecastHeadroom, direct.currencyIsoCode);
         System.assert(res.summary.contains(expected), 'expected "' + expected + '" in: ' + res.summary);
     }
 
@@ -86,9 +86,9 @@ private class AmaizeCompareHeadroomTest {
         AmaizeCompareHeadroom.Result res = run(req('Core Program',
             'Malawi, Kenya, Rwanda, Burundi, Nigeria, Zambia, Tanzania, Uganda, Ghana, DRC', 2027));
         System.assertEquals(10, res.matchCount, 'all requested groups resolved');
-        System.assert(res.summary.contains('Showing the 8 largest'), 'capped display: ' + res.summary);
+        System.assert(res.summary.contains('Showing the 8 countries with the most available Headroom'), 'capped display: ' + res.summary);
         // Kenya (largest gap) is shown; empty countries sort last and are dropped from the display.
-        System.assert(res.summary.contains('Kenya: Funding Gap'), res.summary);
+        System.assert(res.summary.contains('Kenya: Available Headroom'), res.summary);
     }
 
     @isTest

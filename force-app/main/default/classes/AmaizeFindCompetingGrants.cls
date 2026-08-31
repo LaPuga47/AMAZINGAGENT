@@ -23,7 +23,7 @@ public with sharing class AmaizeFindCompetingGrants {
         public String summary;
         @InvocableVariable(label='Detail' description='The full analysis — risk & confidence, why they compete, full Headroom breakdown, what-can-fit, coverage, timing, data quality. Show ONLY when the user asks for detailed analysis, the allocations, why they compete, coverage, or the full Headroom breakdown.')
         public String detail;
-        @InvocableVariable(label='Severity' description='No Material / Moderate / High Competition, Critical / Over-allocated, or NONE / ZERO / NOT_CONFIGURED / NEEDS_INFO.')
+        @InvocableVariable(label='Severity' description='No Material / Moderate / High Competition, Critical / Overfunded, or NONE / ZERO / NOT_CONFIGURED / NEEDS_INFO.')
         public String severity;
         @InvocableVariable(label='Results JSON' description='Machine-readable competing-grants detail.')
         public String resultsJson;
@@ -139,17 +139,23 @@ public with sharing class AmaizeFindCompetingGrants {
 
         List<String> plines = new List<String>();
         for (CompetingGrant g : pipeline) { plines.add(opportunityLine(g, iso)); }
-        out.add('Potential funding:\n' + String.join(plines, '\n'));
+        out.add('**Potential Funding**\n' + String.join(plines, '\n'));
 
         if (n == 1) {
             Decimal exp = pipeline[0].likelyExposure + pipeline[0].pipelineExposure;
-            if (exp <= a.securedHeadroom) {
+            if (a.securedHeadroom < 0) {
+                out.add(name + ' is already overfunded by ' + AmaizeFormat.money(-a.securedHeadroom, iso)
+                    + ' in ' + yr + ', so this Opportunity would increase the overfunding.');
+            } else if (exp <= a.securedHeadroom) {
                 out.add(name + ' currently has ' + availNum + ' of available Headroom in ' + yr + '.');
             } else {
                 out.add(name + ' currently has ' + availNum + ' of available Headroom in ' + yr
                     + '; this Opportunity\'s ' + AmaizeFormat.money(exp, iso) + ' would exceed it by '
                     + AmaizeFormat.money(exp - a.securedHeadroom, iso) + '.');
             }
+        } else if (a.securedHeadroom < 0) {
+            out.add('The program is already overfunded by ' + AmaizeFormat.money(-a.securedHeadroom, iso)
+                + '; together these Opportunities represent a further ' + AmaizeFormat.money(a.combinedCompeting, iso) + '.');
         } else {
             out.add('Together, they represent ' + AmaizeFormat.money(a.combinedCompeting, iso)
                 + ' against approximately ' + availNum + ' of available Headroom, '
@@ -168,13 +174,15 @@ public with sharing class AmaizeFindCompetingGrants {
     /** Available Headroom phrase; surfaces the secured-vs-forecast split only when it differs materially. */
     private static String availabilityClause(CompetingGrantsResult a, String iso) {
         if (a.securedHeadroom < 0) {
-            return 'no available Headroom (over-allocated by ' + AmaizeFormat.money(-a.securedHeadroom, iso) + ')';
+            return 'no available Headroom — it is overfunded by ' + AmaizeFormat.money(-a.securedHeadroom, iso);
         }
         Decimal diff = Math.abs(a.securedHeadroom - a.forecastHeadroom);
         Decimal basis = a.securedHeadroom == 0 ? diff : Math.abs(a.securedHeadroom);
         if (diff >= 50000 && diff >= 0.10 * basis) {
-            return 'approximately ' + AmaizeFormat.money(a.securedHeadroom, iso) + ' of Secured Headroom (about '
-                + AmaizeFormat.money(a.forecastHeadroom, iso) + ' on a forecast basis)';
+            String tail = (a.forecastHeadroom < 0)
+                ? ', but overfunded by ' + AmaizeFormat.money(-a.forecastHeadroom, iso) + ' on a forecast basis'
+                : ' (about ' + AmaizeFormat.money(a.forecastHeadroom, iso) + ' on a forecast basis)';
+            return 'approximately ' + AmaizeFormat.money(a.securedHeadroom, iso) + ' of Secured Headroom' + tail;
         }
         return 'approximately ' + AmaizeFormat.money(a.securedHeadroom, iso) + ' of available Headroom';
     }
@@ -191,7 +199,7 @@ public with sharing class AmaizeFindCompetingGrants {
             if (restr != null) { line += '\n  ' + restr; }
             lines.add(line);
         }
-        return 'Secured funding:\n' + String.join(lines, '\n');
+        return '**Secured Funding**\n' + String.join(lines, '\n');
     }
 
     /** One Opportunity: contribution to this program | probability | stage + restriction(s). */
@@ -308,7 +316,7 @@ public with sharing class AmaizeFindCompetingGrants {
                 lines.add('- ' + f.label + ': ' + AmaizeFormat.money(f.exposure, iso)
                     + (f.fits ? ' — fits' : ' — exceeds headroom by ' + AmaizeFormat.money(f.excess, iso)));
             }
-            fit = '\n\n**What Can Fit** (competing exposure vs. secured headroom)\n' + String.join(lines, '\n')
+            fit = '\n\n**What Can Fit** (competing funding vs. secured headroom)\n' + String.join(lines, '\n')
                 + (a.exhaustiveCombinations ? '' : '\n_(showing key scenarios; many opportunities present)_');
         }
 

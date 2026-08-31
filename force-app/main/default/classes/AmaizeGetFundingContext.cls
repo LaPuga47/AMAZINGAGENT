@@ -143,7 +143,7 @@ public with sharing class AmaizeGetFundingContext {
                 + AmaizeFormat.money(fc.combinedCompeting, iso) + ' against '
                 + AmaizeFormat.money(fc.securedHeadroom, iso) + ' of remaining secured headroom'
                 + (fc.potentialExcess > 0
-                    ? ', a potential over-allocation of ' + AmaizeFormat.money(fc.potentialExcess, iso) + ' if all close'
+                    ? ', a potential overfunding of ' + AmaizeFormat.money(fc.potentialExcess, iso) + ' if all close'
                     : '')
                 + '. Severity: ' + fc.severity + '.';
         }
