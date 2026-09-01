@@ -133,7 +133,9 @@ private class AmaizeAnalyzeHeadroomTest {
         System.assert(res.summary.contains('is currently overfunded by'), res.summary);
         System.assert(res.summary.contains('funding exceeds its available capacity'), res.summary);
         System.assert(!res.summary.contains('room for additional fundraising'), res.summary);
-        System.assert(res.summary.contains('consuming the current capacity'), 'over-allocated follow-up: ' + res.summary);
+        // Overfunded => alternative-fundraising follow-up (same program elsewhere / other programs here).
+        System.assert(res.summary.contains('Trees in other countries')
+            && res.summary.contains('other programs in Rwanda'), 'look-elsewhere follow-up: ' + res.summary);
     }
 
     @isTest
