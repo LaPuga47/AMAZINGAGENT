@@ -1,0 +1,56 @@
+{
+  "required" : [ "program", "country" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "allocationStatus" : {
+      "title" : "Allocation Status",
+      "description" : "Optional filter: e.g. Approved or Pending.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "allocationType" : {
+      "title" : "Allocation Type",
+      "description" : "Optional filter: Secured, Likely, or Pipeline.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "country" : {
+      "title" : "Country",
+      "description" : "Country of the Budget Lines, e.g. Kenya. Reuse the country already resolved in the conversation.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Fiscal year, e.g. 2027. Reuse the year already resolved in the conversation; defaults to the current scenario when omitted.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "opportunityName" : {
+      "title" : "Opportunity Name",
+      "description" : "Optional: limit to one Opportunity by name.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "program" : {
+      "title" : "Program",
+      "description" : "The Headroom category / program, e.g. Core Program, Trees. Reuse the category already resolved in the conversation.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "startIndex" : {
+      "title" : "Start Index",
+      "description" : "Optional 0-based paging start for lists longer than 15 (use 15, 30, ... for later pages).",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

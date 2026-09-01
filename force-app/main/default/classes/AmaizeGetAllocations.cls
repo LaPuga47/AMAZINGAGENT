@@ -11,7 +11,10 @@
  */
 public with sharing class AmaizeGetAllocations {
 
-    private static final Integer PAGE_SIZE = 15;
+    // Kept small on purpose: the Agentforce model reproduces short lists verbatim (preserving the
+    // clickable links) but summarizes long ones (flattening them). A small default page keeps the
+    // links intact; the user can ask for the next page.
+    private static final Integer PAGE_SIZE = 5;
 
     public class Request {
         @InvocableVariable(label='Program' description='Headroom category / program, e.g. Core Program, Rural Retail, Trees. Pass the user\'s wording; synonyms are resolved.' required=true)
@@ -176,34 +179,27 @@ public with sharing class AmaizeGetAllocations {
                 lines.add(allocLine(al, iso));
             }
             if (lines.isEmpty()) { continue; }   // none of this opp's lines fall in the page
+            // Plain (not bold) clickable Opportunity heading: the model preserves an inline link
+            // but flattens a bold+link header, so keep it a bare link to stay clickable.
             String header = AmaizeLink.md(g.opportunityName, 'Opportunity', g.opportunityId);
             blocks.add(header + '\n' + String.join(lines, '\n'));
         }
         return blocks.isEmpty() ? '' : '**' + title + '**\n\n' + String.join(blocks, '\n\n');
     }
 
-    /** One allocation record line with its links; Gift Commitment shown as "none" when absent. */
+    /**
+     * One allocation line, kept lean so the whole list stays short enough for the agent to
+     * reproduce verbatim (long outputs get summarized, which flattens the links): Allocation
+     * name, amount, type, status, and its Restriction — all inline, all clickable. Gift
+     * Commitment and Budget Line remain in resultsJson for drill-down, not in the default line.
+     */
     private static String allocLine(Allocation__c al, String iso) {
         String s = '- ' + AmaizeLink.md(al.Name, 'Allocation__c', al.Id)
             + ' — ' + AmaizeFormat.money(al.Funds_Allocated__c, iso)
             + ' | ' + nz(al.Allocation_Type__c)
             + ' | ' + nz(al.Allocation_Status__c);
-        // Restriction
         if (al.Restriction__c != null && al.Restriction__r != null) {
-            s += '\n  Restriction: ' + AmaizeLink.md(al.Restriction__r.Name, 'Restriction__c', al.Restriction__c);
-        }
-        // Gift Commitment (surface the gap explicitly when missing)
-        if (al.Restriction__r != null && al.Restriction__r.Gift_Commitment__c != null) {
-            s += '\n  Gift Commitment: ' + AmaizeLink.md(al.Restriction__r.Gift_Commitment__r.Name,
-                'GiftCommitment', al.Restriction__r.Gift_Commitment__c);
-        } else {
-            s += '\n  Gift Commitment: none';
-        }
-        // Budget Line
-        if (al.Budget_Line__c != null) {
-            String blName = (al.Budget_Line__r != null && String.isNotBlank(al.Budget_Line__r.Name))
-                ? al.Budget_Line__r.Name : 'Budget Line';
-            s += '\n  Budget Line: ' + AmaizeLink.md(blName, 'Budget_Line__c', al.Budget_Line__c);
+            s += ' | Restriction: ' + AmaizeLink.md(al.Restriction__r.Name, 'Restriction__c', al.Restriction__c);
         }
         return s;
     }

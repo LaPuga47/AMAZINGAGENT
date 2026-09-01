@@ -42,7 +42,8 @@ private class AmaizeFindCompetingGrantsTest {
         System.assert(res.summary.contains('**Potential Funding**'), res.summary);
         System.assert(res.summary.contains('Together, they represent'), res.summary);
         // No implementation terminology in the concise view.
-        System.assert(!res.summary.contains('mapped') && !res.summary.contains('FY'), 'no FY/mapped: ' + res.summary);
+        // (FY2027 form, not bare 'FY' — record IDs in URLs can contain "FY").
+        System.assert(!res.summary.contains('mapped') && !res.summary.contains('FY2027'), 'no FY2027/mapped: ' + res.summary);
         // Clickable Opportunity link in the concise view.
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), 'Expected an Opportunity link: ' + res.summary);
         // The verbose analysis is NOT in the default summary...

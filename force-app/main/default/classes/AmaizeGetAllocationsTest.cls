@@ -51,14 +51,19 @@ private class AmaizeGetAllocationsTest {
         System.assert(res.summary.contains('**SECURED**'), res.summary);
         System.assert(res.summary.contains('**LIKELY / PIPELINE**'), res.summary);
         // No implementation terminology.
-        System.assert(!res.summary.contains('mapped') && !res.summary.contains('exposure') && !res.summary.contains('FY'),
-            'no mapped/exposure/FY: ' + res.summary);
-        // Clickable links for allocation, opportunity, restriction, budget line.
+        // (check the FY2027 form, not the bare 'FY' substring — Salesforce record IDs in URLs can contain "FY").
+        System.assert(!res.summary.contains('mapped') && !res.summary.contains('exposure') && !res.summary.contains('FY2027'),
+            'no mapped/exposure/FY2027: ' + res.summary);
+        // Opportunity group heading is a clickable link (kept a bare link so the model preserves it).
+        System.assert(res.summary.contains('/lightning/r/Opportunity/'),
+            'clickable Opportunity group heading: ' + res.summary);
+        // Lean default line: clickable Allocation, Opportunity, and Restriction in the summary.
         System.assert(res.summary.contains('/lightning/r/Allocation__c/'), res.summary);
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), res.summary);
         System.assert(res.summary.contains('/lightning/r/Restriction__c/'), res.summary);
-        System.assert(res.summary.contains('/lightning/r/Budget_Line__c/'), res.summary);
-        System.assert(res.summary.contains('Budget Line:'), res.summary);
+        System.assert(res.summary.contains('| Restriction: ['), 'restriction inline + clickable: ' + res.summary);
+        // Gift Commitment and Budget Line stay available in the machine-readable JSON (drill-down).
+        System.assert(res.resultsJson.contains('budgetLineUrl') && res.resultsJson.contains('giftCommitmentUrl'), res.resultsJson);
     }
 
     @isTest
@@ -90,7 +95,7 @@ private class AmaizeGetAllocationsTest {
         Test.stopTest();
 
         System.assertEquals(16, res.matchCount, 'All 16 counted');
-        System.assert(res.summary.contains('Showing allocations 1–15 of 16'), 'must page, not truncate silently: ' + res.summary);
+        System.assert(res.summary.contains('Showing allocations 1–5 of 16'), 'must page, not truncate silently: ' + res.summary);
     }
 
     @isTest

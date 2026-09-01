@@ -150,7 +150,9 @@ public with sharing class AmaizeAnalyzeHeadroom {
     /** Contextual next step, chosen from the funding position — never the same generic line. */
     private static String followUpFor(HeadroomAggregate a, Decimal reducers) {
         if (a.forecastHeadroom <= 0) {
-            return 'Would you like me to show which grants and allocations are consuming the current capacity?';
+            // No available Headroom (overfunded or fully funded): steer to alternatives, objectively.
+            return 'Would you like to check ' + a.category + ' in other countries, or explore other programs in '
+                + a.country + ' that may have available Headroom?';
         }
         if (materialReducers(reducers, a.securedHeadroom) && a.securedHeadroom > a.forecastHeadroom) {
             return 'Would you like me to show which pipeline Opportunities are consuming the remaining Headroom?';

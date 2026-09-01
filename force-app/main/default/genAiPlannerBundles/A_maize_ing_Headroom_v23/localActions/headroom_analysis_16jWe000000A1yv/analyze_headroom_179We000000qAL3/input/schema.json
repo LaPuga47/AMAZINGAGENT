@@ -1,0 +1,28 @@
+{
+  "required" : [ "program", "country" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "country" : {
+      "title" : "Country",
+      "description" : "Country of the Budget Lines, e.g. Kenya. The authoritative filter.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Fiscal year, e.g. 2027. Defaults to the current scenario when omitted.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "program" : {
+      "title" : "Program",
+      "description" : "The Headroom category / program the user named, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital. Pass the user's wording; the action resolves synonyms.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
