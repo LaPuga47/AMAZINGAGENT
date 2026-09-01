@@ -24,4 +24,11 @@ public interface IBudgetLineSelector {
 
     /** Portfolio rollup: governed fields grouped by Country/BusinessUnit/Department/FiscalYear. */
     List<AggregateResult> aggregatePortfolio(String country, String fiscalYear);
+
+    /**
+     * Which Budget Line dimension fields (Department / Cost Category / Cost Type / Sub-Unit)
+     * carry the given value within the current-scenario population for a country/fiscal year.
+     * Used to auto-detect the dimension of an explicit value and to flag ambiguity.
+     */
+    Set<String> dimensionsContaining(String value, String country, String fiscalYear);
 }

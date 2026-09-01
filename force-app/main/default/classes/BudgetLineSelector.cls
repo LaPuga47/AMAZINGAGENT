@@ -117,6 +117,34 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
+    /**
+     * Detect which lower-level Budget Line dimensions carry `value` in the current scenario for
+     * the given country/fiscal year — so the caller can auto-resolve an explicit value and, when
+     * it appears in more than one dimension, ask which was meant. Case-insensitive (SOQL text
+     * comparison is case-insensitive; re-checked per field). Business Unit is excluded because it
+     * is country-suffixed and resolved via the program path.
+     */
+    public Set<String> dimensionsContaining(String value, String country, String fiscalYear) {
+        Set<String> matched = new Set<String>();
+        if (String.isBlank(value)) { return matched; }
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO,
+            '(Department__c = :v OR Cost_Category__c = :v OR Cost_Type__c = :v OR Sub__c = :v)' };
+        Map<String, Object> binds = new Map<String, Object>{ 'v' => value.trim() };
+        if (String.isNotBlank(country))    { clauses.add('Country__c = :country'); binds.put('country', country.trim()); }
+        if (String.isNotBlank(fiscalYear)) { clauses.add('Fiscal_Year__c = :fy');  binds.put('fy', fiscalYear.trim()); }
+        binds.put('lim', 200);
+        String query = 'SELECT Department__c, Cost_Category__c, Cost_Type__c, Sub__c FROM Budget_Line__c WHERE '
+            + String.join(clauses, ' AND ') + ' LIMIT :lim';
+        for (Budget_Line__c bl : (List<Budget_Line__c>) Database.queryWithBinds(query, binds, AccessLevel.USER_MODE)) {
+            if (value.equalsIgnoreCase(bl.Department__c))    { matched.add('Department'); }
+            if (value.equalsIgnoreCase(bl.Cost_Category__c)) { matched.add('Cost Category'); }
+            if (value.equalsIgnoreCase(bl.Cost_Type__c))     { matched.add('Cost Type'); }
+            if (value.equalsIgnoreCase(bl.Sub__c))           { matched.add('Sub-Unit'); }
+            if (matched.size() == 4) { break; }
+        }
+        return matched;
+    }
+
     public AggregateResult aggregateScope(BudgetLineDimensions d) {
         List<String> clauses = new List<String>{ CURRENT_SCENARIO };
         Map<String, Object> binds = new Map<String, Object>();
