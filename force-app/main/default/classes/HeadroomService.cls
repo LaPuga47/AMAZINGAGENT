@@ -162,6 +162,137 @@ public with sharing class HeadroomService {
     }
 
     /**
+     * DIMENSION MODE and PROGRAM + DIMENSION. Aggregates the same eight stored Budget Line
+     * fields as aggregate(), but filtered by explicit lower-level dimensions rather than (or in
+     * addition to) a standard Headroom program:
+     *   - program only        -> Program Mode (use aggregate() instead; kept here for completeness)
+     *   - dimension value only -> Dimension Mode (filter Budget Lines by that dimension)
+     *   - program + dimension  -> resolve the program population, then segment by the dimension
+     * A dimension VALUE with no explicit dimension name is auto-detected across Department /
+     * Cost Category / Cost Type / Sub-Unit; if it exists in more than one, returns AMBIGUOUS; if
+     * in none, returns NOT_FOUND. Country is required; fiscal year defaults to the current scenario.
+     */
+    public HeadroomAggregate aggregateExplicit(String program, String country, String fiscalYear,
+            String dimName, String dimValue, String dim2Name, String dim2Value) {
+        HeadroomAggregate a = new HeadroomAggregate();
+        String ctry = country == null ? '' : country.trim();
+        if (ctry == '') { a.missing.add('country'); a.state = HeadroomAggregate.State.NEEDS_INFO; return a; }
+        a.country = ctry;
+
+        Budget_Scenario__c scenario = currentScenario();
+        String fy = String.isNotBlank(fiscalYear) ? fiscalYear.trim()
+                    : (scenario != null ? scenario.Fiscal_Year__c : null);
+        a.fiscalYear = fy;
+        a.scenarioLabel = (scenario != null)
+            ? (scenario.Scenario_Type__c != null ? scenario.Scenario_Type__c + ' ' : '')
+                + (scenario.Fiscal_Year__c != null ? 'FY' + scenario.Fiscal_Year__c : '')
+            : null;
+
+        BudgetLineDimensions d = new BudgetLineDimensions();
+        d.country = ctry; d.fiscalYear = fy;
+        String progLabel = null;
+
+        // PROGRAM base (Program Mode / Program + Dimension): standard category population first.
+        if (String.isNotBlank(program)) {
+            HeadroomCategoryResolver.Rule rule = HeadroomCategoryResolver.resolve(program);
+            a.category = rule.label;
+            if (rule.mode == HeadroomCategoryResolver.Mode.ZERO) {
+                a.state = HeadroomAggregate.State.ZERO; a.headroomStatus = 'Not Applicable'; return a;
+            }
+            if (rule.mode == HeadroomCategoryResolver.Mode.NOT_CONFIGURED) {
+                a.state = HeadroomAggregate.State.NOT_CONFIGURED; return a;
+            }
+            d.businessUnit = rule.businessUnitBase; d.department = rule.department;
+            progLabel = rule.label;
+        }
+
+        // EXPLICIT dimension filters (primary + optional second), applied on top.
+        List<String> dimNames = new List<String>{ dimName, dim2Name };
+        List<String> dimValues = new List<String>{ dimValue, dim2Value };
+        List<String> appliedValues = new List<String>();
+        for (Integer i = 0; i < 2; i++) {
+            String val = dimValues[i];
+            if (String.isBlank(val)) { continue; }
+            String field = resolveDimField(dimNames[i], val, ctry, fy, a);
+            if (a.state == HeadroomAggregate.State.AMBIGUOUS || a.state == HeadroomAggregate.State.NOT_FOUND) {
+                a.dimensionValue = val.trim(); return a;
+            }
+            applyDimension(d, field, val.trim());
+            appliedValues.add(val.trim());
+        }
+
+        // Label: "Crop Insurance" (Dimension Mode), "Core Program" (Program Mode),
+        // or "Core Program (Crop Insurance)" (Program + segmentation).
+        String dimLabel = appliedValues.isEmpty() ? null : String.join(appliedValues, ' + ');
+        if (!appliedValues.isEmpty()) { a.dimensionValue = appliedValues[0]; }
+        String label = (progLabel != null && dimLabel != null) ? progLabel + ' (' + dimLabel + ')'
+            : (progLabel != null ? progLabel : dimLabel);
+        if (label == null) {
+            a.missing.add('a program or a Budget Line dimension');
+            a.state = HeadroomAggregate.State.NEEDS_INFO; return a;
+        }
+        a.category = label;
+
+        AggregateResult ar = lines.aggregateScope(d.normalize());
+        Integer cnt = (ar == null) ? 0 : (Integer) ar.get('cnt');
+        if (cnt == 0) { a.state = HeadroomAggregate.State.NONE; return a; }
+
+        a.budgetAmount = AmaizeBudgetHeadroom.budgetCost((Decimal) ar.get('bud'));
+        a.securedFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('sec'));
+        a.likelyFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('lik'));
+        a.pipelineFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('pipe'));
+        a.forecastFunding = AmaizeBudgetHeadroom.nz((Decimal) ar.get('fcf'));
+        a.securedHeadroom = AmaizeBudgetHeadroom.nz((Decimal) ar.get('sh'));
+        a.forecastHeadroom = AmaizeBudgetHeadroom.nz((Decimal) ar.get('fh'));
+        a.budgetLinesIncluded = cnt;
+        a.currencyIsoCode = (String) ar.get('iso');
+        a.headroomStatus = AmaizeBudgetHeadroom.statusFor(a.securedHeadroom);
+        a.state = HeadroomAggregate.State.FOUND;
+        return a;
+    }
+
+    /** Map a dimension value to its Budget Line field; auto-detect when the dimension name is blank/unknown. */
+    private String resolveDimField(String dimName, String value, String country, String fy, HeadroomAggregate a) {
+        if (String.isNotBlank(dimName)) {
+            String mapped = mapDimName(dimName);
+            if (mapped != null) { return mapped; }   // explicit, recognized dimension name
+        }
+        Set<String> matches = lines.dimensionsContaining(value, country, fy);
+        if (matches.isEmpty()) { a.state = HeadroomAggregate.State.NOT_FOUND; return null; }
+        if (matches.size() == 1) { return mapDimName(new List<String>(matches)[0]); }
+        // Value lives in more than one supported dimension — do not guess; ask which was meant.
+        a.state = HeadroomAggregate.State.AMBIGUOUS;
+        a.candidateDimensions = orderCandidates(matches);
+        return null;
+    }
+
+    private static String mapDimName(String name) {
+        String n = name == null ? '' : name.trim().toLowerCase().replace('-', ' ');
+        if (n == 'department' || n == 'dept') { return 'department'; }
+        if (n == 'cost category' || n == 'costcategory' || n == 'category') { return 'costCategory'; }
+        if (n == 'cost type' || n == 'costtype') { return 'costType'; }
+        if (n == 'sub unit' || n == 'subunit' || n == 'sub' || n == 'sub-unit') { return 'subUnit'; }
+        if (n == 'business unit' || n == 'businessunit' || n == 'bu') { return 'businessUnit'; }
+        return null;
+    }
+
+    private static void applyDimension(BudgetLineDimensions d, String field, String value) {
+        if (field == 'department') { d.department = value; }
+        else if (field == 'costCategory') { d.costCategory = value; }
+        else if (field == 'costType') { d.costType = value; }
+        else if (field == 'subUnit') { d.subUnit = value; }
+        else if (field == 'businessUnit') { d.businessUnit = value; }
+    }
+
+    private static List<String> orderCandidates(Set<String> matches) {
+        List<String> ordered = new List<String>();
+        for (String dim : new List<String>{ 'Department', 'Cost Category', 'Cost Type', 'Sub-Unit' }) {
+            if (matches.contains(dim)) { ordered.add(dim); }
+        }
+        return ordered;
+    }
+
+    /**
      * Portfolio ranking at the GOVERNED PROGRAM level (not individual Budget Lines). Rolls the
      * current-scenario Budget Lines up into (Country + governed Headroom Category + Fiscal Year)
      * groups — reusing the same category rules and stored fields as single-scope analysis, so a

@@ -84,16 +84,28 @@ subagent headroom_analysis:
     actions:
         analyze_headroom:
             target: "apex://AmaizeAnalyzeHeadroom"
-            description: "Governed Headroom aggregation for a single country + program. Resolves a Headroom category/program (Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital) to its Budget Line population and SUMS all governed fields across every qualifying line for the country and fiscal year. Returns TWO renderings: 'summary' — a concise, conversational business answer (the default to show) — and 'detail' — the full field-by-field breakdown (show only when the user asks). Returns found=true with a governed result, a governed zero for Unrestricted/Working Capital, or found=false when the category is not configured, no qualifying lines exist, or the category/country is missing."
+            description: "Headroom aggregation for a single country. Supports PROGRAM MODE (a standard Headroom category — Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital) and DIMENSION MODE (an explicit lower-level Budget Line dimension value the user named — a Cost Category, Department, Cost Type, or Sub-Unit such as Crop Insurance, Staff Costs, Field Operations). Providing BOTH a program and a dimension value segments the program (Program + Dimension). It SUMS the same stored fields across every qualifying line for the country and fiscal year. Returns 'summary' (concise conversational answer, the default) and 'detail' (full breakdown, on request). found=true with a result; or found=false with signal AMBIGUOUS (the value exists in more than one dimension — the summary asks which), NOT_FOUND (the value is in no dimension for that scope), NONE, NOT_CONFIGURED, Not Applicable, or NEEDS_INFO."
             inputs:
                 program: string
-                    description: "The Headroom category / program the user named, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital. Pass the user's wording; the action resolves synonyms."
-                    is_required: True
+                    description: "PROGRAM MODE: the standard Headroom category the user named (Core Program, Rural Retail, Market Access, Trees, System Change Extension, Unrestricted, Working Capital). Pass a standard program here. LEAVE BLANK for a pure dimension query."
+                    is_required: False
                 country: string
-                    description: "Country of the Budget Lines, e.g. Kenya. The authoritative filter."
+                    description: "Country of the Budget Lines, e.g. Kenya. The authoritative filter. Required."
                     is_required: True
                 fiscalYear: integer
                     description: "Fiscal year, e.g. 2027. Defaults to the current scenario when omitted."
+                    is_required: False
+                dimensionValue: string
+                    description: "DIMENSION MODE: an explicit lower-level Budget Line value the user named that is NOT a standard program, e.g. Crop Insurance, Staff Costs, Field Operations. Pass ONLY when the user asks about a specific dimension/item. Combine with program to segment a standard program."
+                    is_required: False
+                dimensionName: string
+                    description: "Optional dimension for dimensionValue — Department, Cost Category, Cost Type, Sub-Unit, or Business Unit. Pass when the user is explicit (e.g. 'Department = Market Access'); leave blank to auto-detect (the action asks if the value is ambiguous)."
+                    is_required: False
+                extraDimensionValue: string
+                    description: "Optional second explicit dimension value for a combined filter (e.g. Department = Market Access AND Cost Category = Staff Costs)."
+                    is_required: False
+                extraDimensionName: string
+                    description: "Optional dimension name for the second value."
                     is_required: False
             outputs:
                 summary: string
@@ -177,6 +189,35 @@ subagent headroom_analysis:
               and the fiscal year if given (it defaults to the current scenario otherwise).
               Pass the user's category wording as-is — the action resolves synonyms (e.g.
               Core Field Program, RRT, MKT, TRE, System Change Extension).
+
+              PROGRAM MODE vs DIMENSION MODE. Standard Headroom programs are Core Program, Rural
+              Retail, Market Access, Trees, and System Change Extension & Other Programs (plus the
+              zero categories Unrestricted / Working Capital). When the user names one of THESE,
+              use PROGRAM MODE: pass it as 'program', leave the dimension inputs blank. When the
+              user instead names a lower-level Budget Line item that is NOT one of those standard
+              programs — a Cost Category, Department, Cost Type, or Sub-Unit such as Crop
+              Insurance, Staff Costs, Input Costs, Field Operations — use DIMENSION MODE: leave
+              'program' blank and pass the value as 'dimensionValue' (and 'dimensionName' when the
+              user is explicit, e.g. "Department = Market Access" -> dimensionName=Department).
+              Never switch a standard program (e.g. Trees, Market Access) to a bare
+              dimension/department filter unless the user explicitly asks for the dimension
+              ("Department = Trees", "as a Department"). If the user names a standard program AND
+              a dimension to drill into (e.g. "Kenya Core Program, Cost Category Crop Insurance"),
+              pass BOTH — the action resolves the program population, then segments it. Label the
+              result naturally from the action ("Crop Insurance in Kenya", "Core Program (Crop
+              Insurance)"); do not turn a dimension into a standard program name.
+
+              Handle the dimension signals: AMBIGUOUS — the value exists in more than one
+              dimension; relay the action's question ("Do you mean X as a Cost Type or a Cost
+              Category?") and pass the user's answer back as dimensionName. NOT_FOUND — relay
+              that the value isn't in the available Budget Line dimensions for that country/year;
+              do not guess a different value. A multi-year or multi-country dimension question is
+              handled the same way as for programs: call analyze_headroom once per year (or per
+              country), each with the same dimensionValue, and group the results with bold
+              headings. Portfolio rankings ("which programs have the largest funding gap")
+              stay PROGRAM-level — never inject Crop Insurance / Staff Costs / Input Costs / Field
+              Operations into a standard program ranking; only rank dimensions when the user
+              explicitly asks for that dimension.
 
               ANSWER CONVERSATIONALLY BY DEFAULT. The action returns TWO renderings. Its
               'summary' is a concise, ready-to-send business answer (2-4 sentences) that leads
@@ -298,6 +339,10 @@ subagent headroom_analysis:
                 with program=...
                 with country=...
                 with fiscalYear=...
+                with dimensionValue=...
+                with dimensionName=...
+                with extraDimensionValue=...
+                with extraDimensionName=...
             rank_headroom: @actions.rank_headroom
                 with metric=...
                 with country=...
