@@ -462,7 +462,7 @@ subagent competing_grants:
                 contextJson: string
         get_allocations:
             target: "apex://AmaizeGetAllocations"
-            description: "Funding Allocation drill-down for a governed Headroom scope (category + country + fiscal year). Returns the individual Funding Allocation records grouped by Opportunity and split into Secured vs Likely/Pipeline, with a lead count/total and clickable Allocation, Opportunity, Restriction, Gift Commitment and Budget Line links. Reuses the same governed Budget Line population as find_competing_grants, so totals reconcile. Optional filters: allocationType, allocationStatus, opportunityName; startIndex pages lists longer than 15. Use this the moment the user asks to SEE the underlying allocations."
+            description: "Funding Allocation drill-down for a governed Headroom scope (category + country + fiscal year). Returns the individual Funding Allocation records grouped by Opportunity and split into Secured vs Likely/Pipeline, with a lead count/total and clickable Allocation, Opportunity, Restriction, Gift Commitment and Budget Line links. Reuses the same governed Budget Line population as find_competing_grants, so totals reconcile. Optional filters: allocationType, allocationStatus, opportunityName. By default it shows the first few records WITH clickable links and offers to see the rest (the Agentforce surface keeps links clickable only for short lists); set showAll=true when the user asks for the full list (larger lists may then render as plain text). Use this the moment the user asks to SEE the underlying allocations."
             inputs:
                 program: string
                     description: "The Headroom category / program, e.g. Core Program, Trees. Reuse the category already resolved in the conversation."
@@ -482,8 +482,8 @@ subagent competing_grants:
                 opportunityName: string
                     description: "Optional: limit to one Opportunity by name."
                     is_required: False
-                startIndex: integer
-                    description: "Optional 0-based paging start for lists longer than 15 (use 15, 30, ... for later pages)."
+                showAll: boolean
+                    description: "Set true when the user explicitly asks for the full list ('show all', 'list every allocation'). Forces the complete list even beyond the summary threshold (bounded by a response-size safety limit)."
                     is_required: False
             outputs:
                 summary: string
@@ -546,10 +546,14 @@ subagent competing_grants:
                 already formatted with bold group headings and clickable '[name](url)' links;
                 reproduce every link and heading exactly, do not rewrite or flatten it. Do NOT
                 repeat the competing-grants summary or ask "would you like to see the
-                allocations?" when they have already asked. Use allocationType / allocationStatus /
-                opportunityName filters when the user narrows it (e.g. "only pending", "only
-                pipeline", "just the MasterCard allocations"), and startIndex to page when it
-                says more than 15 exist.
+                allocations?" when they have already asked. By default the action shows the first
+                few records WITH clickable links and, if more exist, ends with "Ask to see all N"
+                — relay that offer verbatim; never invent "next page"/"showing 1–5" navigation. If
+                the user accepts it, or asks up front for the full list ("show all", "list every
+                allocation"), call get_allocations again with showAll=true (the full list may then
+                render as plain text — that is expected on this surface). Use allocationType /
+                allocationStatus / opportunityName filters when the user narrows it (e.g. "only
+                pending", "only pipeline", "just the MasterCard allocations").
               - If the user instead gives a category + country directly for a competition check,
                 use find_competing_grants. If a named grant needs its category/country resolved
                 for a category-level check, call get_opportunity_context first.
@@ -608,7 +612,7 @@ subagent competing_grants:
                 with allocationType=...
                 with allocationStatus=...
                 with opportunityName=...
-                with startIndex=...
+                with showAll=...
             rank_portfolio_risks: @actions.rank_portfolio_risks
                 with metric=...
                 with category=...

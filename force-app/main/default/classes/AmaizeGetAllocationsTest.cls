@@ -91,7 +91,7 @@ private class AmaizeGetAllocationsTest {
     }
 
     @isTest
-    static void pagesBeyondFifteen() {
+    static void defaultShowsSmallClickablePageThenOfferAll() {
         Id line = coreLineIds()[0];
         List<HeadroomTestData.AllocSpec> specs = new List<HeadroomTestData.AllocSpec>();
         for (Integer i = 0; i < 16; i++) { specs.add(new HeadroomTestData.AllocSpec('Pipeline', 5000)); }
@@ -99,10 +99,20 @@ private class AmaizeGetAllocationsTest {
 
         Test.startTest();
         AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
+        AmaizeGetAllocations.Request r = req('Core Program', 'Kenya', 2027); r.showAll = true;
+        AmaizeGetAllocations.Result full = run(r);
         Test.stopTest();
 
-        System.assertEquals(16, res.matchCount, 'All 16 counted');
-        System.assert(res.summary.contains('Showing allocations 1–5 of 16'), 'must page, not truncate silently: ' + res.summary);
+        System.assertEquals(16, res.matchCount, 'all 16 counted');
+        // Default: first 5 shown WITH clickable links, and an offer to see all — no "next page" phrasing.
+        System.assertEquals(5, res.summary.countMatches('/lightning/r/Allocation__c/'), 'first 5 clickable: ' + res.summary);
+        System.assert(res.summary.contains('Showing 5 of 16 with clickable links'), res.summary);
+        System.assert(res.summary.contains('Ask to see all 16'), res.summary);
+        System.assert(!res.summary.containsIgnoreCase('next page') && !res.summary.contains('Showing allocations 1'),
+            'no pagination navigation language: ' + res.summary);
+        // showAll: the full list is returned (all 16, under the 200 safety cap), no truncation note.
+        System.assertEquals(16, full.summary.countMatches('/lightning/r/Allocation__c/'), 'showAll returns all records');
+        System.assert(!full.summary.contains('exceeds the response'), full.summary);
     }
 
     @isTest
