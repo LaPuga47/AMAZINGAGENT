@@ -62,6 +62,13 @@ private class AmaizeGetAllocationsTest {
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), res.summary);
         System.assert(res.summary.contains('/lightning/r/Restriction__c/'), res.summary);
         System.assert(res.summary.contains('| Restriction: ['), 'restriction inline + clickable: ' + res.summary);
+        // Allocation Type is conveyed by the section heading, not repeated on each row.
+        System.assert(!res.summary.contains('| Secured |') && !res.summary.contains('| Pipeline |')
+            && !res.summary.contains('| Likely |'), 'type not repeated on rows: ' + res.summary);
+        // No empty placeholder when a field (status) is blank.
+        System.assert(!res.summary.contains('| — |') && !res.summary.contains('| —\n'), 'no empty placeholder: ' + res.summary);
+        // Allocation Type still available internally for grouping/filtering.
+        System.assert(res.resultsJson.contains('allocationType'), res.resultsJson);
         // Gift Commitment and Budget Line stay available in the machine-readable JSON (drill-down).
         System.assert(res.resultsJson.contains('budgetLineUrl') && res.resultsJson.contains('giftCommitmentUrl'), res.resultsJson);
     }

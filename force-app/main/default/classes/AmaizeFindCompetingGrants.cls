@@ -71,8 +71,8 @@ public with sharing class AmaizeFindCompetingGrants {
             }
             when NONE {
                 r.found = false; r.severity = 'NONE';
-                r.summary = 'No qualifying Budget Line records were found for the requested scope ('
-                    + a.category + ', ' + a.country + (a.fiscalYear != null ? ', ' + a.fiscalYear : '') + ').';
+                r.summary = 'No qualifying Budget Line records were found for ' + a.category + ' in '
+                    + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '') + '.';
                 r.detail = r.summary;
                 r.resultsJson = '{"status":"NONE"}';
             }
@@ -182,7 +182,7 @@ public with sharing class AmaizeFindCompetingGrants {
             String tail = (a.forecastHeadroom < 0)
                 ? ', but overfunded by ' + AmaizeFormat.money(-a.forecastHeadroom, iso) + ' on a forecast basis'
                 : ' (about ' + AmaizeFormat.money(a.forecastHeadroom, iso) + ' on a forecast basis)';
-            return 'approximately ' + AmaizeFormat.money(a.securedHeadroom, iso) + ' of Secured Headroom' + tail;
+            return 'approximately ' + AmaizeFormat.money(a.securedHeadroom, iso) + ' of available Headroom now' + tail;
         }
         return 'approximately ' + AmaizeFormat.money(a.securedHeadroom, iso) + ' of available Headroom';
     }
@@ -264,12 +264,12 @@ public with sharing class AmaizeFindCompetingGrants {
                 + a.budgetLineCount + ' lines), but no funding is recorded against them, so competition cannot be assessed.';
         } else if (competing.isEmpty()) {
             s = '**Competing Grants Summary**\nNo pipeline grants are currently competing for ' + scope
-                + '. Remaining secured headroom is ' + AmaizeFormat.money(a.securedHeadroom, iso) + '.';
+                + '. Remaining available Headroom is ' + AmaizeFormat.money(a.securedHeadroom, iso) + '.';
         } else {
             s = '**Competing Grants Summary**\n' + competing.size() + ' pipeline '
                 + (competing.size() == 1 ? 'opportunity totaling ' : 'opportunities totaling ')
                 + AmaizeFormat.money(a.combinedCompeting, iso) + ' of potential funding are competing for ' + scope
-                + '. Current secured headroom is ' + AmaizeFormat.money(a.securedHeadroom, iso) + ', so '
+                + '. Current available Headroom is ' + AmaizeFormat.money(a.securedHeadroom, iso) + ', so '
                 + (a.minimumAdjustmentRequired > 0
                     ? 'they could not all fit at their current amounts.'
                     : 'they can currently be accommodated.');
@@ -316,7 +316,7 @@ public with sharing class AmaizeFindCompetingGrants {
                 lines.add('- ' + f.label + ': ' + AmaizeFormat.money(f.exposure, iso)
                     + (f.fits ? ' — fits' : ' — exceeds headroom by ' + AmaizeFormat.money(f.excess, iso)));
             }
-            fit = '\n\n**What Can Fit** (competing funding vs. secured headroom)\n' + String.join(lines, '\n')
+            fit = '\n\n**What Can Fit** (competing funding vs. available Headroom)\n' + String.join(lines, '\n')
                 + (a.exhaustiveCombinations ? '' : '\n_(showing key scenarios; many opportunities present)_');
         }
 
@@ -380,7 +380,7 @@ public with sharing class AmaizeFindCompetingGrants {
             + ' / Likely ' + AmaizeFormat.money(g.likelyExposure, iso)
             + ' / Pipeline ' + AmaizeFormat.money(g.pipelineExposure, iso) + ')';
         if (g.headroomConsumptionPct != null) {
-            s += '\n  - Share of current secured headroom: ' + g.headroomConsumptionPct.intValue() + '%';
+            s += '\n  - Share of current available Headroom: ' + g.headroomConsumptionPct.intValue() + '%';
         }
         if (g.opportunityAmount != null) {
             s += '\n  - Opportunity Amount: ' + AmaizeFormat.money(g.opportunityAmount, iso)

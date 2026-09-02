@@ -117,8 +117,9 @@ private class AmaizeAnalyzeHeadroomTest {
         // Core Program: secured HR 1.1M vs forecast HR 0.9M (200K likely+pipeline) -> both surfaced.
         AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Kenya', 2027));
         System.assert(res.summary.contains('tighter'), res.summary);
-        System.assert(res.summary.contains('Secured Headroom'), res.summary);
+        System.assert(res.summary.contains('available Headroom now'), res.summary);
         System.assert(res.summary.contains('falls to'), res.summary);
+        System.assert(!res.summary.contains('Secured Headroom'), 'no "Secured Headroom" in normal answer: ' + res.summary);
         System.assert(res.summary.contains('pipeline Opportunities'), 'tight-case follow-up: ' + res.summary);
     }
 

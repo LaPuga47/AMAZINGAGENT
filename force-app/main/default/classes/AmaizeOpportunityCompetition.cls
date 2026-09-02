@@ -91,7 +91,7 @@ public with sharing class AmaizeOpportunityCompetition {
         String title = '**' + sc.category + ' · ' + sc.country
             + (sc.fiscalYear != null ? ' · ' + sc.fiscalYear : '') + '** — ' + c.severity;
         String body = '\n- This grant\'s contribution here: ' + AmaizeFormat.money(sc.focusExposure, iso)
-            + '\n- Secured headroom: ' + AmaizeFormat.money(c.securedHeadroom, iso)
+            + '\n- Available Headroom: ' + AmaizeFormat.money(c.securedHeadroom, iso)
             + ' · total competing (Likely+Pipeline): ' + AmaizeFormat.money(c.combinedCompeting, iso)
             + (c.minimumAdjustmentRequired > 0
                 ? ' · **' + AmaizeFormat.money(c.minimumAdjustmentRequired, iso) + ' overfunded if all close**' : '');
@@ -108,7 +108,7 @@ public with sharing class AmaizeOpportunityCompetition {
                 + (g.probability != null ? ' · ' + String.valueOf(Integer.valueOf(g.probability)) + '%' : ''));
         }
         String otherBlock = others.isEmpty()
-            ? '\n- No other opportunities are competing for this scope.'
+            ? '\n- No other opportunities are competing for this program.'
             : '\n- Other competing opportunities:\n' + String.join(others, '\n');
         return title + body + otherBlock;
     }

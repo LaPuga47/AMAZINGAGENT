@@ -64,9 +64,9 @@ public with sharing class AmaizeGetAllocations {
         switch on a.status {
             when NONE {
                 r.found = false; r.matchCount = 0;
-                r.summary = 'No qualifying Budget Line records were found for the requested scope ('
-                    + a.category + ', ' + a.country + (a.fiscalYear != null ? ', ' + a.fiscalYear : '') + '), '
-                    + 'so there are no allocations to show.';
+                r.summary = 'No qualifying Budget Line records were found for ' + a.category + ' in '
+                    + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '')
+                    + ', so there are no allocations to show.';
                 r.resultsJson = '{"status":"NONE"}';
                 return r;
             }
@@ -190,14 +190,14 @@ public with sharing class AmaizeGetAllocations {
     /**
      * One allocation line, kept lean so the whole list stays short enough for the agent to
      * reproduce verbatim (long outputs get summarized, which flattens the links): Allocation
-     * name, amount, type, status, and its Restriction — all inline, all clickable. Gift
-     * Commitment and Budget Line remain in resultsJson for drill-down, not in the default line.
+     * name, amount, status (only when populated), and its Restriction — all inline, all
+     * clickable. The Allocation Type is conveyed by the SECTION heading, so it is not repeated
+     * on each row; it (with Gift Commitment / Budget Line) stays in resultsJson for drill-down.
      */
     private static String allocLine(Allocation__c al, String iso) {
         String s = '- ' + AmaizeLink.md(al.Name, 'Allocation__c', al.Id)
-            + ' — ' + AmaizeFormat.money(al.Funds_Allocated__c, iso)
-            + ' | ' + nz(al.Allocation_Type__c)
-            + ' | ' + nz(al.Allocation_Status__c);
+            + ' — ' + AmaizeFormat.money(al.Funds_Allocated__c, iso);
+        if (String.isNotBlank(al.Allocation_Status__c)) { s += ' | ' + al.Allocation_Status__c; }
         if (al.Restriction__c != null && al.Restriction__r != null) {
             s += ' | Restriction: ' + AmaizeLink.md(al.Restriction__r.Name, 'Restriction__c', al.Restriction__c);
         }
