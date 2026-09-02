@@ -63,28 +63,28 @@ public with sharing class AmaizePortfolioRisks {
         if (req.fiscalYear != null) { scopeFilter += ' · ' + req.fiscalYear; }
 
         if (ranked.isEmpty()) {
-            return 'No Headroom scopes were found for the current scenario' + scopeFilter + '.';
+            return 'No Headroom results were found for the current scenario' + scopeFilter + '.';
         }
 
         String header = '**Portfolio Competing-Grant Risk — ranked by ' + metricLabel + scopeFilter + '**'
-            + '\n_Each row is a program scope (category · country · year); competing funding is '
-            + 'Likely + Pipeline against secured headroom._';
+            + '\n_Each row is a program in a country and year; competing funding is '
+            + 'Likely + Pipeline against available Headroom._';
 
         List<String> rows = new List<String>();
         for (PortfolioScopeRisk s : ranked) {
             String iso = s.currencyIsoCode;
             String risk = s.minimumAdjustmentRequired > 0
                 ? AmaizeFormat.money(s.minimumAdjustmentRequired, iso) + ' overfunded'
-                : AmaizeFormat.money(s.securedHeadroom - s.combinedCompeting, iso) + ' spare';
+                : AmaizeFormat.money(s.securedHeadroom - s.combinedCompeting, iso) + ' of Headroom would remain';
             rows.add('- **' + s.category + ' · ' + s.country
                 + (s.fiscalYear != null ? ' · ' + s.fiscalYear : '') + '** — '
                 + s.severity + '. Competing ' + AmaizeFormat.money(s.combinedCompeting, iso)
-                + ' vs secured headroom ' + AmaizeFormat.money(s.securedHeadroom, iso)
+                + ' vs available Headroom ' + AmaizeFormat.money(s.securedHeadroom, iso)
                 + ' (' + risk + '); ' + s.budgetLineCount + ' budget line'
                 + (s.budgetLineCount == 1 ? '' : 's') + '.');
         }
 
-        String footer = '\n\nName any scope — e.g. "competing grants for '
+        String footer = '\n\nName any program and country — e.g. "competing grants for '
             + ranked[0].category + ' ' + ranked[0].country
             + (ranked[0].fiscalYear != null ? ' ' + ranked[0].fiscalYear : '')
             + '" — for the full breakdown with opportunities and record links.';

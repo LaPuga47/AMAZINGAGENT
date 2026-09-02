@@ -92,8 +92,9 @@ public with sharing class AmaizeAnalyzeHeadroom {
             when NONE {
                 r.found = false;
                 r.signal = 'NONE';
-                r.summary = 'No qualifying Budget Line records were found for the requested scope ('
-                    + a.category + ', ' + a.country + (a.fiscalYear != null ? ', ' + a.fiscalYear : '') + ').';
+                r.summary = 'No qualifying Budget Line records were found for ' + a.category + ' in '
+                    + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '')
+                    + ', so I cannot determine the funding gap.';
                 r.detail = r.summary;
                 r.headroomJson = '{"status":"NONE","budgetLinesIncluded":0}';
             }
@@ -150,7 +151,7 @@ public with sharing class AmaizeAnalyzeHeadroom {
             // Secured and forecast headroom differ materially — both numbers are useful.
             body = 'There appears to be room for additional fundraising for ' + name + ' in ' + fyText
                 + ', but it is tighter once likely and pipeline funding are considered. It has about '
-                + AmaizeFormat.money(a.securedHeadroom, iso) + ' of Secured Headroom, which falls to roughly '
+                + AmaizeFormat.money(a.securedHeadroom, iso) + ' of available Headroom now, which falls to roughly '
                 + AmaizeFormat.money(a.forecastHeadroom, iso) + ' on a forecast basis.';
         } else {
             body = 'There appears to be room for additional fundraising for ' + name + ' in ' + fyText
@@ -242,11 +243,11 @@ public with sharing class AmaizeAnalyzeHeadroom {
                 + ' budget line' + (a.budgetLinesIncluded == 1 ? '' : 's') + '.';
         } else if (a.headroomStatus == 'Headroom Available') {
             interp = 'There is ' + AmaizeFormat.money(a.securedHeadroom, iso)
-                + ' of secured headroom to raise against; forecast headroom after likely and pipeline funding is '
+                + ' of available Headroom to raise against; on a forecast basis, after likely and pipeline funding, it is '
                 + AmaizeFormat.money(a.forecastHeadroom, iso) + '.';
         } else {
-            interp = 'Secured headroom is tight at ' + AmaizeFormat.money(a.securedHeadroom, iso)
-                + '; confirm with Grants Finance before pitching. Forecast headroom is '
+            interp = 'Available Headroom is tight at ' + AmaizeFormat.money(a.securedHeadroom, iso)
+                + '; confirm with Grants Finance before pitching. On a forecast basis it is '
                 + AmaizeFormat.money(a.forecastHeadroom, iso) + '.';
         }
         return header + figures + '\n\n' + interp;

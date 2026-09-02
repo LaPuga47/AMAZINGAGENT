@@ -115,12 +115,12 @@ public with sharing class AmaizeGetFundingContext {
         String funding = '\n\n**Funding Summary**'
             + '\n- Budget: ' + AmaizeFormat.money(fc.budgetCost, iso)
             + '\n- Secured funding: ' + AmaizeFormat.money(fc.securedFunding, iso)
-            + '\n- Remaining secured headroom: ' + AmaizeFormat.money(fc.securedHeadroom, iso);
+            + '\n- Available Headroom: ' + AmaizeFormat.money(fc.securedHeadroom, iso);
 
         // Funding detail — one row per allocation with its full lineage.
         String linked;
         if (fc.allocations.isEmpty()) {
-            linked = '\n\n**Funding Detail**\nNo funding is currently recorded against this scope.';
+            linked = '\n\n**Funding Detail**\nNo funding is currently recorded against this program.';
         } else {
             List<String> rows = new List<String>();
             Set<Id> opps = new Set<Id>();
@@ -137,11 +137,11 @@ public with sharing class AmaizeGetFundingContext {
         // Competing-grants insight.
         String insight = '\n\n**Competing Grants Insight**\n';
         if (fc.combinedCompeting <= 0) {
-            insight += 'No pipeline funding is competing for this scope. Severity: ' + fc.severity + '.';
+            insight += 'No pipeline funding is competing for this program. Severity: ' + fc.severity + '.';
         } else {
             insight += 'Combined competing (likely + pipeline) funding is '
                 + AmaizeFormat.money(fc.combinedCompeting, iso) + ' against '
-                + AmaizeFormat.money(fc.securedHeadroom, iso) + ' of remaining secured headroom'
+                + AmaizeFormat.money(fc.securedHeadroom, iso) + ' of available Headroom'
                 + (fc.potentialExcess > 0
                     ? ', a potential overfunding of ' + AmaizeFormat.money(fc.potentialExcess, iso) + ' if all close'
                     : '')
