@@ -11,10 +11,12 @@
  */
 public with sharing class AmaizeGetAllocations {
 
-    // Kept small on purpose: the Agentforce model reproduces short lists verbatim (preserving the
-    // clickable links) but summarizes long ones (flattening them). A small default page keeps the
-    // links intact; the user can ask for the next page.
-    private static final Integer PAGE_SIZE = 5;
+    // The Agentforce model keeps record links clickable only for short lists (it flattens longer
+    // ones to plain text), so by default we show up to SHOW_CLICKABLE_MAX records WITH links and
+    // offer "see all". When the user asks to see everything (showAll), we return the full list up
+    // to HARD_CAP (accepting that 6+ rows may render as plain text) rather than truncate silently.
+    private static final Integer SHOW_CLICKABLE_MAX = 5;
+    private static final Integer HARD_CAP = 200;
 
     public class Request {
         @InvocableVariable(label='Program' description='Headroom category / program, e.g. Core Program, Rural Retail, Trees. Pass the user\'s wording; synonyms are resolved.' required=true)
@@ -29,8 +31,8 @@ public with sharing class AmaizeGetAllocations {
         public String allocationStatus;
         @InvocableVariable(label='Opportunity Name' description='Optional: limit the allocations to a single Opportunity by name.' required=false)
         public String opportunityName;
-        @InvocableVariable(label='Start Index' description='For paging large lists: 0-based index to start from (default 0). Ask for the next page with the next multiple of 15.' required=false)
-        public Integer startIndex;
+        @InvocableVariable(label='Show All' description='Set true when the user explicitly asks for the full list ("show all", "list every allocation"). Forces the complete list even beyond the summary threshold (still bounded by a response-size safety limit).' required=false)
+        public Boolean showAll;
     }
 
     public class Result {
@@ -106,7 +108,7 @@ public with sharing class AmaizeGetAllocations {
         List<CompetingGrant> secured = new List<CompetingGrant>();
         List<CompetingGrant> other = new List<CompetingGrant>();
         Integer total = 0;
-        Decimal totalAmt = 0;
+        Decimal securedTotal = 0, otherTotal = 0;
         Set<Id> oppIds = new Set<Id>();
 
         for (CompetingGrant g : a.grants) {
@@ -117,9 +119,9 @@ public with sharing class AmaizeGetAllocations {
                 String t = al.Allocation_Type__c;
                 if (typeF != null && (t == null || t.toLowerCase() != typeF)) { continue; }
                 if (statusF != null && (al.Allocation_Status__c == null || al.Allocation_Status__c.toLowerCase() != statusF)) { continue; }
-                if (t == 'Secured') { securedAllocs.add(al); } else { otherAllocs.add(al); }
+                Decimal amt = AmaizeBudgetHeadroom.nz(al.Funds_Allocated__c);
+                if (t == 'Secured') { securedAllocs.add(al); securedTotal += amt; } else { otherAllocs.add(al); otherTotal += amt; }
                 total++;
-                totalAmt += AmaizeBudgetHeadroom.nz(al.Funds_Allocated__c);
                 oppIds.add(g.opportunityId);
             }
             if (!securedAllocs.isEmpty()) { secured.add(subGrant(g, securedAllocs)); }
@@ -136,49 +138,51 @@ public with sharing class AmaizeGetAllocations {
             return r;
         }
 
-        Integer start = (req.startIndex == null || req.startIndex < 0) ? 0 : req.startIndex;
-        r.summary = render(scopeName, yr, iso, secured, other, total, oppIds.size(), start);
+        Boolean showAll = req.showAll == true;
+        // Default keeps links clickable (short list); showAll returns the full list up to the safety cap.
+        Integer maxRows = showAll ? HARD_CAP : SHOW_CLICKABLE_MAX;
         r.resultsJson = json(a, secured, other, iso);
+        r.summary = render(scopeName, yr, iso, secured, other, total, oppIds.size(), maxRows, showAll);
         return r;
     }
 
+    /** Grouped list, emitting up to maxRows records. Adds one closing line when the list is capped. */
     private static String render(String scopeName, String yr, String iso, List<CompetingGrant> secured,
-            List<CompetingGrant> other, Integer total, Integer oppCount, Integer start) {
+            List<CompetingGrant> other, Integer total, Integer oppCount, Integer maxRows, Boolean showAll) {
         List<String> out = new List<String>();
         out.add(scopeName + ' has ' + total + ' Funding Allocation record' + (total == 1 ? '' : 's')
             + ' across ' + oppCount + ' Opportunit' + (oppCount == 1 ? 'y' : 'ies') + ' in ' + yr + '.');
 
-        Boolean paged = total > PAGE_SIZE;
-        Integer endIdx = paged ? Math.min(start + PAGE_SIZE, total) : total;
-        if (paged) {
-            out.add('_Showing allocations ' + (start + 1) + '–' + endIdx + ' of ' + total
-                + '. Ask for the next page to see more._');
-        }
-
-        // Emit each section; a running counter drives paging across the whole ordered list.
-        Integer[] cursor = new Integer[]{ 0 };   // mutable counter shared across sections
-        String securedBlock = section('SECURED', secured, iso, start, endIdx, cursor);
-        String otherBlock = section('LIKELY / PIPELINE', other, iso, start, endIdx, cursor);
+        Integer[] cursor = new Integer[]{ 0 };
+        String securedBlock = section('SECURED', secured, iso, cursor, maxRows);
+        String otherBlock = section('LIKELY / PIPELINE', other, iso, cursor, maxRows);
         if (String.isNotBlank(securedBlock)) { out.add(securedBlock); }
         if (String.isNotBlank(otherBlock)) { out.add(otherBlock); }
 
-        out.add('Would you like these summarized by Opportunity or Restriction?');
+        Integer shown = Math.min(total, maxRows);
+        if (total > maxRows) {
+            out.add(showAll
+                ? '_Showing the first ' + shown + ' of ' + total + ' — the full list exceeds the response '
+                    + 'size limit. Filter by Opportunity to see the rest._'
+                : '_Showing ' + shown + ' of ' + total + ' with clickable links. Ask to see all ' + total
+                    + ', or filter by Opportunity or Restriction._');
+        } else {
+            out.add('Would you like these summarized by Opportunity or Restriction?');
+        }
         return String.join(out, '\n\n');
     }
 
-    /** One section (Secured or Likely/Pipeline): opp headers + the allocation lines within the page window. */
-    private static String section(String title, List<CompetingGrant> grants, String iso,
-            Integer start, Integer endIdx, Integer[] cursor) {
+    /** One section (Secured or Likely/Pipeline): opp headers + allocation lines, up to maxRows overall. */
+    private static String section(String title, List<CompetingGrant> grants, String iso, Integer[] cursor, Integer maxRows) {
         List<String> blocks = new List<String>();
         for (CompetingGrant g : grants) {
             List<String> lines = new List<String>();
             for (Allocation__c al : g.allocations) {
-                Integer idx = cursor[0];
-                cursor[0] = idx + 1;
-                if (idx < start || idx >= endIdx) { continue; }   // outside the current page
+                if (cursor[0] >= maxRows) { break; }
+                cursor[0] = cursor[0] + 1;
                 lines.add(allocLine(al, iso));
             }
-            if (lines.isEmpty()) { continue; }   // none of this opp's lines fall in the page
+            if (lines.isEmpty()) { continue; }
             // Plain (not bold) clickable Opportunity heading: the model preserves an inline link
             // but flattens a bold+link header, so keep it a bare link to stay clickable.
             String header = AmaizeLink.md(g.opportunityName, 'Opportunity', g.opportunityId);
