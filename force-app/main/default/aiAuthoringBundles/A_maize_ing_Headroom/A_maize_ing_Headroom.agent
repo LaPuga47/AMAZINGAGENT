@@ -364,16 +364,28 @@ subagent competing_grants:
     actions:
         find_competing_grants:
             target: "apex://AmaizeFindCompetingGrants"
-            description: "Governed competing-grants analysis. Resolves the SAME governed Budget Line population Headroom Analysis uses (Headroom category/program + country + fiscal year) and reports the Opportunities against that population by allocation EXPOSURE (not Opportunity Amount). Returns TWO renderings: 'summary' — a concise fundraising answer (secured contributors, pipeline/likely Opportunities, and a short Headroom conclusion) that correctly classifies competition (0 = none, 1 = not yet competing, 2+ = competing) — and 'detail' — the full analysis (risk & confidence, why they compete, full Headroom breakdown, what-can-fit, coverage, timing, data quality). Present 'summary' by default; use 'detail' only on request. Returns found=false for a governed-zero category, a not-yet-configured category, no qualifying lines, or a missing category/country."
+            description: "Governed competing-grants analysis. Resolves the SAME governed Budget Line population Headroom Analysis uses and reports the Opportunities against that population by allocation EXPOSURE (not Opportunity Amount). Supports PROGRAM MODE (a standard Headroom category — Core Program, Rural Retail, Market Access, Trees, System Change Extension) and DIMENSION MODE (an explicit lower-level Budget Line value the user named — a Cost Category, Department, Cost Type, or Sub-Unit such as Crop Insurance, Staff Costs, Field Operations), resolved via the SAME shared resolver Headroom Analysis uses. Providing BOTH a program and a dimension segments the program (Program + Dimension). Returns TWO renderings: 'summary' — a concise fundraising answer (secured contributors, pipeline/likely Opportunities, and a short Headroom conclusion) that correctly classifies competition (0 = none, 1 = not yet competing, 2+ = competing) — and 'detail' — the full analysis (risk & confidence, why they compete, full Headroom breakdown, what-can-fit, coverage, timing, data quality). Present 'summary' by default; use 'detail' only on request. Returns found=false with severity AMBIGUOUS (the dimension value exists in more than one dimension — the summary asks which), NOT_FOUND (the value is in no dimension for that scope), a governed-zero category, a not-yet-configured category, no qualifying lines, or a missing country."
             inputs:
                 program: string
-                    description: "The Headroom category / program, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension. Pass the user's wording; the action resolves synonyms and the governed Budget Line population."
-                    is_required: True
+                    description: "PROGRAM MODE: the standard Headroom category the user named (Core Program, Rural Retail, Market Access, Trees, System Change Extension). Pass the user's wording; the action resolves synonyms. LEAVE BLANK for a pure dimension query (e.g. grants funding Crop Insurance). Combine with a dimension value to segment a standard program."
+                    is_required: False
                 country: string
                     description: "Country of the Budget Lines, e.g. Kenya. The authoritative filter."
                     is_required: True
                 fiscalYear: integer
                     description: "Fiscal year, e.g. 2027. Defaults to the current scenario when omitted."
+                    is_required: False
+                dimensionValue: string
+                    description: "DIMENSION MODE: an explicit lower-level Budget Line value the user named that is NOT a standard program, e.g. Crop Insurance, Staff Costs, Field Operations. Pass ONLY when the user asks about grants funding a specific dimension/item. Combine with program to segment a standard program."
+                    is_required: False
+                dimensionName: string
+                    description: "Optional: the dimension the value belongs to — Department, Cost Category, Cost Type, Sub-Unit, or Business Unit. Pass when the user is explicit (e.g. 'Cost Category = Crop Insurance'); leave blank to auto-detect (the action asks if the value is ambiguous across dimensions)."
+                    is_required: False
+                extraDimensionValue: string
+                    description: "Optional second explicit dimension value, for combined filters."
+                    is_required: False
+                extraDimensionName: string
+                    description: "Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit)."
                     is_required: False
             outputs:
                 summary: string
@@ -462,16 +474,28 @@ subagent competing_grants:
                 contextJson: string
         get_allocations:
             target: "apex://AmaizeGetAllocations"
-            description: "Funding Allocation drill-down for a governed Headroom scope (category + country + fiscal year). Returns the individual Funding Allocation records grouped by Opportunity and split into Secured vs Likely/Pipeline, with a lead count/total and clickable Allocation, Opportunity, Restriction, Gift Commitment and Budget Line links. Reuses the same governed Budget Line population as find_competing_grants, so totals reconcile. Optional filters: allocationType, allocationStatus, opportunityName. By default it shows the first few records WITH clickable links and offers to see the rest (the Agentforce surface keeps links clickable only for short lists); set showAll=true when the user asks for the full list (larger lists may then render as plain text). Use this the moment the user asks to SEE the underlying allocations."
+            description: "Funding Allocation drill-down for a governed Headroom scope. Returns the individual Funding Allocation records grouped by Opportunity and split into Secured vs Likely/Pipeline, with a lead count/total and clickable Allocation, Opportunity, Restriction, Gift Commitment and Budget Line links. Reuses the same governed Budget Line population as find_competing_grants (via the SAME shared resolver), so totals reconcile — it supports PROGRAM MODE (a standard category + country + fiscal year) AND DIMENSION MODE (an explicit Budget Line dimension value such as Crop Insurance). Optional filters: allocationType, allocationStatus, opportunityName. By default it shows the first few records WITH clickable links and offers to see the rest (the Agentforce surface keeps links clickable only for short lists); set showAll=true when the user asks for the full list (larger lists may then render as plain text). Use this the moment the user asks to SEE the underlying allocations."
             inputs:
                 program: string
-                    description: "The Headroom category / program, e.g. Core Program, Trees. Reuse the category already resolved in the conversation."
-                    is_required: True
+                    description: "PROGRAM MODE: the standard Headroom category, e.g. Core Program, Trees. Reuse the category already resolved in the conversation. LEAVE BLANK for a pure dimension drill-down (e.g. allocations funding Crop Insurance)."
+                    is_required: False
                 country: string
                     description: "Country of the Budget Lines, e.g. Kenya. Reuse the country already resolved in the conversation."
                     is_required: True
                 fiscalYear: integer
                     description: "Fiscal year, e.g. 2027. Reuse the year already resolved in the conversation; defaults to the current scenario when omitted."
+                    is_required: False
+                dimensionValue: string
+                    description: "DIMENSION MODE: an explicit lower-level Budget Line value the user named that is NOT a standard program, e.g. Crop Insurance, Staff Costs. Reuse the dimension already resolved in the conversation. Combine with program to segment a standard program."
+                    is_required: False
+                dimensionName: string
+                    description: "Optional: the dimension the value belongs to — Department, Cost Category, Cost Type, Sub-Unit, or Business Unit. Leave blank to auto-detect (asks if the value is ambiguous across dimensions)."
+                    is_required: False
+                extraDimensionValue: string
+                    description: "Optional second explicit dimension value, for combined filters."
+                    is_required: False
+                extraDimensionName: string
+                    description: "Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit)."
                     is_required: False
                 allocationType: string
                     description: "Optional filter: Secured, Likely, or Pipeline."
@@ -512,12 +536,38 @@ subagent competing_grants:
               or compete for that population. The headroom totals it returns are identical to
               Headroom Analysis for the same scope — never present a different headroom figure.
 
+              PROGRAM MODE vs DIMENSION MODE. The scope can be a standard Headroom program OR an
+              explicit lower-level Budget Line dimension — resolved through the SAME shared
+              resolver Headroom Analysis uses, so an item like Crop Insurance finds the identical
+              Budget Lines in both. Standard programs are Core Program, Rural Retail, Market Access,
+              Trees, and System Change Extension & Other Programs. When the user names one of THESE,
+              use PROGRAM MODE: pass it as 'program', leave the dimension inputs blank. When the
+              user instead names a lower-level Budget Line item that is NOT a standard program — a
+              Cost Category, Department, Cost Type, or Sub-Unit such as Crop Insurance, Staff Costs,
+              Input Costs, Field Operations ("show me the grants already funding Crop Insurance in
+              Malawi", "which grants compete for Staff Costs") — use DIMENSION MODE: leave 'program'
+              blank and pass the value as 'dimensionValue' (and 'dimensionName' only when the user
+              is explicit, e.g. "Cost Category = Crop Insurance"). This applies to BOTH
+              find_competing_grants and get_allocations — pass dimensionValue on whichever you call.
+              If the user names a standard program AND a dimension to drill into, pass BOTH (the
+              action resolves the program population, then segments it). NEVER route a dimension
+              value through 'program' and never fall back to "No qualifying Budget Line records"
+              for a real dimension without first passing it as 'dimensionValue'. Handle the
+              dimension signals from either action: severity/status AMBIGUOUS — the value exists in
+              more than one dimension; relay the question ("Do you mean X as a Cost Type or a Cost
+              Category?") and pass the answer back as dimensionName. NOT_FOUND — relay that the
+              value isn't in the available Budget Line dimensions for that country/year; do not
+              guess a different value. Label the result naturally from the action ("Crop Insurance
+              in Malawi", "Core Program (Crop Insurance)"); never turn a dimension into a standard
+              program name, and never inject a dimension value into a portfolio program ranking.
+
               Choose the action by what the user is asking:
               - COMPETITION ("are grants competing", "overfunding/over-allocation risk", "what
                 happens if these close", "combined pipeline vs headroom", "which grants consume
-                this program's headroom") — call find_competing_grants with the program
-                (category), country, and fiscal year if given. Pass the user's category wording;
-                the action resolves synonyms and the full governed population.
+                this program's headroom", "which grants already fund Crop Insurance") — call
+                find_competing_grants with the country, fiscal year if given, and EITHER the
+                program (category) OR the dimensionValue for a lower-level item. Pass the user's
+                wording; the action resolves synonyms and the full governed population.
               - PORTFOLIO ("where are our biggest competing-grant risks", "which countries
                 have the tightest headroom", "which programs have the most competition", "top N
                 headroom collision risks") — call rank_portfolio_risks with the appropriate
@@ -539,8 +589,10 @@ subagent competing_grants:
               - ALLOCATION DRILL-DOWN ("show me the allocations", "show the underlying / full
                 list of allocations", "which allocations are behind this", "break down the
                 allocations", "show all Funding Allocations", "show me where the $X comes from",
-                "show the secured/pipeline allocations") — call get_allocations with the program,
-                country, and fiscal year ALREADY resolved in the conversation (do not re-ask).
+                "show the secured/pipeline allocations") — call get_allocations with the country,
+                fiscal year, and the program OR dimensionValue ALREADY resolved in the conversation
+                (do not re-ask — if the scope was a dimension like Crop Insurance, reuse it as
+                dimensionValue).
                 This is an INTENT SWITCH: the user wants the individual allocation records, so
                 execute get_allocations immediately and present its 'summary' VERBATIM — it is
                 already formatted with bold group headings and clickable '[name](url)' links;

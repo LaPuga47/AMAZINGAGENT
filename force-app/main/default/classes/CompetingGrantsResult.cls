@@ -7,8 +7,10 @@
 public with sharing class CompetingGrantsResult {
 
     // FOUND / NONE (no qualifying lines) / ZERO (Unrestricted/Working Capital) /
-    // NOT_CONFIGURED / NEEDS_INFO
-    public enum Status { FOUND, NONE, ZERO, NOT_CONFIGURED, NEEDS_INFO }
+    // NOT_CONFIGURED / NEEDS_INFO /
+    // AMBIGUOUS (a dimension value exists in more than one Budget Line dimension) /
+    // NOT_FOUND (a dimension value exists in no available Budget Line dimension)
+    public enum Status { FOUND, NONE, ZERO, NOT_CONFIGURED, NEEDS_INFO, AMBIGUOUS, NOT_FOUND }
     public Status status;
 
     public List<String> missing = new List<String>();
@@ -20,6 +22,11 @@ public with sharing class CompetingGrantsResult {
     public String scenarioLabel;
     public Integer budgetLineCount = 0;
     public String currencyIsoCode;
+
+    // Dimension Mode: the value looked up (e.g. "Crop Insurance") and, when ambiguous, the
+    // candidate dimension names it matched (e.g. Cost Type / Cost Category).
+    public String dimensionValue;
+    public List<String> candidateDimensions = new List<String>();
 
     // Governed Headroom totals (summed across the qualifying Budget Lines' stored fields).
     public Decimal budgetAmount = 0;
