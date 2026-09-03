@@ -1,0 +1,20 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Dimension_Eval
+description: "Explicit Budget Line dimension (Crop Insurance) routes to both sub-agents."
+testCases:
+  - inputs:
+      - utterance: "Show me the grants already funding Crop Insurance in Malawi in 2027"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
+  - inputs:
+      - utterance: "What is the funding gap for Crop Insurance in Malawi in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Are there competing grants for Crop Insurance in Nigeria in 2026?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants

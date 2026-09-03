@@ -10,12 +10,20 @@
 public with sharing class AmaizeFindCompetingGrants {
 
     public class Request {
-        @InvocableVariable(label='Program' description='Headroom category / program, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension.' required=true)
+        @InvocableVariable(label='Program' description='Standard Headroom category / program for PROGRAM MODE, e.g. Core Program, Rural Retail, Market Access, Trees, System Change Extension. Leave blank for a pure DIMENSION MODE query (e.g. grants funding "Crop Insurance"). Providing both program and a dimension segments the program (Program + Dimension).' required=false)
         public String program;
         @InvocableVariable(label='Country' description='Country of the Budget Lines, e.g. Kenya. Authoritative filter.' required=true)
         public String country;
         @InvocableVariable(label='Fiscal Year' description='Fiscal year, e.g. 2027. Defaults to the current scenario when omitted.' required=false)
         public Integer fiscalYear;
+        @InvocableVariable(label='Dimension Value' description='DIMENSION MODE: an explicit Budget Line dimension value the user named, e.g. "Crop Insurance", "Staff Costs", "Field Operations". Pass this ONLY when the user asks about grants funding a specific lower-level dimension/item rather than a standard program.' required=false)
+        public String dimensionValue;
+        @InvocableVariable(label='Dimension Name' description='Optional: the dimension the value belongs to — Department, Cost Category, Cost Type, Sub-Unit, or Business Unit. Pass it when the user is explicit (e.g. "Cost Category = Crop Insurance"); leave blank to auto-detect (the action asks if the value is ambiguous across dimensions).' required=false)
+        public String dimensionName;
+        @InvocableVariable(label='Second Dimension Value' description='Optional second explicit dimension value, for combined filters.' required=false)
+        public String extraDimensionValue;
+        @InvocableVariable(label='Second Dimension Name' description='Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit).' required=false)
+        public String extraDimensionName;
     }
 
     public class Result {
@@ -45,7 +53,11 @@ public with sharing class AmaizeFindCompetingGrants {
 
     private static Result answerOne(Request req, CompetingGrantsService service) {
         String fy = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear) : null;
-        CompetingGrantsResult a = service.analyze(req.program, req.country, fy);
+        Boolean dimensionMode = String.isNotBlank(req.dimensionValue) || String.isNotBlank(req.extraDimensionValue);
+        CompetingGrantsResult a = dimensionMode
+            ? service.analyzeExplicit(req.program, req.country, fy, req.dimensionName, req.dimensionValue,
+                                      req.extraDimensionName, req.extraDimensionValue)
+            : service.analyze(req.program, req.country, fy);   // Program Mode (unchanged path)
         Result r = new Result();
         r.severity = a.severity;
         switch on a.status {
@@ -75,6 +87,22 @@ public with sharing class AmaizeFindCompetingGrants {
                     + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '') + '.';
                 r.detail = r.summary;
                 r.resultsJson = '{"status":"NONE"}';
+            }
+            when AMBIGUOUS {
+                r.found = false; r.severity = 'AMBIGUOUS';
+                r.summary = '"' + a.dimensionValue + '" appears in more than one Budget Line dimension in '
+                    + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '')
+                    + '. Do you mean ' + a.dimensionValue + ' as a '
+                    + HeadroomFormat.humanJoin(a.candidateDimensions).replace(' and ', ' or ') + '?';
+                r.detail = r.summary;
+                r.resultsJson = '{"status":"AMBIGUOUS"}';
+            }
+            when NOT_FOUND {
+                r.found = false; r.severity = 'NOT_FOUND';
+                r.summary = 'I could not find "' + a.dimensionValue + '" in the available Budget Line '
+                    + 'dimensions for ' + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '') + '.';
+                r.detail = r.summary;
+                r.resultsJson = '{"status":"NOT_FOUND"}';
             }
             when else {
                 r.found = false; r.severity = 'NEEDS_INFO';

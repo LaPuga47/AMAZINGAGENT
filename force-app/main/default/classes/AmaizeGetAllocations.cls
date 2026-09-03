@@ -19,12 +19,20 @@ public with sharing class AmaizeGetAllocations {
     private static final Integer HARD_CAP = 200;
 
     public class Request {
-        @InvocableVariable(label='Program' description='Headroom category / program, e.g. Core Program, Rural Retail, Trees. Pass the user\'s wording; synonyms are resolved.' required=true)
+        @InvocableVariable(label='Program' description='Standard Headroom category / program, e.g. Core Program, Rural Retail, Trees. Pass the user\'s wording; synonyms are resolved. Leave blank for a pure DIMENSION MODE drill-down (e.g. allocations funding "Crop Insurance").' required=false)
         public String program;
         @InvocableVariable(label='Country' description='Country of the Budget Lines, e.g. Kenya. The authoritative filter.' required=true)
         public String country;
         @InvocableVariable(label='Fiscal Year' description='Fiscal year, e.g. 2027. Defaults to the current scenario when omitted.' required=false)
         public Integer fiscalYear;
+        @InvocableVariable(label='Dimension Value' description='DIMENSION MODE: an explicit Budget Line dimension value the user named, e.g. "Crop Insurance", "Staff Costs". Pass this ONLY when the user asks for the allocations behind a specific lower-level dimension/item rather than a standard program.' required=false)
+        public String dimensionValue;
+        @InvocableVariable(label='Dimension Name' description='Optional: the dimension the value belongs to — Department, Cost Category, Cost Type, Sub-Unit, or Business Unit. Leave blank to auto-detect (asks if the value is ambiguous across dimensions).' required=false)
+        public String dimensionName;
+        @InvocableVariable(label='Second Dimension Value' description='Optional second explicit dimension value, for combined filters.' required=false)
+        public String extraDimensionValue;
+        @InvocableVariable(label='Second Dimension Name' description='Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit).' required=false)
+        public String extraDimensionName;
         @InvocableVariable(label='Allocation Type' description='Optional filter: Secured, Likely, or Pipeline. Omit for all.' required=false)
         public String allocationType;
         @InvocableVariable(label='Allocation Status' description='Optional filter: e.g. Approved or Pending. Omit for all.' required=false)
@@ -61,7 +69,11 @@ public with sharing class AmaizeGetAllocations {
     private static Result answerOne(Request req, CompetingGrantsService service) {
         Result r = new Result();
         String fy = (req.fiscalYear != null) ? String.valueOf(req.fiscalYear) : null;
-        CompetingGrantsResult a = service.analyze(req.program, req.country, fy);
+        Boolean dimensionMode = String.isNotBlank(req.dimensionValue) || String.isNotBlank(req.extraDimensionValue);
+        CompetingGrantsResult a = dimensionMode
+            ? service.analyzeExplicit(req.program, req.country, fy, req.dimensionName, req.dimensionValue,
+                                      req.extraDimensionName, req.extraDimensionValue)
+            : service.analyze(req.program, req.country, fy);   // Program Mode (unchanged path)
 
         switch on a.status {
             when NONE {
@@ -70,6 +82,22 @@ public with sharing class AmaizeGetAllocations {
                     + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '')
                     + ', so there are no allocations to show.';
                 r.resultsJson = '{"status":"NONE"}';
+                return r;
+            }
+            when AMBIGUOUS {
+                r.found = false; r.matchCount = 0;
+                r.summary = '"' + a.dimensionValue + '" appears in more than one Budget Line dimension in '
+                    + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '')
+                    + '. Do you mean ' + a.dimensionValue + ' as a '
+                    + HeadroomFormat.humanJoin(a.candidateDimensions).replace(' and ', ' or ') + '?';
+                r.resultsJson = '{"status":"AMBIGUOUS"}';
+                return r;
+            }
+            when NOT_FOUND {
+                r.found = false; r.matchCount = 0;
+                r.summary = 'I could not find "' + a.dimensionValue + '" in the available Budget Line '
+                    + 'dimensions for ' + a.country + (a.fiscalYear != null ? ' in ' + a.fiscalYear : '') + '.';
+                r.resultsJson = '{"status":"NOT_FOUND"}';
                 return r;
             }
             when ZERO {

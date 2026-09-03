@@ -188,52 +188,29 @@ public with sharing class HeadroomService {
                 + (scenario.Fiscal_Year__c != null ? 'FY' + scenario.Fiscal_Year__c : '')
             : null;
 
-        BudgetLineDimensions d = new BudgetLineDimensions();
-        d.country = ctry; d.fiscalYear = fy;
-        String progLabel = null;
-
-        // PROGRAM base (Program Mode / Program + Dimension): standard category population first.
-        if (String.isNotBlank(program)) {
-            HeadroomCategoryResolver.Rule rule = HeadroomCategoryResolver.resolve(program);
-            a.category = rule.label;
-            if (rule.mode == HeadroomCategoryResolver.Mode.ZERO) {
-                a.state = HeadroomAggregate.State.ZERO; a.headroomStatus = 'Not Applicable'; return a;
-            }
-            if (rule.mode == HeadroomCategoryResolver.Mode.NOT_CONFIGURED) {
-                a.state = HeadroomAggregate.State.NOT_CONFIGURED; return a;
-            }
-            d.businessUnit = rule.businessUnitBase; d.department = rule.department;
-            progLabel = rule.label;
+        // Resolve the Budget Line population via the SHARED resolver — the identical logic
+        // Competing Grants uses, so an explicit dimension resolves to the same lines everywhere.
+        BudgetLineScopeResolver.Scope sc = BudgetLineScopeResolver.resolve(
+            program, ctry, fy, dimName, dimValue, dim2Name, dim2Value, lines);
+        a.category = sc.label;
+        a.dimensionValue = sc.dimensionValue;
+        if (sc.state == BudgetLineScopeResolver.State.ZERO) {
+            a.state = HeadroomAggregate.State.ZERO; a.headroomStatus = 'Not Applicable'; return a;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.NOT_CONFIGURED) {
+            a.state = HeadroomAggregate.State.NOT_CONFIGURED; return a;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.NEEDS_INFO) {
+            a.missing.addAll(sc.missing); a.state = HeadroomAggregate.State.NEEDS_INFO; return a;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.AMBIGUOUS) {
+            a.candidateDimensions = sc.candidateDimensions; a.state = HeadroomAggregate.State.AMBIGUOUS; return a;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.NOT_FOUND) {
+            a.state = HeadroomAggregate.State.NOT_FOUND; return a;
         }
 
-        // EXPLICIT dimension filters (primary + optional second), applied on top.
-        List<String> dimNames = new List<String>{ dimName, dim2Name };
-        List<String> dimValues = new List<String>{ dimValue, dim2Value };
-        List<String> appliedValues = new List<String>();
-        for (Integer i = 0; i < 2; i++) {
-            String val = dimValues[i];
-            if (String.isBlank(val)) { continue; }
-            String field = resolveDimField(dimNames[i], val, ctry, fy, a);
-            if (a.state == HeadroomAggregate.State.AMBIGUOUS || a.state == HeadroomAggregate.State.NOT_FOUND) {
-                a.dimensionValue = val.trim(); return a;
-            }
-            applyDimension(d, field, val.trim());
-            appliedValues.add(val.trim());
-        }
-
-        // Label: "Crop Insurance" (Dimension Mode), "Core Program" (Program Mode),
-        // or "Core Program (Crop Insurance)" (Program + segmentation).
-        String dimLabel = appliedValues.isEmpty() ? null : String.join(appliedValues, ' + ');
-        if (!appliedValues.isEmpty()) { a.dimensionValue = appliedValues[0]; }
-        String label = (progLabel != null && dimLabel != null) ? progLabel + ' (' + dimLabel + ')'
-            : (progLabel != null ? progLabel : dimLabel);
-        if (label == null) {
-            a.missing.add('a program or a Budget Line dimension');
-            a.state = HeadroomAggregate.State.NEEDS_INFO; return a;
-        }
-        a.category = label;
-
-        AggregateResult ar = lines.aggregateScope(d.normalize());
+        AggregateResult ar = lines.aggregateScope(sc.dimensions);
         Integer cnt = (ar == null) ? 0 : (Integer) ar.get('cnt');
         if (cnt == 0) { a.state = HeadroomAggregate.State.NONE; return a; }
 
@@ -249,47 +226,6 @@ public with sharing class HeadroomService {
         a.headroomStatus = AmaizeBudgetHeadroom.statusFor(a.securedHeadroom);
         a.state = HeadroomAggregate.State.FOUND;
         return a;
-    }
-
-    /** Map a dimension value to its Budget Line field; auto-detect when the dimension name is blank/unknown. */
-    private String resolveDimField(String dimName, String value, String country, String fy, HeadroomAggregate a) {
-        if (String.isNotBlank(dimName)) {
-            String mapped = mapDimName(dimName);
-            if (mapped != null) { return mapped; }   // explicit, recognized dimension name
-        }
-        Set<String> matches = lines.dimensionsContaining(value, country, fy);
-        if (matches.isEmpty()) { a.state = HeadroomAggregate.State.NOT_FOUND; return null; }
-        if (matches.size() == 1) { return mapDimName(new List<String>(matches)[0]); }
-        // Value lives in more than one supported dimension — do not guess; ask which was meant.
-        a.state = HeadroomAggregate.State.AMBIGUOUS;
-        a.candidateDimensions = orderCandidates(matches);
-        return null;
-    }
-
-    private static String mapDimName(String name) {
-        String n = name == null ? '' : name.trim().toLowerCase().replace('-', ' ');
-        if (n == 'department' || n == 'dept') { return 'department'; }
-        if (n == 'cost category' || n == 'costcategory' || n == 'category') { return 'costCategory'; }
-        if (n == 'cost type' || n == 'costtype') { return 'costType'; }
-        if (n == 'sub unit' || n == 'subunit' || n == 'sub' || n == 'sub-unit') { return 'subUnit'; }
-        if (n == 'business unit' || n == 'businessunit' || n == 'bu') { return 'businessUnit'; }
-        return null;
-    }
-
-    private static void applyDimension(BudgetLineDimensions d, String field, String value) {
-        if (field == 'department') { d.department = value; }
-        else if (field == 'costCategory') { d.costCategory = value; }
-        else if (field == 'costType') { d.costType = value; }
-        else if (field == 'subUnit') { d.subUnit = value; }
-        else if (field == 'businessUnit') { d.businessUnit = value; }
-    }
-
-    private static List<String> orderCandidates(Set<String> matches) {
-        List<String> ordered = new List<String>();
-        for (String dim : new List<String>{ 'Department', 'Cost Category', 'Cost Type', 'Sub-Unit' }) {
-            if (matches.contains(dim)) { ordered.add(dim); }
-        }
-        return ordered;
     }
 
     /**

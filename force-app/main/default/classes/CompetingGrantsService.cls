@@ -22,27 +22,28 @@ public with sharing class CompetingGrantsService {
         this.allocations = allocations;
     }
 
-    /** Governed competing-grants analysis for a category / country / fiscal year. */
+    /** Governed competing-grants analysis for a standard program / country / fiscal year. */
     public CompetingGrantsResult analyze(String program, String country, String fiscalYear) {
-        CompetingGrantsResult r = new CompetingGrantsResult();
-        String cat = program == null ? '' : program.trim();
-        String ctry = country == null ? '' : country.trim();
-        if (cat == '') { r.missing.add('headroom category'); }
-        if (ctry == '') { r.missing.add('country'); }
-        if (!r.missing.isEmpty()) { r.status = CompetingGrantsResult.Status.NEEDS_INFO; return r; }
+        return analyzeExplicit(program, country, fiscalYear, null, null, null, null);
+    }
 
-        HeadroomCategoryResolver.Rule rule = HeadroomCategoryResolver.resolve(cat);
-        r.category = rule.label;
+    /**
+     * Governed competing-grants analysis that ALSO supports explicit Budget Line dimensions
+     * (Dimension Mode and Program + Dimension). It resolves the qualifying Budget Line population
+     * through the SAME shared resolver Headroom Analysis uses, so an explicit dimension such as
+     * "Crop Insurance" finds the identical lines here — no separate program-category shortcut that
+     * fails just because the value is not one of the standard Programs.
+     *   - program only          -> Program Mode
+     *   - dimension value only   -> Dimension Mode (auto-detected across Department / Cost Category /
+     *                               Cost Type / Sub-Unit; AMBIGUOUS if in >1, NOT_FOUND if in none)
+     *   - program + dimension    -> the program population segmented by the dimension
+     */
+    public CompetingGrantsResult analyzeExplicit(String program, String country, String fiscalYear,
+            String dimName, String dimValue, String dim2Name, String dim2Value) {
+        CompetingGrantsResult r = new CompetingGrantsResult();
+        String ctry = country == null ? '' : country.trim();
+        if (ctry == '') { r.missing.add('country'); r.status = CompetingGrantsResult.Status.NEEDS_INFO; return r; }
         r.country = ctry;
-        if (rule.mode == HeadroomCategoryResolver.Mode.ZERO) {
-            r.status = CompetingGrantsResult.Status.ZERO;
-            r.headroomStatus = 'Not Applicable';
-            return r;
-        }
-        if (rule.mode == HeadroomCategoryResolver.Mode.NOT_CONFIGURED) {
-            r.status = CompetingGrantsResult.Status.NOT_CONFIGURED;
-            return r;
-        }
 
         Budget_Scenario__c scenario = currentScenario();
         String fy = String.isNotBlank(fiscalYear) ? fiscalYear.trim()
@@ -50,12 +51,29 @@ public with sharing class CompetingGrantsService {
         r.fiscalYear = fy;
         r.scenarioLabel = scenarioLabel(scenario);
 
-        // Resolve the COMPLETE governed Budget Line population (same filters as Headroom Analysis).
-        BudgetLineDimensions d = new BudgetLineDimensions();
-        d.country = ctry; d.fiscalYear = fy;
-        d.businessUnit = rule.businessUnitBase; d.department = rule.department;
-        d = d.normalize();
-        List<Budget_Line__c> scope = lines.findByGovernedScope(d);
+        // Resolve the qualifying Budget Line population via the SHARED resolver.
+        BudgetLineScopeResolver.Scope sc = BudgetLineScopeResolver.resolve(
+            program, ctry, fy, dimName, dimValue, dim2Name, dim2Value, lines);
+        r.category = sc.label;
+        r.dimensionValue = sc.dimensionValue;
+        if (sc.state == BudgetLineScopeResolver.State.ZERO) {
+            r.status = CompetingGrantsResult.Status.ZERO; r.headroomStatus = 'Not Applicable'; return r;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.NOT_CONFIGURED) {
+            r.status = CompetingGrantsResult.Status.NOT_CONFIGURED; return r;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.NEEDS_INFO) {
+            r.missing.addAll(sc.missing); r.status = CompetingGrantsResult.Status.NEEDS_INFO; return r;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.AMBIGUOUS) {
+            r.candidateDimensions = sc.candidateDimensions; r.status = CompetingGrantsResult.Status.AMBIGUOUS; return r;
+        }
+        if (sc.state == BudgetLineScopeResolver.State.NOT_FOUND) {
+            r.status = CompetingGrantsResult.Status.NOT_FOUND; return r;
+        }
+
+        // The SAME resolved Budget Line population Headroom Analysis aggregates.
+        List<Budget_Line__c> scope = lines.findByGovernedScope(sc.dimensions);
         if (scope.isEmpty()) {
             r.status = CompetingGrantsResult.Status.NONE;
             return r;
