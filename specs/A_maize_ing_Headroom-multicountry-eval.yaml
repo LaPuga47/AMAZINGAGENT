@@ -1,0 +1,15 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_MultiCountry_Eval
+description: "Multi-country funding-gap comparison routes to Headroom Analysis."
+testCases:
+  - inputs:
+      - utterance: "What is the funding gap for Core Program in 2027 across Malawi, Kenya, Rwanda, and Burundi?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Compare Trees headroom in 2027 across Kenya and Rwanda"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
