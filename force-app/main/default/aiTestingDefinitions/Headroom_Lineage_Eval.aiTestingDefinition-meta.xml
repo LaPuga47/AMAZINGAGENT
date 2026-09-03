@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiTestingDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Funding lineage questions route to Competing Grants.</description>
+    <name>Headroom_Lineage_Eval</name>
+    <subjectName>A_maize_ing_Headroom</subjectName>
+    <subjectType>AGENT</subjectType>
+    <testCase>
+        <number>1</number>
+        <inputs>
+            <utterance>Where is the Pan-African Progress grant&apos;s funding allocated?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+    <testCase>
+        <number>2</number>
+        <inputs>
+            <utterance>What funds Core Program in Malawi in 2027?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+</AiTestingDefinition>

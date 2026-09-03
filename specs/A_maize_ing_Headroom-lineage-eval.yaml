@@ -1,0 +1,15 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Lineage_Eval
+description: "Funding lineage questions route to Competing Grants."
+testCases:
+  - inputs:
+      - utterance: "Where is the Pan-African Progress grant's funding allocated?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
+  - inputs:
+      - utterance: "What funds Core Program in Malawi in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants

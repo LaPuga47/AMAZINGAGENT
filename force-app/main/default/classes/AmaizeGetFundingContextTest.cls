@@ -63,6 +63,50 @@ private class AmaizeGetFundingContextTest {
     }
 
     @isTest
+    static void naCostDimsAreRelaxedWhenScopeHasRealDimensions() {
+        // A program line with REAL cost dimensions (Field Operations / Crop Insurance).
+        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
+        Budget_Line__c line = HeadroomTestData.makeLine(sid, 'Malawi', 'Core Program - MW',
+            'N/A', 'Field Operations', 'N/A', 'Crop Insurance', -800000, 100000, 0, 0);
+        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
+            new HeadroomTestData.AllocSpec('Secured', 60000)
+        }, line.Id, 'Malawi', 'Core Program - MW');
+
+        // The planner default-fills every unspecified cost dimension with 'N/A'. Strictly filtering
+        // on N/A would exclude this line (its Department is Field Operations), but the action relaxes
+        // the N/A filters when the strict query finds nothing.
+        AmaizeGetFundingContext.Request req = new AmaizeGetFundingContext.Request();
+        req.country = 'Malawi'; req.businessUnit = 'Core Program - MW'; req.fiscalYear = 2027;
+        req.subUnit = 'N/A'; req.department = 'N/A'; req.costType = 'N/A'; req.costCategory = 'N/A';
+
+        Test.startTest();
+        AmaizeGetFundingContext.Result res = run(req);
+        Test.stopTest();
+
+        System.assertEquals(true, res.found, 'N/A over-constraint must relax to find the real line: ' + res.summary);
+        System.assert(res.summary.contains('**Funding Context'), res.summary);
+    }
+
+    @isTest
+    static void explicitNonMatchingDimensionIsNotRelaxed() {
+        // Same real line, but the user explicitly names a different, non-matching Cost Category.
+        Id sid = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1].Id;
+        HeadroomTestData.makeLine(sid, 'Malawi', 'Core Program - MW',
+            'N/A', 'Field Operations', 'N/A', 'Crop Insurance', -800000, 100000, 0, 0);
+
+        AmaizeGetFundingContext.Request req = new AmaizeGetFundingContext.Request();
+        req.country = 'Malawi'; req.businessUnit = 'Core Program - MW'; req.fiscalYear = 2027;
+        req.costCategory = 'Input Costs';   // real value, deliberately specified — must be respected
+
+        Test.startTest();
+        AmaizeGetFundingContext.Result res = run(req);
+        Test.stopTest();
+
+        // No 'N/A' was passed, so there is no relaxation: an explicit non-matching dimension stands.
+        System.assertEquals(false, res.found, 'An explicitly named dimension must not be relaxed: ' + res.summary);
+    }
+
+    @isTest
     static void needsInfoWhenNothingProvided() {
         AmaizeGetFundingContext.Result res = run(new AmaizeGetFundingContext.Request());
         System.assertEquals(false, res.found);
