@@ -15,7 +15,7 @@ Managers (RMs) and Grants Finance staff.
 - **Read-only.** The agent never creates, changes, or deletes records. No DML in the read path.
 - **Grounded in data.** Every figure comes from the org's own Budget Line / Allocation records —
   the agent never invents, rounds, or recomputes numbers.
-- **Current live version: `v19`** (agents are versioned; one version is active at a time).
+- **Current live version: `v29`** (agents are versioned; one version is active at a time).
 
 The agent has a **router** and four sub-agents:
 `agent_router → { headroom_analysis, competing_grants, off_topic, ambiguous_question }`.
@@ -70,6 +70,26 @@ negative). So by sign:
 Never call negative Headroom a "funding gap" or "available Headroom". Interpret **Secured** and
 **Forecast** Headroom separately.
 
+### Program Mode vs Dimension Mode (one shared resolver)
+A scope isn't always a standard program. Users also ask about an explicit **Budget Line
+dimension** — a Cost Category / Department / Cost Type / Sub-Unit such as *Crop Insurance* or
+*Staff Costs* ("grants funding Crop Insurance in Malawi in 2027"). **`BudgetLineScopeResolver`**
+is the single shared resolver that turns any request into a qualifying Budget Line filter and
+returns one of three modes: **PROGRAM**, **DIMENSION** (auto-detects the value's dimension; asks
+if it's `AMBIGUOUS` across dimensions, reports `NOT_FOUND` if in none — never guesses), or
+**PROGRAM_PLUS_DIMENSION**. Both `HeadroomService.aggregateExplicit` and
+`CompetingGrantsService.analyzeExplicit` consume it, so a dimension resolves to the *same* lines
+in either sub-agent. Users never type field API names — resolve business terms, don't require
+`Cost Category = …`.
+
+### Next-available-year guidance
+When a single-year Program question has **no available Headroom** (fully funded / overfunded),
+`HeadroomService.findNextAvailableYear` looks forward — reusing `aggregate()` per year over only
+the years that have data — to the earliest future year with room, and the answer leads the user
+there. It **never invents a year**: if none qualifies it reports the searched span and offers
+other countries / programs. An explicit multi-year *range* suppresses this per-year lookahead
+(the `partOfRange` action input) so the agent composes a year-by-year answer instead.
+
 ### Consistency guarantee
 Headroom Analysis and Competing Grants resolve the **identical** Budget Line population for the
 same scope, so their figures always agree. There's an automated test enforcing this — keep it green.
@@ -88,16 +108,17 @@ Thin **invocable action → service → selector → DTO** layering. All `with s
 - **Services / DTOs:** `HeadroomService` + `HeadroomAggregate`, `CompetingGrantsService` +
   `CompetingGrantsResult` / `CompetingGrant`, `PortfolioHeadroomService`, `FundingContextService`.
 - **Selectors:** `BudgetLineSelector`, `AllocationSelector` (all SOQL lives here).
-- **Shared helpers:** `HeadroomCategoryResolver` (HR rules), `AmaizeBudgetHeadroom` (mirrors the
-  org's Budget Line formulas), `AmaizeFormat` (money → `$1.2M`), `AmaizeLink` (server-side record
-  URLs — the LLM must **never** build URLs).
+- **Shared helpers:** `HeadroomCategoryResolver` (HR rules), `BudgetLineScopeResolver` (Program /
+  Dimension / Program+Dimension → qualifying Budget Line filter, consumed by both sub-agents),
+  `AmaizeBudgetHeadroom` (mirrors the org's Budget Line formulas), `AmaizeFormat` (money → `$1.2M`),
+  `AmaizeLink` (server-side record URLs — the LLM must **never** build URLs).
 
 > **User-facing text is composed in Apex**, in each action's `summary`/`detail` fields — not just in
 > the prompt. To change what the user reads, edit the composer strings (deterministic) *and* the
 > agent instructions, then redeploy + republish.
 
 Note: `AmaizeCheckHeadroom`, `AmaizeFindPrograms`, and the grant-schedule classes are **legacy /
-not wired into v19** — don't extend them without checking they're actually referenced by the agent.
+not wired into the live agent** — don't extend them without checking they're actually referenced.
 
 ---
 
@@ -157,7 +178,14 @@ sf agent test run --api-name Headroom_Routing_Eval --wait 10
 It asserts capacity questions → Headroom Analysis and competing/opportunity questions →
 Competing Grants (spec in `specs/A_maize_ing_Headroom-routing-eval.yaml`). The CLI may print
 "Fail" for the `topic_sequence_match` scorer even when the `topicName` is correct — check the
-actual routed topic in the JSON (`--json`) rather than the pass/fail column.
+actual routed topic in the JSON (`--json`) rather than the pass/fail column. In particular, a
+multi-turn case shows the whole expected *sequence* against each single turn, so each turn looks
+"failed" even when the sequence is right.
+
+Companion specs in `specs/`: `…-dimension-eval.yaml` (explicit dimension like Crop Insurance
+routes to both sub-agents) and `…-nextyear-eval.yaml` (no-Headroom next-available-year guidance).
+To inspect an action's actual reply text end-to-end (not just routing), read the
+`agentResponse.runs[].messages` from the `--json` output.
 
 ---
 
@@ -168,9 +196,12 @@ actual routed topic in the JSON (`--json`) rather than the pass/fail column.
   Opportunity probability (100→Secured, 50–99→Likely, <50→Pipeline); "Opportunity After Save"
   rewrites `Opportunity.Name`; a rollup recalculates Budget Line funding when allocations attach.
   Set data via the **factory** and assert on structure, not on values the flows may change.
-- **Restricted picklists.** `Budget_Line__c.Country__c` and `.BusinessUnit__c` are restricted —
-  invalid values throw `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`. Valid countries: Burundi, Kenya,
-  Malawi, Nigeria, Rwanda, Tanzania, Uganda, Zambia. `Core Program` (base, no suffix) is valid.
+- **Restricted picklists.** `Budget_Line__c.Country__c`, `.BusinessUnit__c`, and `.Cost_Category__c`
+  are restricted — invalid values throw `INVALID_OR_NULL_FOR_RESTRICTED_PICKLIST`. Valid countries:
+  Burundi, Kenya, Malawi, Nigeria, Rwanda, Tanzania, Uganda, Zambia. `Core Program` (base, no suffix)
+  is valid. `Crop Insurance` is a valid `Cost_Category__c`; `Bad Debt Expense` exists in **both**
+  `Cost_Category__c` and `Cost_Type__c` (handy for exercising the resolver's ambiguity path).
+  Verify field API names against the object before writing SOQL — never guess them.
 - **Scenario type.** Current scenarios use `Scenario_Type__c = 'Forecast Scenario'` /
   `'Secured Funds'` — not `'Final Budget'` (a past bug).
 - **Money is rounded to K/M** for display, so per-line values won't always visually sum to a total.
@@ -200,7 +231,9 @@ actual routed topic in the JSON (`--json`) rather than the pass/fail column.
 | Change agent behavior / routing / wording | the `.agent` file, then publish + activate |
 | Change what an action returns | the matching `Amaize*.cls` action + its service |
 | Change the Category → Budget Line mapping | `HeadroomCategoryResolver` |
+| Change how an explicit dimension (Crop Insurance) resolves | `BudgetLineScopeResolver` |
+| Adjust the no-Headroom next-year lookahead | `HeadroomService.findNextAvailableYear` + `AmaizeAnalyzeHeadroom` |
 | Understand the Headroom math | `AmaizeBudgetHeadroom` + README "Headroom calculation" |
 | Add/adjust SOQL | `BudgetLineSelector` / `AllocationSelector` |
 | Deep architecture & data model | `README.md` |
-| Verify routing | `Headroom_Routing_Eval` (Testing Center) |
+| Verify routing / behavior | `specs/*-eval.yaml` via Testing Center (`sf agent test run`) |
