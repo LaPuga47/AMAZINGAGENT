@@ -58,6 +58,16 @@ public with sharing class AmaizeGetFundingContext {
             fc = svc.forOpportunity(req.opportunityName);
         } else if (String.isNotBlank(req.country) && String.isNotBlank(req.businessUnit)) {
             fc = svc.forBudgetLineScope(dims(req));
+            // The planner often defaults UNSPECIFIED cost dimensions to the literal 'N/A'. 'N/A'
+            // is a real, exact-match value in this data model, so filtering on it can narrow a
+            // program-level lineage scope to lines that are literally N/A on every dimension —
+            // wrongly reporting "no Budget Line found" when the program actually has lines with
+            // real dimensions. If nothing resolved and any cost dimension was 'N/A', retry with
+            // those 'N/A' filters relaxed. Only relaxing on an empty result preserves a genuine
+            // N/A-bucket query that does match (it succeeds on the first pass and never retries).
+            if ((fc == null || fc.status != FundingContext.Status.FOUND_BUDGET_LINE) && hasNaCostDim(req)) {
+                fc = svc.forBudgetLineScope(dimsRelaxingNa(req));
+            }
         } else {
             r.found = false;
             r.summary = 'To trace funding I need either a grant (opportunity) name, or a Budget Line '
@@ -100,6 +110,25 @@ public with sharing class AmaizeGetFundingContext {
         d.subUnit = req.subUnit; d.department = req.department;
         d.costType = req.costType; d.costCategory = req.costCategory;
         return d;
+    }
+
+    /** True when any cost dimension was passed as the literal 'N/A' (the planner's usual default-fill). */
+    private static Boolean hasNaCostDim(Request req) {
+        return isNa(req.subUnit) || isNa(req.department) || isNa(req.costType) || isNa(req.costCategory);
+    }
+
+    /** Scope dims with any 'N/A' cost dimension relaxed to unspecified; real named dimensions kept. */
+    private static BudgetLineDimensions dimsRelaxingNa(Request req) {
+        BudgetLineDimensions d = dims(req);
+        if (isNa(req.subUnit))      { d.subUnit = null; }
+        if (isNa(req.department))   { d.department = null; }
+        if (isNa(req.costType))     { d.costType = null; }
+        if (isNa(req.costCategory)) { d.costCategory = null; }
+        return d;
+    }
+
+    private static Boolean isNa(String v) {
+        return v != null && v.trim().equalsIgnoreCase('N/A');
     }
 
     /* ---------------- Budget-Line direction: what funds this scope ---------------- */

@@ -492,16 +492,16 @@ subagent competing_grants:
                     description: "Fiscal year of the scope."
                     is_required: False
                 subUnit: string
-                    description: "Sub-Unit. Pass N/A when not applicable."
+                    description: "Sub-Unit. LEAVE BLANK unless the user names a specific Sub-Unit. Do NOT default to 'N/A' — 'N/A' is a real, exact-match value here, so sending it when the user didn't ask for it filters the scope down to only lines whose Sub-Unit is literally N/A and can wrongly return no results. Pass 'N/A' ONLY when the user explicitly means the N/A bucket."
                     is_required: False
                 department: string
-                    description: "Department. Pass N/A when not applicable."
+                    description: "Department. LEAVE BLANK unless the user names a specific Department. Do NOT default to 'N/A' (it is a real exact-match value; sending it unrequested can wrongly return no results). Pass 'N/A' ONLY when the user explicitly means the N/A bucket."
                     is_required: False
                 costType: string
-                    description: "Cost Type. Pass N/A when not applicable."
+                    description: "Cost Type. LEAVE BLANK unless the user names a specific Cost Type. Do NOT default to 'N/A' (it is a real exact-match value; sending it unrequested can wrongly return no results). Pass 'N/A' ONLY when the user explicitly means the N/A bucket."
                     is_required: False
                 costCategory: string
-                    description: "Cost Category. Pass N/A when not applicable."
+                    description: "Cost Category. LEAVE BLANK unless the user names a specific Cost Category (e.g. Crop Insurance). Do NOT default to 'N/A' (it is a real exact-match value; sending it unrequested can wrongly return no results). Pass 'N/A' ONLY when the user explicitly means the N/A bucket."
                     is_required: False
             outputs:
                 summary: string
@@ -615,7 +615,11 @@ subagent competing_grants:
                 opportunity fund", "where does this funding come from / go") — call
                 get_funding_context. Pass a Budget Line scope (country + business unit, plus
                 fiscal year / cost dimensions) to see what funds it, OR pass opportunityName
-                to see where that grant is allocated.
+                to see where that grant is allocated. When passing a scope, ONLY fill the cost
+                dimensions the user actually named — leave subUnit / department / costType /
+                costCategory BLANK otherwise. Never default them to "N/A": N/A is a real
+                exact-match value, so sending it unrequested narrows the scope to lines that are
+                literally N/A on that dimension and can wrongly report no Budget Line found.
               - OPPORTUNITY-START COMPETITION ("what competes with the Gates opportunity",
                 "which grants compete with <named grant>", "what else is consuming the same
                 headroom as this grant") — call analyze_opportunity_competition with the grant
