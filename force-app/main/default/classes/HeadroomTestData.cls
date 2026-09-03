@@ -48,6 +48,27 @@ public class HeadroomTestData {
         return requery(bl.Id);
     }
 
+    /** As makeLine, but for an explicit fiscal year (for multi-year / next-available-year tests). */
+    public static Budget_Line__c makeLineForYear(Id scenarioId, String year, String country, String businessUnit,
+            String subUnit, String department, String costType, String costCategory,
+            Decimal budgetAmount, Decimal secured, Decimal likely, Decimal pipeline) {
+        Budget_Line__c bl = new Budget_Line__c(
+            Budget_Scenario__c = scenarioId,
+            Country__c = country,
+            BusinessUnit__c = businessUnit,
+            Sub__c = subUnit,
+            Department__c = department,
+            Cost_Type__c = costType,
+            Cost_Category__c = costCategory,
+            Fiscal_Year__c = year,
+            Budget_Amount__c = budgetAmount,
+            Secured_Funding__c = secured,
+            Likely_Funding__c = likely,
+            Pipeline_Funding__c = pipeline);
+        insert bl;
+        return requery(bl.Id);
+    }
+
     /** Requery a Budget Line with every field the headroom code reads (incl. formula fields). */
     public static Budget_Line__c requery(Id budgetLineId) {
         return [

@@ -187,6 +187,21 @@ public with sharing class BudgetLineSelector implements IBudgetLineSelector {
         return Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
     }
 
+    public List<String> distinctFiscalYears(String country) {
+        List<String> clauses = new List<String>{ CURRENT_SCENARIO, 'Fiscal_Year__c != null' };
+        Map<String, Object> binds = new Map<String, Object>();
+        if (String.isNotBlank(country)) { clauses.add('Country__c = :country'); binds.put('country', country); }
+        String query =
+            'SELECT Fiscal_Year__c fy FROM Budget_Line__c WHERE ' + String.join(clauses, ' AND ') +
+            ' GROUP BY Fiscal_Year__c ORDER BY Fiscal_Year__c ASC LIMIT 100';
+        List<String> years = new List<String>();
+        List<AggregateResult> rows = Database.queryWithBinds(query, binds, AccessLevel.USER_MODE);
+        for (AggregateResult ar : rows) {
+            years.add((String) ar.get('fy'));
+        }
+        return years;
+    }
+
     public List<Budget_Line__c> byIds(Set<Id> ids) {
         if (ids == null || ids.isEmpty()) {
             return new List<Budget_Line__c>();

@@ -161,6 +161,48 @@ public with sharing class HeadroomService {
         return a;
     }
 
+    /** Outcome of the next-available-year lookahead (chronological search for the first future year with room). */
+    public class NextAvailableYear {
+        public Boolean found = false;
+        public String year;                 // the earliest future year with available Headroom
+        public Decimal availableHeadroom;    // that year's Forecast Headroom (positive)
+        public String headroomStatus;
+        public String currencyIsoCode;
+        public List<String> yearsChecked = new List<String>();   // the future years actually evaluated, ascending
+    }
+
+    /**
+     * NEXT-AVAILABLE-YEAR LOOKAHEAD. When the requested year has no available Headroom (fully
+     * funded or overfunded), find the EARLIEST future year in which the SAME country + program
+     * has available Headroom (Forecast Headroom > 0). It reuses aggregate() per candidate year —
+     * no separate headroom calculation — and only searches years for which current-scenario
+     * Budget Line data actually exists (no hard-coded horizon). Returns found=false when no
+     * future year qualifies; the caller then falls back to other countries / other programs.
+     */
+    public NextAvailableYear findNextAvailableYear(String program, String country, String fromYear) {
+        NextAvailableYear n = new NextAvailableYear();
+        if (String.isBlank(program) || String.isBlank(country) || String.isBlank(fromYear)) { return n; }
+        Integer fromY;
+        try { fromY = Integer.valueOf(fromYear.trim()); } catch (Exception e) { return n; }
+
+        for (String y : lines.distinctFiscalYears(country.trim())) {
+            Integer yi;
+            try { yi = Integer.valueOf(y); } catch (Exception e) { continue; }
+            if (yi <= fromY) { continue; }                     // only look FORWARD, chronologically
+            n.yearsChecked.add(y);
+            HeadroomAggregate a = aggregate(program, country, y);
+            if (a.state == HeadroomAggregate.State.FOUND && a.forecastHeadroom > 0) {
+                n.found = true;
+                n.year = y;
+                n.availableHeadroom = a.forecastHeadroom;
+                n.headroomStatus = a.headroomStatus;
+                n.currencyIsoCode = a.currencyIsoCode;
+                return n;                                     // stop at the FIRST qualifying year
+            }
+        }
+        return n;
+    }
+
     /**
      * DIMENSION MODE and PROGRAM + DIMENSION. Aggregates the same eight stored Budget Line
      * fields as aggregate(), but filtered by explicit lower-level dimensions rather than (or in
