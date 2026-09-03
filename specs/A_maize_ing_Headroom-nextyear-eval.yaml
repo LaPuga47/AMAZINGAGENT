@@ -1,0 +1,20 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_NextYear_Eval
+description: "No-Headroom next-available-year guidance routes to Headroom Analysis."
+testCases:
+  - inputs:
+      - utterance: "Should I raise money for Core Program in Malawi in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Should I raise money for Core Program in Malawi in 2026?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Should I raise money for Core Program in Malawi from 2026 to 2028?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
