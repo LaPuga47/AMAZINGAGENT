@@ -26,6 +26,13 @@ public interface IBudgetLineSelector {
     List<AggregateResult> aggregatePortfolio(String country, String fiscalYear);
 
     /**
+     * The distinct fiscal years present in the current-scenario Budget Lines for a country,
+     * ascending. Lets the next-available-year lookahead search only years that actually have
+     * planning data (no hard-coded horizon).
+     */
+    List<String> distinctFiscalYears(String country);
+
+    /**
      * Which Budget Line dimension fields (Department / Cost Category / Cost Type / Sub-Unit)
      * carry the given value within the current-scenario population for a country/fiscal year.
      * Used to auto-detect the dimension of an explicit value and to flag ambiguity.

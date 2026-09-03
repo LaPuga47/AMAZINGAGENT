@@ -107,6 +107,9 @@ subagent headroom_analysis:
                 extraDimensionName: string
                     description: "Optional dimension name for the second value."
                     is_required: False
+                partOfRange: boolean
+                    description: "Set true ONLY when this call is one year of an explicit multi-year RANGE the user asked for (e.g. '2027 to 2030'), so the per-year next-available-year lookahead is suppressed and you compose the year-by-year answer yourself. Leave blank/false for a single-year question — then, when that year has no available Headroom, the action automatically reports the next future year that does."
+                    is_required: False
             outputs:
                 summary: string
                 detail: string
@@ -261,6 +264,38 @@ subagent headroom_analysis:
                 - signal NONE: relay "No qualifying Budget Line records were found for the
                   requested scope." Never treat no-match as a financial value of zero.
                 - signal NEEDS_INFO: ask for the missing category and/or country.
+
+              NEXT-AVAILABLE-YEAR GUIDANCE. When a user asks whether to raise funds for a program
+              in a country/year and that single year has NO available Headroom (Fully Funded or
+              Overfunded), do not stop at "there is no available Headroom." For a single-year
+              PROGRAM question the action already looks forward — reusing the same Headroom data —
+              to the EARLIEST future year for the SAME country + program that has available
+              Headroom, and its summary leads the user there (e.g. "The next year with available
+              Headroom is 2028, with approximately $696K."). Present that summary as returned; it
+              is fact-checked against the data, so never name a future year the action did not, and
+              never assume the next year has room. If the action instead reports there is no
+              available Headroom across the searched years, it offers the look-elsewhere follow-up
+              (same program other countries / other programs same country) — the fallback priority
+              is: same program + same country + next available year FIRST, then same program other
+              countries, then other programs same country. This lookahead runs only when the
+              requested year has no available Headroom; when the requested year already has room,
+              the normal available-Headroom answer is used (no look-ahead). It also runs only for
+              a standard PROGRAM in single-year mode — not for a bare dimension value.
+
+              EXPLICIT MULTI-YEAR RANGE. When the user themselves names a range (e.g. "Kenya Trees
+              from 2027 to 2030"), do NOT use the single-year look-ahead phrasing. Call
+              analyze_headroom once per year with partOfRange=true (this suppresses the per-year
+              look-ahead), then present the actual year-by-year result with bold year headings
+              ("Kenya Trees has no available Headroom in 2027, but there is available Headroom in
+              2028 and 2029; it is Overfunded in 2030."), and offer to focus on the first available
+              year.
+
+              CARRY THE CONTEXT FORWARD. After you point the user to a next available year (say
+              2028), keep country + program + that year. If they reply "show me" / "show the
+              funding gap", call analyze_headroom for country + program + 2028 without asking them
+              to restate anything. If they reply "show me the Opportunities" / "the grants", route
+              to Competing Grants (find_competing_grants) with the SAME country + program + 2028.
+              Do not reclassify the program as something else and do not re-ask the country/year.
 
               NO-HEADROOM FOLLOW-UP. Choose the follow-up from the actual numbers, not the
               phrasing. Look at the relevant result set — a single scope, or EVERY year in a

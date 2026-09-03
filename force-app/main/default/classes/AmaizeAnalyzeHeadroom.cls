@@ -29,6 +29,8 @@ public with sharing class AmaizeAnalyzeHeadroom {
         public String extraDimensionValue;
         @InvocableVariable(label='Second Dimension Name' description='Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit).' required=false)
         public String extraDimensionName;
+        @InvocableVariable(label='Part Of Range' description='Set true ONLY when this call is one year of an explicit multi-year RANGE the user asked for (e.g. "2027 to 2030"), so the per-year next-available-year lookahead is suppressed and you compose the year-by-year range answer yourself. Leave false/blank for a single-year question.' required=false)
+        public Boolean partOfRange;
     }
 
     public class Result {
@@ -69,7 +71,15 @@ public with sharing class AmaizeAnalyzeHeadroom {
             when FOUND {
                 r.found = true;
                 r.signal = a.headroomStatus;
-                r.summary = foundConversational(a);   // default: concise business answer
+                // NEXT-AVAILABLE-YEAR LOOKAHEAD: when a Program-Mode year has no available Headroom
+                // (fully funded or overfunded), find the earliest future year that does. Skipped for
+                // dimension mode and for individual years of an explicit multi-year range.
+                HeadroomService.NextAvailableYear nextYear = null;
+                if (!dimensionMode && String.isNotBlank(req.program) && a.forecastHeadroom <= 0
+                        && req.partOfRange != true) {
+                    nextYear = service.findNextAvailableYear(req.program, req.country, a.fiscalYear);
+                }
+                r.summary = foundConversational(a, nextYear);   // default: concise business answer
                 r.detail = foundDetail(a);            // full breakdown, on demand only
                 r.headroomJson = foundJson(a);
             }
@@ -135,10 +145,20 @@ public with sharing class AmaizeAnalyzeHeadroom {
      * simple answer on top. Every figure is drawn verbatim from the governed aggregate.
      */
     private static String foundConversational(HeadroomAggregate a) {
+        return foundConversational(a, null);
+    }
+
+    private static String foundConversational(HeadroomAggregate a, HeadroomService.NextAvailableYear nextYear) {
         String iso = a.currencyIsoCode;
         String name = naturalName(a);
         String fyText = (a.fiscalYear != null) ? a.fiscalYear : 'the current scenario';
         Decimal reducers = nz(a.likelyFunding) + nz(a.pipelineFunding);
+
+        // No available Headroom in the requested year: lead with the next fact-supported
+        // fundraising option (same program + same country + next available year) when one exists.
+        if (a.forecastHeadroom <= 0 && nextYear != null) {
+            return noHeadroomWithLookahead(a, iso, name, fyText, nextYear);
+        }
 
         String body;
         if (a.forecastHeadroom < 0) {
@@ -161,6 +181,42 @@ public with sharing class AmaizeAnalyzeHeadroom {
 
         String note = scenarioMismatchNote(a);
         return body + (note != null ? '\n\n' + note : '') + '\n\n' + followUpFor(a, reducers);
+    }
+
+    /**
+     * The no-available-Headroom answer, enriched with the next-available-year lookahead. When a
+     * future year with room was found, lead the user there (same program + same country); when the
+     * whole future horizon was searched with no room, say so and offer the other-country / other-
+     * program alternatives. Never invents a future year — only reports what the lookahead verified.
+     */
+    private static String noHeadroomWithLookahead(HeadroomAggregate a, String iso, String name,
+            String fyText, HeadroomService.NextAvailableYear nextYear) {
+        String state = (a.forecastHeadroom < 0)
+            ? name + ' has no available Headroom in ' + fyText + ' — it is currently overfunded by approximately '
+                + AmaizeFormat.money(-a.forecastHeadroom, iso) + '.'
+            : name + ' is fully funded in ' + fyText + ', with no available Headroom.';
+
+        if (nextYear != null && nextYear.found) {
+            String lead = state + ' The next year with available Headroom is ' + nextYear.year
+                + ', with approximately ' + AmaizeFormat.money(nextYear.availableHeadroom, iso) + '.';
+            String follow = 'Would you like to review the ' + nextYear.year + ' funding position and the '
+                + 'Opportunities that could help fill it?';
+            return lead + '\n\n' + follow;
+        }
+
+        // Searched the future horizon and found no year with room.
+        String span;
+        if (nextYear != null && !nextYear.yearsChecked.isEmpty()) {
+            String last = nextYear.yearsChecked[nextYear.yearsChecked.size() - 1];
+            span = (a.fiscalYear != null && last != a.fiscalYear)
+                ? name + ' has no available Headroom from ' + a.fiscalYear + ' through ' + last + '.'
+                : state;
+        } else {
+            span = state;
+        }
+        String alt = 'Would you like to check ' + a.category + ' in other countries or explore other '
+            + 'programs in ' + a.country + ' that may need funding?';
+        return span + '\n\n' + alt;
     }
 
     /** "Around $27K is currently secured, with no likely or pipeline funding." */
