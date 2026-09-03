@@ -15,7 +15,7 @@ Managers (RMs) and Grants Finance staff.
 - **Read-only.** The agent never creates, changes, or deletes records. No DML in the read path.
 - **Grounded in data.** Every figure comes from the org's own Budget Line / Allocation records —
   the agent never invents, rounds, or recomputes numbers.
-- **Current live version: `v29`** (agents are versioned; one version is active at a time).
+- **Current live version: `v30`** (agents are versioned; one version is active at a time).
 
 The agent has a **router** and four sub-agents:
 `agent_router → { headroom_analysis, competing_grants, off_topic, ambiguous_question }`.
