@@ -1,0 +1,63 @@
+{
+  "required" : [ ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "businessUnit" : {
+      "title" : "Business Unit",
+      "description" : "Program / business unit of the Budget Line scope.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "costCategory" : {
+      "title" : "Cost Category",
+      "description" : "Cost Category. LEAVE BLANK unless the user names a specific Cost Category (e.g. Crop Insurance). Do NOT default to 'N/A' (it is a real exact-match value; sending it unrequested can wrongly return no results). Pass 'N/A' ONLY when the user explicitly means the N/A bucket.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "costType" : {
+      "title" : "Cost Type",
+      "description" : "Cost Type. LEAVE BLANK unless the user names a specific Cost Type. Do NOT default to 'N/A' (it is a real exact-match value; sending it unrequested can wrongly return no results). Pass 'N/A' ONLY when the user explicitly means the N/A bucket.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "country" : {
+      "title" : "Country",
+      "description" : "Country of the Budget Line scope.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "department" : {
+      "title" : "Department",
+      "description" : "Department. LEAVE BLANK unless the user names a specific Department. Do NOT default to 'N/A' (it is a real exact-match value; sending it unrequested can wrongly return no results). Pass 'N/A' ONLY when the user explicitly means the N/A bucket.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Fiscal year of the scope.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "opportunityName" : {
+      "title" : "Opportunity Name",
+      "description" : "A grant name to trace forward to the Budget Lines it funds. Leave blank to trace a Budget Line scope instead.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "subUnit" : {
+      "title" : "Sub Unit",
+      "description" : "Sub-Unit. LEAVE BLANK unless the user names a specific Sub-Unit. Do NOT default to 'N/A' — 'N/A' is a real, exact-match value here, so sending it when the user didn't ask for it filters the scope down to only lines whose Sub-Unit is literally N/A and can wrongly return no results. Pass 'N/A' ONLY when the user explicitly means the N/A bucket.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

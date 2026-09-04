@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiTestingDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>The three intro suggested prompts route to the right sub-agents.</description>
+    <name>Headroom_Starters_Eval</name>
+    <subjectName>A_maize_ing_Headroom</subjectName>
+    <subjectType>AGENT</subjectType>
+    <testCase>
+        <number>1</number>
+        <inputs>
+            <utterance>Analyze funding gaps across programs</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>headroom_analysis</expectedValue>
+        </scorer>
+    </testCase>
+    <testCase>
+        <number>2</number>
+        <inputs>
+            <utterance>Compare Headroom across countries</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>headroom_analysis</expectedValue>
+        </scorer>
+    </testCase>
+    <testCase>
+        <number>3</number>
+        <inputs>
+            <utterance>Identify competing grants in the pipeline</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+</AiTestingDefinition>
