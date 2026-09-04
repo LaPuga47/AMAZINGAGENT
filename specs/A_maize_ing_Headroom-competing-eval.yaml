@@ -1,0 +1,15 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Competing_Eval
+description: "Competing-grants analysis routes and classifies competition correctly."
+testCases:
+  - inputs:
+      - utterance: "Do we have competing grants for Trees in Kenya in 2026?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
+  - inputs:
+      - utterance: "Are there competing grants for Core Program in Malawi in 2027?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
