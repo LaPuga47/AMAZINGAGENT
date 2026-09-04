@@ -1,0 +1,20 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Starters_Eval
+description: "The three intro suggested prompts route to the right sub-agents."
+testCases:
+  - inputs:
+      - utterance: "Analyze funding gaps across programs"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Compare Headroom across countries"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Identify competing grants in the pipeline"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
