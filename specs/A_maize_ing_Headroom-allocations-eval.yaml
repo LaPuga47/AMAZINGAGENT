@@ -1,0 +1,10 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Allocations_Eval
+description: "Small allocation sets render in full with clickable links."
+testCases:
+  - inputs:
+      - utterance: "Show me the funding allocations for Trees in Kenya in 2026"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants

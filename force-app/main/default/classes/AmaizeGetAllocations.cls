@@ -11,11 +11,12 @@
  */
 public with sharing class AmaizeGetAllocations {
 
-    // The Agentforce model keeps record links clickable only for short lists (it flattens longer
-    // ones to plain text), so by default we show up to SHOW_CLICKABLE_MAX records WITH links and
-    // offer "see all". When the user asks to see everything (showAll), we return the full list up
-    // to HARD_CAP (accepting that 6+ rows may render as plain text) rather than truncate silently.
-    private static final Integer SHOW_CLICKABLE_MAX = 5;
+    // Small and medium result sets are shown IN FULL in one response (the user asked for the
+    // allocations — fulfil the request completely; no "Showing 5 of 6" paging). Above INLINE_MAX
+    // we lead with a concise count summary and offer the full list / a roll-up, rather than dump a
+    // very long list. When the user explicitly asks to see everything (showAll), we return the full
+    // list up to HARD_CAP (the technical safety cap) and only note a cut if that cap is hit.
+    private static final Integer INLINE_MAX = 20;
     private static final Integer HARD_CAP = 200;
 
     public class Request {
@@ -39,7 +40,7 @@ public with sharing class AmaizeGetAllocations {
         public String allocationStatus;
         @InvocableVariable(label='Opportunity Name' description='Optional: limit the allocations to a single Opportunity by name.' required=false)
         public String opportunityName;
-        @InvocableVariable(label='Show All' description='Set true when the user explicitly asks for the full list ("show all", "list every allocation"). Forces the complete list even beyond the summary threshold (still bounded by a response-size safety limit).' required=false)
+        @InvocableVariable(label='Show All' description='Set true ONLY when the user explicitly asks for the full list ("show all", "list every allocation") of a large set (more than ~20). Returns every record up to a response-size safety cap. Small/medium sets are already returned in full without it.' required=false)
         public Boolean showAll;
     }
 
@@ -167,9 +168,20 @@ public with sharing class AmaizeGetAllocations {
         }
 
         Boolean showAll = req.showAll == true;
-        // Default keeps links clickable (short list); showAll returns the full list up to the safety cap.
-        Integer maxRows = showAll ? HARD_CAP : SHOW_CLICKABLE_MAX;
         r.resultsJson = json(a, secured, other, iso);
+
+        // Large set (and the user did not ask for everything): lead with a concise count summary and
+        // offer the full list or a roll-up — do NOT dump a very long list or page it in fives.
+        if (!showAll && total > INLINE_MAX) {
+            r.summary = scopeName + ' has ' + total + ' Funding Allocation records across '
+                + oppIds.size() + ' Opportunit' + (oppIds.size() == 1 ? 'y' : 'ies') + ' in ' + yr + '.'
+                + '\n\nWould you like the full Allocation list, or a summary by Opportunity or Restriction?';
+            return r;
+        }
+
+        // Small / medium set (<= INLINE_MAX) or an explicit "show all": render every record in one
+        // response. showAll can go up to the technical HARD_CAP.
+        Integer maxRows = showAll ? HARD_CAP : INLINE_MAX;
         r.summary = render(scopeName, yr, iso, secured, other, total, oppIds.size(), maxRows, showAll);
         return r;
     }
@@ -187,13 +199,11 @@ public with sharing class AmaizeGetAllocations {
         if (String.isNotBlank(securedBlock)) { out.add(securedBlock); }
         if (String.isNotBlank(otherBlock)) { out.add(otherBlock); }
 
-        Integer shown = Math.min(total, maxRows);
+        // The list is rendered in full. The only time it is cut is the genuine technical safety cap
+        // (an explicit "show all" beyond HARD_CAP records) — state that honestly, never silently.
         if (total > maxRows) {
-            out.add(showAll
-                ? '_Showing the first ' + shown + ' of ' + total + ' — the full list exceeds the response '
-                    + 'size limit. Filter by Opportunity to see the rest._'
-                : '_Showing ' + shown + ' of ' + total + ' with clickable links. Ask to see all ' + total
-                    + ', or filter by Opportunity or Restriction._');
+            out.add('_Showing the first ' + Math.min(total, maxRows) + ' of ' + total
+                + ' — the full list exceeds the response size limit. Filter by Opportunity or Restriction to see the rest._');
         } else {
             out.add('Would you like these summarized by Opportunity or Restriction?');
         }
