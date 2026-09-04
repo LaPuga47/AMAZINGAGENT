@@ -91,7 +91,7 @@ private class AmaizeGetAllocationsTest {
     }
 
     @isTest
-    static void defaultShowsSmallClickablePageThenOfferAll() {
+    static void mediumSetRendersAllInlineNoPartialMessage() {
         Id line = coreLineIds()[0];
         List<HeadroomTestData.AllocSpec> specs = new List<HeadroomTestData.AllocSpec>();
         for (Integer i = 0; i < 16; i++) { specs.add(new HeadroomTestData.AllocSpec('Pipeline', 5000)); }
@@ -99,20 +99,60 @@ private class AmaizeGetAllocationsTest {
 
         Test.startTest();
         AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
+        Test.stopTest();
+
+        System.assertEquals(16, res.matchCount, 'all 16 counted');
+        // A medium set (<= 20) renders in FULL — every record clickable, no paging message.
+        System.assertEquals(16, res.summary.countMatches('/lightning/r/Allocation__c/'), 'all 16 clickable: ' + res.summary);
+        System.assert(!res.summary.containsIgnoreCase('Showing '), 'no "Showing X of Y" message: ' + res.summary);
+        System.assert(!res.summary.containsIgnoreCase('Ask to see all'), 'no "Ask to see all" message: ' + res.summary);
+        System.assert(!res.summary.containsIgnoreCase('next page'), res.summary);
+        System.assert(res.summary.contains('Would you like these summarized by Opportunity or Restriction?'), res.summary);
+    }
+
+    @isTest
+    static void largeSetSummarizesUnlessShowAll() {
+        Id line = coreLineIds()[0];
+        List<HeadroomTestData.AllocSpec> specs = new List<HeadroomTestData.AllocSpec>();
+        for (Integer i = 0; i < 22; i++) { specs.add(new HeadroomTestData.AllocSpec('Pipeline', 5000)); }
+        HeadroomTestData.makeAllocations(specs, line, 'Kenya', 'Core Program - KE');   // 22 opps x 1 alloc
+
+        Test.startTest();
+        AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
         AmaizeGetAllocations.Request r = req('Core Program', 'Kenya', 2027); r.showAll = true;
         AmaizeGetAllocations.Result full = run(r);
         Test.stopTest();
 
-        System.assertEquals(16, res.matchCount, 'all 16 counted');
-        // Default: first 5 shown WITH clickable links, and an offer to see all — no "next page" phrasing.
-        System.assertEquals(5, res.summary.countMatches('/lightning/r/Allocation__c/'), 'first 5 clickable: ' + res.summary);
-        System.assert(res.summary.contains('Showing 5 of 16 with clickable links'), res.summary);
-        System.assert(res.summary.contains('Ask to see all 16'), res.summary);
-        System.assert(!res.summary.containsIgnoreCase('next page') && !res.summary.contains('Showing allocations 1'),
-            'no pagination navigation language: ' + res.summary);
-        // showAll: the full list is returned (all 16, under the 200 safety cap), no truncation note.
-        System.assertEquals(16, full.summary.countMatches('/lightning/r/Allocation__c/'), 'showAll returns all records');
+        // Above 20 and no explicit "show all": concise count summary + offer, no rows dumped.
+        System.assertEquals(22, res.matchCount);
+        System.assertEquals(0, res.summary.countMatches('/lightning/r/Allocation__c/'), 'no rows listed for >20: ' + res.summary);
+        System.assert(res.summary.contains('22 Funding Allocation records'), res.summary);
+        System.assert(res.summary.contains('Would you like the full Allocation list, or a summary by Opportunity or Restriction?'), res.summary);
+        System.assert(!res.summary.containsIgnoreCase('Showing '), res.summary);
+        // Explicit show all: every record rendered, no truncation note (well under the 200 cap).
+        System.assertEquals(22, full.summary.countMatches('/lightning/r/Allocation__c/'), 'showAll returns all 22');
         System.assert(!full.summary.contains('exceeds the response'), full.summary);
+    }
+
+    @isTest
+    static void sixRecordsAllRenderTogether() {
+        // Bulk factory (single batched DML) avoids the per-chain DLRS-rollup SOQL blowup.
+        Id line = coreLineIds()[0];
+        List<HeadroomTestData.AllocSpec> specs = new List<HeadroomTestData.AllocSpec>();
+        for (Integer i = 0; i < 6; i++) { specs.add(new HeadroomTestData.AllocSpec('Pipeline', 5000)); }
+        HeadroomTestData.makeAllocations(specs, line, 'Kenya', 'Core Program - KE');   // 6 opps x 1 alloc
+
+        Test.startTest();
+        AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
+        Test.stopTest();
+
+        System.assertEquals(6, res.matchCount, res.summary);
+        System.assert(res.summary.contains('6 Funding Allocation records across 6 Opportunities'), res.summary);
+        // All 6 render in one response with clickable links — no "Showing 5 of 6" paging.
+        System.assertEquals(6, res.summary.countMatches('/lightning/r/Allocation__c/'), 'all 6 clickable: ' + res.summary);
+        System.assert(res.summary.contains('**LIKELY / PIPELINE**'), res.summary);
+        System.assert(!res.summary.containsIgnoreCase('Showing ') && !res.summary.containsIgnoreCase('Ask to see all'),
+            'no partial-result message for 6 records: ' + res.summary);
     }
 
     @isTest

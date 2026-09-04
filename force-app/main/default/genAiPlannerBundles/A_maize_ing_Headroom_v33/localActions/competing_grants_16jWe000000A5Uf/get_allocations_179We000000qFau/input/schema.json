@@ -1,0 +1,84 @@
+{
+  "required" : [ "country" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "allocationStatus" : {
+      "title" : "Allocation Status",
+      "description" : "Optional filter: e.g. Approved or Pending.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "allocationType" : {
+      "title" : "Allocation Type",
+      "description" : "Optional filter: Secured, Likely, or Pipeline.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "country" : {
+      "title" : "Country",
+      "description" : "Country of the Budget Lines, e.g. Kenya. Reuse the country already resolved in the conversation.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "dimensionName" : {
+      "title" : "Dimension Name",
+      "description" : "Optional: the dimension the value belongs to — Department, Cost Category, Cost Type, Sub-Unit, or Business Unit. Leave blank to auto-detect (asks if the value is ambiguous across dimensions).",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "dimensionValue" : {
+      "title" : "Dimension Value",
+      "description" : "DIMENSION MODE: an explicit lower-level Budget Line value the user named that is NOT a standard program, e.g. Crop Insurance, Staff Costs. Reuse the dimension already resolved in the conversation. Combine with program to segment a standard program.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "extraDimensionName" : {
+      "title" : "Extra Dimension Name",
+      "description" : "Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit).",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "extraDimensionValue" : {
+      "title" : "Extra Dimension Value",
+      "description" : "Optional second explicit dimension value, for combined filters.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Fiscal year, e.g. 2027. Reuse the year already resolved in the conversation; defaults to the current scenario when omitted.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "opportunityName" : {
+      "title" : "Opportunity Name",
+      "description" : "Optional: limit to one Opportunity by name.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "program" : {
+      "title" : "Program",
+      "description" : "PROGRAM MODE: the standard Headroom category, e.g. Core Program, Trees. Reuse the category already resolved in the conversation. LEAVE BLANK for a pure dimension drill-down (e.g. allocations funding Crop Insurance).",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "showAll" : {
+      "title" : "Show All",
+      "description" : "Set true ONLY when the user explicitly asks for the full list ('show all', 'list every allocation') of a LARGE set (more than ~20). Returns every record up to a response-size safety cap. Not needed for small/medium sets — those are already returned in full.",
+      "lightning:type" : "lightning__booleanType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
