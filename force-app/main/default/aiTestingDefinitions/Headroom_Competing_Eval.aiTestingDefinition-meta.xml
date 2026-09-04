@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiTestingDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Competing-grants analysis routes and classifies competition correctly.</description>
+    <name>Headroom_Competing_Eval</name>
+    <subjectName>A_maize_ing_Headroom</subjectName>
+    <subjectType>AGENT</subjectType>
+    <testCase>
+        <number>1</number>
+        <inputs>
+            <utterance>Do we have competing grants for Trees in Kenya in 2026?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+    <testCase>
+        <number>2</number>
+        <inputs>
+            <utterance>Are there competing grants for Core Program in Malawi in 2027?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+</AiTestingDefinition>
