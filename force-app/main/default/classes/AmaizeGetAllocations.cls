@@ -34,7 +34,7 @@ public with sharing class AmaizeGetAllocations {
         public String extraDimensionValue;
         @InvocableVariable(label='Second Dimension Name' description='Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit).' required=false)
         public String extraDimensionName;
-        @InvocableVariable(label='Allocation Type' description='Optional filter: Secured, Likely, or Pipeline. Omit for all.' required=false)
+        @InvocableVariable(label='Allocation Type' description='Optional single-category filter. OMIT for all types (the action groups them into SECURED vs LIKELY / PIPELINE) — use for "grants funding the program", "secured and pipeline", "both". Pass "Secured" for committed only; "Pipeline" or "Likely" returns the whole not-yet-secured bucket (both Likely AND Pipeline), never only literal Pipeline.' required=false)
         public String allocationType;
         @InvocableVariable(label='Allocation Status' description='Optional filter: e.g. Approved or Pending. Omit for all.' required=false)
         public String allocationStatus;
@@ -148,7 +148,7 @@ public with sharing class AmaizeGetAllocations {
             List<Allocation__c> otherAllocs = new List<Allocation__c>();
             for (Allocation__c al : g.allocations) {
                 String t = al.Allocation_Type__c;
-                if (typeF != null && (t == null || t.toLowerCase() != typeF)) { continue; }
+                if (!matchesTypeFilter(t, typeF)) { continue; }
                 if (statusF != null && (al.Allocation_Status__c == null || al.Allocation_Status__c.toLowerCase() != statusF)) { continue; }
                 Decimal amt = AmaizeBudgetHeadroom.nz(al.Funds_Allocated__c);
                 if (t == 'Secured') { securedAllocs.add(al); securedTotal += amt; } else { otherAllocs.add(al); otherTotal += amt; }
@@ -299,6 +299,20 @@ public with sharing class AmaizeGetAllocations {
             }
         }
         return new List<CompetingGrant>(byOpp.values());
+    }
+
+    /**
+     * Type filter aligned with the two display buckets, NOT a literal Allocation_Type__c match.
+     * These records are shown as SECURED vs LIKELY / PIPELINE, and "pipeline" / "potential" /
+     * "likely" all mean the not-yet-secured bucket in business usage — so a request for "pipeline"
+     * must NOT exclude Likely allocations (the earlier exact-match filter dropped them). Blank = all.
+     */
+    private static Boolean matchesTypeFilter(String allocType, String typeF) {
+        if (typeF == null) { return true; }
+        String t = (allocType == null) ? '' : allocType.toLowerCase();
+        if (typeF == 'secured') { return t == 'secured'; }
+        // pipeline / likely / potential -> the whole Likely+Pipeline (not-yet-secured) bucket
+        return t == 'likely' || t == 'pipeline';
     }
 
     private static String norm(String v) { return String.isBlank(v) ? null : v.trim().toLowerCase(); }

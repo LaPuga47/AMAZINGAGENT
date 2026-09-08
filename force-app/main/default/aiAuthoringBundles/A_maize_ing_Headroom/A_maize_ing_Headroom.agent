@@ -533,7 +533,7 @@ subagent competing_grants:
                     description: "Optional dimension name for the second value (Department / Cost Category / Cost Type / Sub-Unit / Business Unit)."
                     is_required: False
                 allocationType: string
-                    description: "Optional filter: Secured, Likely, or Pipeline."
+                    description: "Optional filter — OMIT it for 'the grants funding the program', 'the funding behind it', 'secured and pipeline', 'both', or 'potential Opportunities': those mean ALL types (the action already groups them into SECURED vs LIKELY / PIPELINE). Pass a value ONLY when the user restricts to a single category: 'Secured' for committed funding; 'Pipeline' (or 'Likely'/'Potential') for the not-yet-secured bucket — note 'Pipeline' returns BOTH Likely and Pipeline allocations, so never use it expecting to exclude Likely."
                     is_required: False
                 allocationStatus: string
                     description: "Optional filter: e.g. Approved or Pending."
@@ -644,9 +644,16 @@ subagent competing_grants:
                 returns a concise count summary and asks whether to show the full list or a roll-up
                 by Opportunity / Restriction — relay that. Only when the user then asks for the full
                 list ("show all", "list every allocation") call get_allocations again with
-                showAll=true (a very long list may then render as plain text — that is expected). Use
-                allocationType / allocationStatus / opportunityName filters when the user narrows it
-                (e.g. "only pending", "only pipeline", "just the MasterCard allocations").
+                showAll=true (a very long list may then render as plain text — that is expected).
+                Make EXACTLY ONE get_allocations call for a breakdown and present its 'summary' as-is
+                — never split it into separate per-type calls and never stitch two results together.
+                For "the grants funding this", "the funding behind it", "secured and pipeline",
+                "both", or "potential Opportunities", leave allocationType BLANK: the single
+                unfiltered call returns everything already grouped into SECURED and LIKELY / PIPELINE
+                — do NOT make one call for Secured and another for Pipeline (that both drops records
+                and destroys the section formatting). Set allocationType / allocationStatus /
+                opportunityName ONLY when the user restricts to a single category ("only secured",
+                "only pending", "just the MasterCard allocations").
               - If the user instead gives a category + country directly for a competition check,
                 use find_competing_grants. If a named grant needs its category/country resolved
                 for a category-level check, call get_opportunity_context first.
