@@ -156,11 +156,12 @@ public with sharing class AmaizeFindCompetingGrants {
         }
 
         if (n == 1) {
-            out.add('Not currently. I found one Opportunity that may use the remaining ' + name
-                + ' Headroom in ' + yr + ', so there is not yet a competing-grants situation.');
+            // A single potential Opportunity: state it plainly — don't dwell on whether "competing"
+            // technically applies (that reads as defensive and isn't useful).
+            out.add('There is one potential Opportunity for ' + name + ' in ' + yr + '.');
         } else {
-            out.add('Yes. ' + capFirst(countWord(n)) + ' Opportunities may use the remaining ' + name
-                + ' Headroom in ' + yr + '.');
+            out.add(capFirst(countWord(n)) + ' potential Opportunities are targeting ' + name
+                + ' in ' + yr + '.');
         }
 
         out.add(securedSection(secured, iso));

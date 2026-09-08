@@ -36,9 +36,8 @@ private class AmaizeFindCompetingGrantsTest {
         Test.stopTest();
 
         System.assertEquals(true, res.found);
-        // Concise default: 2+ pipeline opportunities => a competing situation.
-        System.assert(res.summary.startsWith('Yes.'), res.summary);
-        System.assert(res.summary.contains('Two Opportunities may use the remaining'), res.summary);
+        // Concise default: 2+ pipeline opportunities => stated in natural language.
+        System.assert(res.summary.startsWith('Two potential Opportunities are targeting'), res.summary);
         System.assert(res.summary.contains('**Potential Funding**'), res.summary);
         System.assert(res.summary.contains('Together, they represent'), res.summary);
         // No implementation terminology in the concise view.
@@ -71,9 +70,10 @@ private class AmaizeFindCompetingGrantsTest {
         Test.stopTest();
 
         System.assertEquals(true, res.found);
-        // A SINGLE opportunity is NOT "competing".
-        System.assert(res.summary.contains('one Opportunity that may use'), res.summary);
-        System.assert(res.summary.contains('not yet a competing-grants situation'), res.summary);
+        // A SINGLE opportunity: stated plainly as "one potential Opportunity", not defensively.
+        System.assert(res.summary.contains('There is one potential Opportunity for'), res.summary);
+        System.assert(!res.summary.contains('not yet a competing-grants situation'),
+            'drop the defensive competing-grants phrasing for a single opportunity: ' + res.summary);
         System.assert(!res.summary.contains('competing for'), 'single opp must not be called competing: ' + res.summary);
         System.assert(!res.summary.contains('Together the'), res.summary);
         System.assert(res.summary.contains('/lightning/r/Opportunity/'), res.summary);

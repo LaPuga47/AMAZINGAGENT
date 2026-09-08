@@ -79,7 +79,13 @@ public with sharing class AmaizeAnalyzeHeadroom {
                         && req.partOfRange != true) {
                     nextYear = service.findNextAvailableYear(req.program, req.country, a.fiscalYear);
                 }
-                r.summary = foundConversational(a, nextYear);   // default: concise business answer
+                // RECONCILE the likely/pipeline narrative against actual Funding Allocations for the
+                // SAME population — the stored Budget Line Likely/Pipeline rollup can lag behind a
+                // directly-linked Likely/Pipeline allocation (e.g. an unapproved, status-blank one),
+                // so we must not falsely say "no likely or pipeline funding". Only needed when there
+                // is available Headroom (the branch that mentions funding).
+                CompetingGrantsResult potential = (a.forecastHeadroom > 0) ? reconcilePotential(req, a) : null;
+                r.summary = foundConversational(a, nextYear, potential);   // default: concise business answer
                 r.detail = foundDetail(a);            // full breakdown, on demand only
                 r.headroomJson = foundJson(a);
             }
@@ -145,14 +151,19 @@ public with sharing class AmaizeAnalyzeHeadroom {
      * simple answer on top. Every figure is drawn verbatim from the governed aggregate.
      */
     private static String foundConversational(HeadroomAggregate a) {
-        return foundConversational(a, null);
+        return foundConversational(a, null, null);
+    }
+    private static String foundConversational(HeadroomAggregate a, HeadroomService.NextAvailableYear nextYear) {
+        return foundConversational(a, nextYear, null);
     }
 
-    private static String foundConversational(HeadroomAggregate a, HeadroomService.NextAvailableYear nextYear) {
+    private static String foundConversational(HeadroomAggregate a, HeadroomService.NextAvailableYear nextYear,
+            CompetingGrantsResult potential) {
         String iso = a.currencyIsoCode;
         String name = naturalName(a);
         String fyText = (a.fiscalYear != null) ? a.fiscalYear : 'the current scenario';
         Decimal reducers = nz(a.likelyFunding) + nz(a.pipelineFunding);
+        List<CompetingGrant> potOpps = potentialOpps(a, potential);   // likely/pipeline not yet in the rollup
 
         // No available Headroom in the requested year: lead with the next fact-supported
         // fundraising option (same program + same country + next available year) when one exists.
@@ -176,11 +187,64 @@ public with sharing class AmaizeAnalyzeHeadroom {
         } else {
             body = 'There appears to be room for additional fundraising for ' + name + ' in ' + fyText
                 + ', with approximately ' + AmaizeFormat.money(a.forecastHeadroom, iso) + ' of available Headroom. '
-                + fundingSentence(a, iso);
+                + securedAndPotential(a, iso, potOpps, potential);
         }
 
         String note = scenarioMismatchNote(a);
-        return body + (note != null ? '\n\n' + note : '') + '\n\n' + followUpFor(a, reducers);
+        return body + (note != null ? '\n\n' + note : '') + '\n\n' + followUpFor(a, reducers, potOpps);
+    }
+
+    /**
+     * Reconcile against actual Funding Allocations for the SAME resolved population (same program /
+     * dimension + country + fiscal year Competing Grants uses), so the Headroom narrative never
+     * contradicts known Likely/Pipeline funding. Best-effort: on any issue we fall back to the
+     * stored-field wording rather than break the Headroom answer.
+     */
+    private static CompetingGrantsResult reconcilePotential(Request req, HeadroomAggregate a) {
+        try {
+            CompetingGrantsService svc = new CompetingGrantsService();
+            Boolean dim = String.isNotBlank(req.dimensionValue) || String.isNotBlank(req.extraDimensionValue);
+            CompetingGrantsResult r = dim
+                ? svc.analyzeExplicit(req.program, req.country, a.fiscalYear, req.dimensionName, req.dimensionValue,
+                                      req.extraDimensionName, req.extraDimensionValue)
+                : svc.analyze(req.program, req.country, a.fiscalYear);
+            return (r != null && r.status == CompetingGrantsResult.Status.FOUND) ? r : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Potential (Likely/Pipeline) opportunities that the stored Budget Line rollup does NOT reflect. */
+    private static List<CompetingGrant> potentialOpps(HeadroomAggregate a, CompetingGrantsResult cg) {
+        List<CompetingGrant> opps = new List<CompetingGrant>();
+        if (cg == null) { return opps; }
+        Decimal storedLP = nz(a.likelyFunding) + nz(a.pipelineFunding);
+        // Only surface potential the stored rollup understates (the stale-rollup condition). When the
+        // rollup already reflects the likely/pipeline funding, the existing stored-based wording stands.
+        if (nz(cg.combinedCompeting) <= storedLP) { return opps; }
+        for (CompetingGrant g : cg.grants) { if (g.isCompetingPipeline()) { opps.add(g); } }
+        return opps;
+    }
+
+    /**
+     * Secured funding plus any reconciled potential (Likely/Pipeline) funding the stored rollup
+     * missed. When there is genuinely none, falls back to the validated stored-field wording.
+     */
+    private static String securedAndPotential(HeadroomAggregate a, String iso,
+            List<CompetingGrant> potOpps, CompetingGrantsResult cg) {
+        if (potOpps.isEmpty()) { return fundingSentence(a, iso); }
+        Decimal potential = nz(cg.combinedCompeting);
+        String s = 'Around ' + AmaizeFormat.money(a.securedFunding, iso) + ' is currently secured. '
+            + (potOpps.size() == 1
+                ? 'There is also a potential Opportunity of approximately ' + AmaizeFormat.money(potential, iso)
+                    + ' currently in the pipeline'
+                : 'There are also ' + potOpps.size() + ' potential Opportunities totaling approximately '
+                    + AmaizeFormat.money(potential, iso));
+        if (potential > a.forecastHeadroom) {
+            s += ', which would exceed the available Headroom by about '
+                + AmaizeFormat.money(potential - a.forecastHeadroom, iso) + ' if secured at that amount';
+        }
+        return s + '.';
     }
 
     /**
@@ -236,10 +300,19 @@ public with sharing class AmaizeAnalyzeHeadroom {
 
     /** Contextual next step, chosen from the funding position — never the same generic line. */
     private static String followUpFor(HeadroomAggregate a, Decimal reducers) {
+        return followUpFor(a, reducers, new List<CompetingGrant>());
+    }
+    private static String followUpFor(HeadroomAggregate a, Decimal reducers, List<CompetingGrant> potOpps) {
         if (a.forecastHeadroom <= 0) {
             // No available Headroom (overfunded or fully funded): steer to alternatives, objectively.
             return 'Would you like to check ' + a.category + ' in other countries, or explore other programs in '
                 + a.country + ' that may have available Headroom?';
+        }
+        if (potOpps != null && !potOpps.isEmpty()) {
+            // We just surfaced potential Opportunity funding — offer to show it.
+            return potOpps.size() == 1
+                ? 'Would you like me to show the secured grants and the potential Opportunity?'
+                : 'Would you like me to show the secured grants and the potential Opportunities?';
         }
         if (materialReducers(reducers, a.securedHeadroom) && a.securedHeadroom > a.forecastHeadroom) {
             return 'Would you like me to show which pipeline Opportunities are consuming the remaining Headroom?';
