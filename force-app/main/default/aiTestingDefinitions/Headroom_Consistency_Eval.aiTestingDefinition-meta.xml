@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<AiTestingDefinition xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Headroom likely/pipeline narrative reconciles with Funding Allocations.</description>
+    <name>Headroom_Consistency_Eval</name>
+    <subjectName>A_maize_ing_Headroom</subjectName>
+    <subjectType>AGENT</subjectType>
+    <testCase>
+        <number>1</number>
+        <inputs>
+            <utterance>Can I raise funds for Uganda Market Access in 2028?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>headroom_analysis</expectedValue>
+        </scorer>
+    </testCase>
+    <testCase>
+        <number>2</number>
+        <inputs>
+            <utterance>Can you show me potential competing grants for Market Access in Uganda in 2028?</utterance>
+        </inputs>
+        <scorer>
+            <name>topic_sequence_match</name>
+            <expectedValue>competing_grants</expectedValue>
+        </scorer>
+    </testCase>
+</AiTestingDefinition>

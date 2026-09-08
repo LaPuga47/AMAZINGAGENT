@@ -35,6 +35,37 @@ private class AmaizeAnalyzeHeadroomTest {
         return AmaizeAnalyzeHeadroom.analyze(new List<AmaizeAnalyzeHeadroom.Request>{ r })[0];
     }
 
+    // §17 invariant: never claim "no likely or pipeline funding" when a qualifying Likely/Pipeline
+    // allocation exists for the same population — even when the stored Budget Line rollup is $0.
+    @isTest
+    static void likelyPipelineNarrativeReconcilesWithAllocations() {
+        Budget_Scenario__c s = [SELECT Id FROM Budget_Scenario__c WHERE Is_Current_Scenario__c = true LIMIT 1];
+        // Uganda Trees (no setup collision): stored Likely/Pipeline = 0, positive Headroom, but a
+        // directly-linked Likely allocation exists (mirrors the live Uganda Market Access stale rollup).
+        Budget_Line__c line = HeadroomTestData.makeLine(s.Id, 'Uganda', 'Farm Input Sales - UG', 'N/A', 'Trees',
+            'N/A', 'N/A', -500000, 100000, 0, 0);   // forecast HR +400k, stored likely/pipeline 0
+        HeadroomTestData.makeOppAllocations('Likely', new List<Id>{ line.Id }, 200000, 'Uganda', 'Farm Input Sales - UG');
+
+        Test.startTest();
+        AmaizeAnalyzeHeadroom.Result res = run(req('Trees', 'Uganda', 2027));
+        Test.stopTest();
+
+        System.assertEquals(true, res.found);
+        System.assert(!res.summary.contains('no likely or pipeline funding'),
+            'must not deny likely/pipeline when a qualifying Likely allocation exists: ' + res.summary);
+        System.assert(res.summary.containsIgnoreCase('potential') || res.summary.containsIgnoreCase('likely'),
+            'should surface the potential/likely funding: ' + res.summary);
+    }
+
+    // §10-12: every answer has a blank paragraph between the answer and the follow-up question.
+    @isTest
+    static void blankParagraphBeforeFollowUp() {
+        AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Kenya', 2027));
+        System.assertEquals(true, res.found);
+        System.assert(res.summary.contains('\n\n'), 'needs a blank paragraph before the follow-up: ' + res.summary);
+        System.assert(res.summary.trim().endsWith('?'), 'ends with a single follow-up question: ' + res.summary);
+    }
+
     @isTest
     static void coreProgramSumsAllQualifyingLines() {
         AmaizeAnalyzeHeadroom.Result res = run(req('Core Program', 'Kenya', 2027));

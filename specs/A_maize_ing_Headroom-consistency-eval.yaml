@@ -1,0 +1,15 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Consistency_Eval
+description: "Headroom likely/pipeline narrative reconciles with Funding Allocations."
+testCases:
+  - inputs:
+      - utterance: "Can I raise funds for Uganda Market Access in 2028?"
+    scorers:
+      - name: topic_sequence_match
+        expected: headroom_analysis
+  - inputs:
+      - utterance: "Can you show me potential competing grants for Market Access in Uganda in 2028?"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
