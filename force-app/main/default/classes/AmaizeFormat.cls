@@ -14,6 +14,19 @@ public with sharing class AmaizeFormat {
         return money(value, null);
     }
 
+    // Widen the gap before a trailing follow-up question to TWO blank lines, so the answer reads as
+    // complete before the agent asks what to do next. Only the final follow-up line (a single line
+    // ending in "?") is affected; section spacing and record links are untouched. NOTE: the
+    // Agentforce model/renderer collapses consecutive blank lines (and whitespace-only paragraphs)
+    // to a single paragraph break, so the emitted two blank lines may render as one gap — that is a
+    // platform limitation; a larger visible gap is not achievable without exposing markup.
+    private static final String GAP = '\n\n\n';
+    public static String spaceFollowUp(String summary) {
+        if (String.isBlank(summary)) { return summary; }
+        Matcher m = Pattern.compile('(?s)^(.*\\S)\\n{2,}([^\\n]*\\?)\\s*$').matcher(summary);
+        return m.matches() ? m.group(1) + GAP + m.group(2).trim() : summary;
+    }
+
     /**
      * Format a currency amount, preserving the record's currency. USD (or a blank
      * ISO code) renders with a "$" the way the brief shows it; any other currency is

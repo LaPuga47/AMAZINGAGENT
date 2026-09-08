@@ -46,7 +46,9 @@ public with sharing class AmaizeFindCompetingGrants {
         List<Result> results = new List<Result>();
         CompetingGrantsService service = new CompetingGrantsService();
         for (Request req : requests) {
-            results.add(answerOne(req, service));
+            Result res = answerOne(req, service);
+            res.summary = AmaizeFormat.spaceFollowUp(res.summary);
+            results.add(res);
         }
         return results;
     }
