@@ -53,7 +53,9 @@ public with sharing class AmaizeAnalyzeHeadroom {
         List<Result> results = new List<Result>();
         HeadroomService service = new HeadroomService();
         for (Request req : requests) {
-            results.add(answerOne(req, service));
+            Result res = answerOne(req, service);
+            res.summary = AmaizeFormat.spaceFollowUp(res.summary);
+            results.add(res);
         }
         return results;
     }

@@ -104,7 +104,9 @@ public with sharing class AmaizeGetOpportunityContext {
         }
 
         for (Request req : requests) {
-            results.add(answerOne(req, oppById, pairsByOpp));
+            Result res = answerOne(req, oppById, pairsByOpp);
+            res.summary = AmaizeFormat.spaceFollowUp(res.summary);
+            results.add(res);
         }
         return results;
     }

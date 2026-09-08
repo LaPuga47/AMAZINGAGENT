@@ -38,7 +38,9 @@ public with sharing class AmaizePortfolioRisks {
         List<Result> results = new List<Result>();
         PortfolioHeadroomService svc = new PortfolioHeadroomService();
         for (Request req : requests) {
-            results.add(answerOne(req, svc));
+            Result res = answerOne(req, svc);
+            res.summary = AmaizeFormat.spaceFollowUp(res.summary);
+            results.add(res);
         }
         return results;
     }

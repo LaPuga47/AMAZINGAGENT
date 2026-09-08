@@ -1,0 +1,42 @@
+{
+  "required" : [ ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "category" : {
+      "title" : "Category",
+      "description" : "Optional governed Headroom category to limit to, e.g. Core Program, Trees.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "country" : {
+      "title" : "Country",
+      "description" : "Optional country to narrow the ranking.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "fiscalYear" : {
+      "title" : "Fiscal Year",
+      "description" : "Fiscal year, e.g. 2029. Defaults to the current scenario when omitted.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "metric" : {
+      "title" : "Metric",
+      "description" : "What to rank by: largest funding gap / most headroom (default, forecast headroom), over-allocated (most over-funded), or secured headroom.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    },
+    "topN" : {
+      "title" : "Top N",
+      "description" : "How many program groups to return; default 8. Pass the user's requested limit (e.g. top 3) when they give one.",
+      "lightning:type" : "lightning__integerType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}

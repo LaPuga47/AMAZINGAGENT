@@ -1,0 +1,14 @@
+{
+  "required" : [ "opportunityName" ],
+  "unevaluatedProperties" : false,
+  "properties" : {
+    "opportunityName" : {
+      "title" : "Opportunity Name",
+      "description" : "The grant/opportunity to analyze competition for, e.g. the name the user quoted.",
+      "lightning:type" : "lightning__textType",
+      "lightning:isPII" : false,
+      "copilotAction:isUserInput" : false
+    }
+  },
+  "lightning:type" : "lightning__objectType"
+}
