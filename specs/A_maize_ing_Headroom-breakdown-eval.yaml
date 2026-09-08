@@ -1,0 +1,15 @@
+subjectType: AGENT
+subjectName: A_maize_ing_Headroom
+name: Headroom_Breakdown_Eval
+description: "Grant breakdown shows both SECURED and LIKELY/PIPELINE sections."
+testCases:
+  - inputs:
+      - utterance: "Show me the funding allocations for Trees in Kenya in 2028, both secured and pipeline"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants
+  - inputs:
+      - utterance: "Show me the funding allocations for Market Access in Uganda in 2028, secured and pipeline"
+    scorers:
+      - name: topic_sequence_match
+        expected: competing_grants

@@ -156,6 +156,28 @@ private class AmaizeGetAllocationsTest {
     }
 
     @isTest
+    static void pipelineFilterIncludesLikelyAllocations() {
+        // The regression: a "Pipeline" filter must return the whole not-yet-secured bucket
+        // (Likely AND Pipeline) — a Likely allocation must not be dropped by asking for "pipeline".
+        Id line = coreLineIds()[0];
+        HeadroomTestData.makeAllocations(new List<HeadroomTestData.AllocSpec>{
+            new HeadroomTestData.AllocSpec('Secured', 30000),
+            new HeadroomTestData.AllocSpec('Likely', 8000)
+        }, line, 'Kenya', 'Core Program - KE');
+
+        Test.startTest();
+        AmaizeGetAllocations.Request r = req('Core Program', 'Kenya', 2027);
+        r.allocationType = 'Pipeline';
+        AmaizeGetAllocations.Result res = run(r);
+        Test.stopTest();
+
+        // The Likely allocation is included under LIKELY / PIPELINE; the Secured one is excluded.
+        System.assertEquals(1, res.matchCount, 'Likely allocation must be kept by a Pipeline filter: ' + res.summary);
+        System.assert(res.summary.contains('**LIKELY / PIPELINE**'), res.summary);
+        System.assert(!res.summary.contains('**SECURED**'), 'Secured excluded when filtering to the potential bucket: ' + res.summary);
+    }
+
+    @isTest
     static void noAllocationsIsReportedNotFabricated() {
         // Lines exist (from setup) but no allocations were created.
         AmaizeGetAllocations.Result res = run(req('Core Program', 'Kenya', 2027));
